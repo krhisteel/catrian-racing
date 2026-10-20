@@ -34,13 +34,17 @@
                 <div class="mega" id="mega"></div>
             </div>
             <a href="#tienda">Tienda</a>
-            <a href="#taller">Taller</a>
-            <a href="#galeria">Galería</a>
-            <a href="#testimonios">Opiniones</a>
-            <a href="#ayuda">Ayuda</a>
-            <a href="#contacto">Contacto</a>
+            <a href="#taller" class="nav-mid">Taller</a>
+            <a href="#galeria" class="nav-wide">Galería</a>
+            <a href="#testimonios" class="nav-wide">Opiniones</a>
+            <a href="#ayuda" class="nav-mid">Ayuda</a>
+            <a href="#seguimiento" class="nav-mobile-only">Mi pedido</a>
+            <a href="#contacto" class="nav-narrow">Contacto</a>
         </nav>
         <div class="header-actions">
+        <a href="#seguimiento" class="cart-btn track-btn" aria-label="Seguir mi pedido" title="Seguir mi pedido">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>
+        </a>
         <button type="button" class="cart-btn" id="fav-open" aria-label="Ver favoritos">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-9.2-8.6C1.2 8.2 3 4.5 6.6 4.5c2.1 0 3.4 1.2 4.4 2.6h2c1-1.4 2.3-2.6 4.4-2.6 3.6 0 5.4 3.7 3.8 6.9C19 15.6 12 20 12 20z"/></svg>
             <span class="cart-count" id="fav-count">0</span>
@@ -445,7 +449,11 @@
                 </details>
                 <details>
                     <summary>¿Qué medios de pago aceptan?</summary>
-                    <p>Transferencia bancaria, tarjetas de débito y crédito (te enviamos un link de pago) y efectivo al retirar en tienda.</p>
+                    <p>Si retiras en tienda: transferencia bancaria, tarjeta de débito o crédito (te enviamos un link de pago) o efectivo al retirar. El despacho a domicilio se paga solo con tarjeta de débito o crédito.</p>
+                </details>
+                <details>
+                    <summary>¿Cómo sigo mi pedido?</summary>
+                    <p>Entra a «Mi pedido» y escribe tu número de pedido (por ejemplo CR-1A2B3C) y los últimos 4 dígitos de tu teléfono. Verás en qué etapa está y, cuando lo despachemos, la empresa de transporte y el número de seguimiento. También te lo enviamos por WhatsApp.</p>
                 </details>
                 <details>
                     <summary>¿Hacen envíos a regiones?</summary>
@@ -568,6 +576,7 @@
             <nav aria-label="Ayuda">
                 <h3>Ayuda</h3>
                 <a href="#como-comprar">Cómo comprar</a>
+                <a href="#seguimiento">Seguir mi pedido</a>
                 <a href="#ayuda">Preguntas frecuentes</a>
                 <a href="#mayoristas">Venta por mayor</a>
                 <a href="politicas.html#envios">Envíos y entregas</a>
@@ -651,9 +660,10 @@
             </fieldset>
             <fieldset>
                 <legend>Pago</legend>
-                <label class="radio"><input type="radio" name="payment" value="Transferencia bancaria" checked> Transferencia bancaria</label>
+                <label class="radio pay-pickup"><input type="radio" name="payment" value="Transferencia bancaria" checked> Transferencia bancaria</label>
                 <label class="radio"><input type="radio" name="payment" value="Tarjeta de débito o crédito (link de pago)"> Débito o crédito <em>Link de pago</em></label>
-                <label class="radio"><input type="radio" name="payment" value="Efectivo al retirar"> Efectivo al retirar</label>
+                <label class="radio pay-pickup"><input type="radio" name="payment" value="Efectivo al retirar"> Efectivo al retirar</label>
+                <p class="pay-note" id="pay-note" hidden>El despacho a domicilio se paga solo con tarjeta de débito o crédito: te enviamos un link de pago seguro.</p>
             </fieldset>
             <label for="co-notes">Notas del pedido (opcional)</label>
             <textarea id="co-notes" name="notes" rows="2"></textarea>
@@ -680,6 +690,8 @@
             <h3>¡Pedido enviado!</h3>
             <p>Te responderemos por WhatsApp para confirmar stock, total y datos de pago.</p>
             <p class="done-ref">Pedido <strong id="done-ref"></strong></p>
+            <p class="done-track">Guarda este número: con él y los últimos 4 dígitos de tu teléfono puedes ver el estado de tu pedido.</p>
+            <a href="#seguimiento" class="btn btn-primary" id="done-track">Seguir mi pedido</a>
             <button type="button" class="btn btn-ghost" data-close-cart>Seguir comprando</button>
         </div>
     </aside>
@@ -729,6 +741,27 @@
             <div class="pdp-related" id="pm-related"></div>
         </div>
         <div class="pdp-bar" id="pm-bar"></div>
+    </div>
+
+    <div class="modal track-modal" id="track-modal" role="dialog" aria-modal="true" aria-labelledby="track-title" hidden>
+        <div class="modal-box track-box">
+            <button type="button" class="icon-btn modal-close" id="track-close" aria-label="Cerrar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+            <span class="section-tag">Seguimiento</span>
+            <h2 id="track-title">Sigue tu pedido</h2>
+            <form class="track-form" id="track-form" novalidate>
+                <label>N° de pedido
+                    <input name="ref" id="track-ref" placeholder="CR-1A2B3C" autocapitalize="characters" spellcheck="false" required>
+                </label>
+                <label>Últimos 4 dígitos de tu teléfono
+                    <input name="phone" id="track-phone" inputmode="numeric" maxlength="12" placeholder="1234" required>
+                </label>
+                <button type="submit" class="btn btn-primary">Buscar</button>
+            </form>
+            <p class="form-error" id="track-error" role="alert"></p>
+            <div class="track-result" id="track-result" hidden></div>
+        </div>
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>

@@ -458,7 +458,9 @@
         main.appendChild(title);
         var who = el('span', 'row-col');
         who.appendChild(el('span', '', o.name));
-        who.appendChild(el('span', 'row-sub', o.delivery === 'despacho' ? 'Despacho · ' + (o.commune || '') : 'Retiro en tienda'));
+        who.appendChild(el('span', 'row-sub', o.delivery === 'despacho'
+            ? 'Despacho · ' + (o.commune || '') + (o.tracking_number ? ' · 🚚 ' + (o.courier || '') + ' ' + o.tracking_number : '')
+            : 'Retiro en tienda'));
         main.appendChild(who);
         var total = el('span', 'row-col row-money', money(o.total) + (o.shipping_pending ? ' + envío' : ''));
         main.appendChild(total);
@@ -536,13 +538,62 @@
         totalRow(items, 'Total', money(o.total) + (o.shipping_pending ? ' + envío' : ''), true);
         body.appendChild(items);
 
-        var notes = input('textarea', o.admin_notes || '', { rows: 3, placeholder: 'Ej: pagó por transferencia, enviado por Starken N° 123...' });
+        // Envío y seguimiento
+        var track = el('div', 'detail-block');
+        track.appendChild(el('h3', '', o.delivery === 'despacho' ? 'Envío y seguimiento' : 'Seguimiento'));
+        var courier = null;
+        var trackNumber = null;
+        var trackUrl = null;
+        if (o.delivery === 'despacho') {
+            courier = input('text', o.courier || '', { list: 'dl-couriers', placeholder: 'Ej: Starken', maxlength: 60 });
+            trackNumber = input('text', o.tracking_number || '', { placeholder: 'N° de seguimiento u orden de flete', maxlength: 80 });
+            trackUrl = input('url', o.tracking_url || '', { placeholder: 'https://... (opcional)' });
+            track.appendChild(datalist('dl-couriers', ['Starken', 'Chilexpress', 'Blue Express', 'Correos de Chile', '99minutos', 'Despacho propio']));
+            var tgrid = el('div', 'form-grid');
+            tgrid.appendChild(field('Empresa de transporte', courier));
+            tgrid.appendChild(field('N° de seguimiento', trackNumber));
+            track.appendChild(tgrid);
+            track.appendChild(field('Enlace de seguimiento de la empresa (opcional)', trackUrl));
+        }
+        var link = trackingPageUrl(o.ref);
+        var linkRow = el('p', 'admin-help');
+        linkRow.appendChild(document.createTextNode('El cliente ve su pedido en '));
+        var linkA = el('a', '', 'Mi pedido');
+        linkA.href = link;
+        linkA.target = '_blank';
+        linkA.rel = 'noopener';
+        linkRow.appendChild(linkA);
+        linkRow.appendChild(document.createTextNode(' con el N° ' + o.ref + ' y los últimos 4 dígitos de su teléfono.'));
+        track.appendChild(linkRow);
+        var sendTrack = button('Enviar seguimiento por WhatsApp', 'btn btn-sm btn-primary', function () {
+            var lines = ['Hola ' + o.name + '! Te escribimos de Catrian Racing.', ''];
+            lines.push('Tu pedido ' + o.ref + ' está: ' + trackingStatusLabel(status.value, o.delivery) + '.');
+            if (courier && courier.value.trim()) lines.push('Empresa de transporte: ' + courier.value.trim());
+            if (trackNumber && trackNumber.value.trim()) lines.push('N° de seguimiento: ' + trackNumber.value.trim());
+            if (trackUrl && /^https:\/\//.test(trackUrl.value.trim())) lines.push('Rastrea el envío aquí: ' + trackUrl.value.trim());
+            lines.push('');
+            lines.push('Puedes ver el estado de tu pedido en: ' + link);
+            lines.push('(Usa los últimos 4 dígitos de tu teléfono.)');
+            window.open('https://wa.me/' + waPhone(o.phone) + '?text=' + encodeURIComponent(lines.join('\n')), '_blank', 'noopener');
+        });
+        track.appendChild(sendTrack);
+        body.appendChild(track);
+
+        var notes = input('textarea', o.admin_notes || '', { rows: 3, placeholder: 'Ej: pagó con link de pago, cliente pidió llamar antes de entregar...' });
         body.appendChild(field('Notas internas (solo las ves tú)', notes));
 
         var actions = el('div', 'side-actions');
         actions.appendChild(button('Guardar cambios', 'btn btn-sm btn-primary', async function () {
             var patch = { admin_notes: notes.value.trim() || null };
             if (status.value !== o.status) patch.status = status.value;
+            if (courier) {
+                var url = trackUrl.value.trim();
+                if (url && !/^https:\/\//.test(url)) return toast('El enlace de seguimiento debe empezar con https://', true);
+                patch.courier = courier.value.trim() || null;
+                patch.tracking_number = trackNumber.value.trim() || null;
+                patch.tracking_url = url || null;
+                if (patch.status === 'enviado' && !patch.tracking_number && !confirm('Vas a marcar el pedido como enviado sin número de seguimiento. ¿Continuar?')) return;
+            }
             if (await updateOrder(o, patch)) closeSide();
         }));
         var wa = el('a', 'btn btn-sm btn-ghost', 'WhatsApp al cliente');
@@ -561,6 +612,22 @@
             } catch (e) { toast(e.message, true); }
         }));
         body.appendChild(actions);
+    }
+
+    function trackingPageUrl(ref) {
+        return new URL('index.html', location.href).href.split('#')[0] + '#seguimiento/' + ref;
+    }
+
+    function trackingStatusLabel(status, delivery) {
+        var pickup = delivery === 'retiro';
+        return {
+            nuevo: 'recibido',
+            confirmado: 'confirmado',
+            pagado: 'pagado',
+            enviado: pickup ? 'listo para retiro en tienda' : 'en camino',
+            entregado: pickup ? 'retirado' : 'entregado',
+            cancelado: 'cancelado'
+        }[status] || status;
     }
 
     function detail(parent, label, value) {

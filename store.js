@@ -60,10 +60,46 @@
             fits: STREET.concat(OFFROAD)
         },
         {
-            id: 'neumatico', name: 'Neumático', cat: 'Repuestos', sub: 'Neumáticos', brand: 'Dunlop', price: 69990, stock: 9, freeShip: true,
-            img: 'img/productos/neumatico.svg', images: ['img/productos/neumatico.svg', 'img/productos/neumatico-2.svg'],
-            desc: 'Calle, pista y off-road. Todas las marcas.',
-            options: { name: 'Medida', values: ['110/70-17', '140/70-17', '90/90-21', '120/80-18'] }
+            id: 'neumatico-dunlop-110-70-17', name: 'Neumático Dunlop Calle 110/70-17', cat: 'Repuestos', sub: 'Neumáticos', brand: 'Dunlop', price: 54990, stock: 8, freeShip: true,
+            img: 'img/productos/neumatico-dunlop-110-70-17.svg', images: ['img/productos/neumatico-dunlop-110-70-17.svg', 'img/productos/neumatico-dunlop-110-70-17-2.svg'],
+            desc: 'Neumático de calle con buen agarre en seco y mojado, ideal para uso diario.',
+            specs: [['Medida', '110/70-17'], ['Uso', 'Calle'], ['Posición', 'Delantero'], ['Construcción', 'Radial'], ['Índice de carga y velocidad', '54H']],
+            fits: ['honda-cb190r', 'yamaha-fz25', 'suzuki-gixxer150', 'bajaj-ns200', 'kawasaki-ninja400', 'ktm-duke390']
+        },
+        {
+            id: 'neumatico-michelin-140-70-17', name: 'Neumático Michelin Sport 140/70-17', cat: 'Repuestos', sub: 'Neumáticos', brand: 'Michelin', price: 89990, stock: 5, badge: 'Más vendido', freeShip: true,
+            img: 'img/productos/neumatico-michelin-140-70-17.svg', images: ['img/productos/neumatico-michelin-140-70-17.svg', 'img/productos/neumatico-michelin-140-70-17-2.svg'],
+            desc: 'Compuesto deportivo de alto agarre para calle rápida y track days.',
+            specs: [['Medida', '140/70-17'], ['Uso', 'Deportivo'], ['Posición', 'Trasero'], ['Construcción', 'Radial'], ['Índice de carga y velocidad', '66H']],
+            fits: ['honda-cb190r', 'yamaha-fz25', 'bajaj-ns200', 'kawasaki-ninja400']
+        },
+        {
+            id: 'neumatico-pirelli-150-60-17', name: 'Neumático Pirelli Racing 150/60-17', cat: 'Repuestos', sub: 'Neumáticos', brand: 'Pirelli', price: 119990, stock: 3, compare: 134990, freeShip: true,
+            img: 'img/productos/neumatico-pirelli-150-60-17.svg', images: ['img/productos/neumatico-pirelli-150-60-17.svg', 'img/productos/neumatico-pirelli-150-60-17-2.svg'],
+            desc: 'Compuesto deportivo de alto agarre para calle rápida y track days.',
+            specs: [['Medida', '150/60-17'], ['Uso', 'Deportivo'], ['Posición', 'Trasero'], ['Construcción', 'Radial'], ['Índice de carga y velocidad', '66W']],
+            fits: ['kawasaki-ninja400', 'ktm-duke390']
+        },
+        {
+            id: 'neumatico-metzeler-90-90-21', name: 'Neumático Metzeler Enduro 90/90-21', cat: 'Repuestos', sub: 'Neumáticos', brand: 'Metzeler', price: 79990, stock: 6,
+            img: 'img/productos/neumatico-metzeler-90-90-21.svg', images: ['img/productos/neumatico-metzeler-90-90-21.svg', 'img/productos/neumatico-metzeler-90-90-21-2.svg'],
+            desc: 'Tacos profundos para tierra, barro y ripio. Gran tracción fuera del camino.',
+            specs: [['Medida', '90/90-21'], ['Uso', 'Off-road'], ['Posición', 'Delantero'], ['Construcción', 'Diagonal'], ['Índice de carga y velocidad', '54R']],
+            fits: ['honda-xr150l', 'yamaha-xtz250', 'suzuki-dr650', 'ktm-exc300']
+        },
+        {
+            id: 'neumatico-kenda-110-100-18', name: 'Neumático Kenda MX 110/100-18', cat: 'Repuestos', sub: 'Neumáticos', brand: 'Kenda', price: 49990, stock: 0,
+            img: 'img/productos/neumatico-kenda-110-100-18.svg', images: ['img/productos/neumatico-kenda-110-100-18.svg', 'img/productos/neumatico-kenda-110-100-18-2.svg'],
+            desc: 'Tacos profundos para tierra, barro y ripio. Gran tracción fuera del camino.',
+            specs: [['Medida', '110/100-18'], ['Uso', 'Off-road'], ['Posición', 'Trasero'], ['Construcción', 'Diagonal'], ['Índice de carga y velocidad', '64M']],
+            fits: ['yamaha-xtz250', 'suzuki-dr650', 'ktm-exc300']
+        },
+        {
+            id: 'neumatico-irc-130-70-13', name: 'Neumático IRC Scooter 130/70-13', cat: 'Repuestos', sub: 'Neumáticos', brand: 'IRC', price: 44990, stock: 10,
+            img: 'img/productos/neumatico-irc-130-70-13.svg', images: ['img/productos/neumatico-irc-130-70-13.svg', 'img/productos/neumatico-irc-130-70-13-2.svg'],
+            desc: 'Neumático urbano para scooter, cómodo y de larga duración.',
+            specs: [['Medida', '130/70-13'], ['Uso', 'Scooter'], ['Posición', 'Trasero'], ['Construcción', 'Diagonal'], ['Índice de carga y velocidad', '63P']],
+            fits: ['honda-pcx160', 'yamaha-nmax155']
         },
         {
             id: 'bateria', name: 'Batería 12V', cat: 'Repuestos', sub: 'Baterías', brand: 'Yuasa', price: 34990, stock: 6,
@@ -122,36 +158,36 @@
             fits: SCOOTER
         },
         {
-            id: 'casco', name: 'Casco integral', cat: 'Equipamiento', brand: 'LS2', price: 129990, compare: 159990, stock: 5, freeShip: true,
+            id: 'casco', name: 'Casco integral', cat: 'Equipamiento', sub: 'Cascos', brand: 'LS2', price: 129990, compare: 159990, stock: 5, freeShip: true,
             img: 'img/productos/casco.svg', images: ['img/productos/casco.svg', 'img/productos/casco-2.svg'],
             desc: 'Certificación DOT/ECE, visor antiempañante.',
             options: { name: 'Talla', values: ['S', 'M', 'L', 'XL'] }
         },
         {
-            id: 'chaqueta', name: 'Chaqueta con protecciones', cat: 'Equipamiento', brand: 'Alpinestars', price: 149990, stock: 4, badge: 'Nuevo', freeShip: true,
+            id: 'chaqueta', name: 'Chaqueta con protecciones', cat: 'Equipamiento', sub: 'Chaquetas', brand: 'Alpinestars', price: 149990, stock: 4, badge: 'Nuevo', freeShip: true,
             img: 'img/productos/chaqueta.svg', images: ['img/productos/chaqueta.svg', 'img/productos/chaqueta-2.svg'],
             desc: 'Textil ventilada con protecciones en codos y hombros.',
             options: { name: 'Talla', values: ['S', 'M', 'L', 'XL'] }
         },
         {
-            id: 'guantes', name: 'Guantes racing', cat: 'Equipamiento', brand: 'Alpinestars', price: 29990, stock: 12,
+            id: 'guantes', name: 'Guantes racing', cat: 'Equipamiento', sub: 'Guantes', brand: 'Alpinestars', price: 29990, stock: 12,
             img: 'img/productos/guantes.svg', images: ['img/productos/guantes.svg', 'img/productos/guantes-2.svg'],
             desc: 'Cuero con refuerzos en nudillos y palma.',
             options: { name: 'Talla', values: ['S', 'M', 'L', 'XL'] }
         },
         {
-            id: 'candado', name: 'Candado de disco', cat: 'Accesorios', brand: 'Kovix', price: 24990, stock: 2,
+            id: 'candado', name: 'Candado de disco', cat: 'Accesorios', sub: 'Seguridad', brand: 'Kovix', price: 24990, stock: 2,
             img: 'img/productos/candado.svg', images: ['img/productos/candado.svg', 'img/productos/candado-2.svg'],
             desc: 'Acero reforzado con alarma de 110 dB.'
         },
         {
-            id: 'escape', name: 'Escape deportivo', cat: 'Accesorios', brand: 'Akrapovič', price: 189990, stock: 0,
+            id: 'escape', name: 'Escape deportivo', cat: 'Accesorios', sub: 'Escapes', brand: 'Akrapovič', price: 189990, stock: 0,
             img: 'img/productos/escape.svg', images: ['img/productos/escape.svg', 'img/productos/escape-2.svg'],
             desc: 'Silenciador de acero inoxidable, sonido racing.',
             fits: ['kawasaki-ninja400', 'ktm-duke390', 'yamaha-fz25']
         },
         {
-            id: 'soporte-celular', name: 'Soporte de celular', cat: 'Accesorios', brand: 'Quad Lock', price: 14990, compare: 18990, stock: 20,
+            id: 'soporte-celular', name: 'Soporte de celular', cat: 'Accesorios', sub: 'Electrónica', brand: 'Quad Lock', price: 14990, compare: 18990, stock: 20,
             img: 'img/productos/soporte-celular.svg', images: ['img/productos/soporte-celular.svg', 'img/productos/soporte-celular-2.svg'],
             desc: 'Montaje a manubrio con amortiguación de vibraciones.'
         }
@@ -174,7 +210,7 @@
     var PAGE_SIZE = 9;
     var MOTO_KEY = 'catrian-moto';
 
-    var state = { cat: 'all', sub: '', brand: '', vehicle: '', query: '', sort: 'featured', onlySale: false, onlyStock: false, coupon: null, couponPercent: 0, limit: PAGE_SIZE };
+    var state = { cat: 'all', sub: '', brand: '', vehicle: '', query: '', sort: 'featured', onlySale: false, onlyStock: false, coupon: null, couponPercent: 0, limit: PAGE_SIZE, collection: null, facets: {} };
     var cart = loadCart();
     var favs = loadList(FAVS_KEY);
     var recent = loadList(RECENT_KEY);
@@ -348,6 +384,7 @@
             if (state.onlySale && !p.compare) return false;
             if (state.onlyStock && soldOut(p)) return false;
             if (state.sub && p.sub !== state.sub) return false;
+            if (!matchesFacets(p)) return false;
             if (state.brand && p.brand !== state.brand) return false;
             if (state.vehicle && (p.quote || (p.fits && p.fits.indexOf(state.vehicle) === -1))) return false;
             return !q || normalize(p.name + ' ' + p.desc + ' ' + p.cat + ' ' + (p.sub || '') + ' ' + (p.brand || '')).indexOf(q) !== -1;
@@ -381,7 +418,9 @@
         card.appendChild(favButton(p));
 
         var body = el('div', 'card-body');
-        body.appendChild(el('span', 'product-cat', [p.sub || p.cat, p.brand].filter(Boolean).join(' · ')));
+        var catLink = el('a', 'product-cat', [p.sub || p.cat, p.brand].filter(Boolean).join(' · '));
+        catLink.href = collectionHash(p.cat, p.sub);
+        body.appendChild(catLink);
         body.appendChild(el('h3', '', p.name));
         body.appendChild(el('p', 'card-desc', p.desc));
         if (state.vehicle && p.fits) body.appendChild(el('p', 'fit-ok', '✓ Compatible con tu ' + vehicleName(state.vehicle)));
@@ -445,33 +484,24 @@
         state.limit = PAGE_SIZE;
     }
 
-    function renderSubChips() {
-        var wrap = $('shop-subs');
+    function subsOf(cat) {
         var subs = [];
         products.forEach(function (p) {
-            if (p.sub && p.cat === 'Repuestos' && subs.indexOf(p.sub) === -1) subs.push(p.sub);
+            if (p.cat === cat && p.sub && subs.indexOf(p.sub) === -1) subs.push(p.sub);
         });
-        wrap.hidden = state.cat !== 'Repuestos';
-        if (wrap.hidden || wrap.childElementCount) {
-            wrap.querySelectorAll('.chip').forEach(function (c) {
-                var on = c.dataset.sub === state.sub;
-                c.classList.toggle('active', on);
-                c.setAttribute('aria-pressed', on ? 'true' : 'false');
-            });
-            return;
-        }
+        return subs;
+    }
+
+    function renderSubChips() {
+        var wrap = $('shop-subs');
+        var cat = state.cat;
+        var subs = CATEGORY_LIST.indexOf(cat) !== -1 ? subsOf(cat) : [];
+        wrap.textContent = '';
+        wrap.hidden = !subs.length;
         [''].concat(subs).forEach(function (sub) {
-            var c = el('button', 'chip chip-sub', sub || 'Todos los repuestos');
-            c.type = 'button';
-            c.dataset.sub = sub;
-            c.classList.toggle('active', sub === state.sub);
-            c.addEventListener('click', function () {
-                withTransition(function () {
-                    state.sub = sub;
-                    resetPage();
-                    renderProducts();
-                });
-            });
+            var c = el('a', 'chip chip-sub' + (sub === state.sub && state.collection ? ' active' : ''), sub || 'Todo ' + cat.toLowerCase());
+            c.href = collectionHash(cat, sub);
+            if (sub === state.sub && state.collection) c.setAttribute('aria-current', 'page');
             wrap.appendChild(c);
         });
     }
@@ -557,8 +587,247 @@
     }
 
     function goToShop(cat) {
+        if (state.collection) {
+            history.replaceState(null, '', '#tienda');
+            exitCollection();
+        }
         setCat(cat);
         $('tienda').scrollIntoView();
+    }
+
+    /* ===== PÁGINAS DE CATEGORÍA Y SUBCATEGORÍA ===== */
+    var CATEGORY_LIST = ['Motos', 'Repuestos', 'Equipamiento', 'Accesorios'];
+    var DESCRIPTIONS = {
+        'Motos': 'Motos nuevas listas para entregar. Cotiza la tuya y te contamos de disponibilidad y financiamiento.',
+        'Repuestos': 'Repuestos de mantención y desgaste para calle, off-road y scooter. Busca por tu moto y compra con despacho a todo Chile.',
+        'Equipamiento': 'Cascos, chaquetas y guantes para rodar seguro, con tallas para todos.',
+        'Accesorios': 'Accesorios para proteger, personalizar y equipar tu moto.',
+        'Neumáticos': 'Neumáticos para calle, deportivos, off-road y scooter. Filtra por medida, uso y posición para encontrar el tuyo.',
+        'Frenos': 'Pastillas y repuestos de frenos para frenar con seguridad en calle y pista.',
+        'Filtros': 'Filtros de aceite y aire para cada mantención.',
+        'Baterías': 'Baterías selladas libres de mantención para que tu moto parta siempre.',
+        'Encendido': 'Bujías y repuestos de encendido para un motor que responde.',
+        'Aceites y lubricantes': 'Aceites de motor y lubricantes para cadena.',
+        'Transmisión': 'Kits de arrastre, cadenas y correas de transmisión.',
+        'Suspensión': 'Retenes y repuestos para mantener la suspensión como nueva.',
+        'Cascos': 'Cascos certificados para ciudad, ruta y pista.',
+        'Chaquetas': 'Chaquetas con protecciones para rodar cómodo y seguro.',
+        'Guantes': 'Guantes con refuerzos para calle y pista.',
+        'Seguridad': 'Candados y alarmas para proteger tu moto.',
+        'Escapes': 'Escapes deportivos para más sonido y estilo.',
+        'Electrónica': 'Soportes y accesorios electrónicos para tu moto.'
+    };
+    var FACET_SKIP = ['Índice de carga y velocidad'];
+
+    function collectionHash(cat, sub) {
+        return '#c/' + encodeURIComponent(cat) + (sub ? '/' + encodeURIComponent(sub) : '');
+    }
+
+    function parseCollection() {
+        var m = /^#c\/([^/]+)(?:\/(.+))?$/.exec(location.hash);
+        if (!m) return null;
+        try {
+            return { cat: decodeURIComponent(m[1]), sub: m[2] ? decodeURIComponent(m[2]) : '' };
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function matchesFacets(p) {
+        return Object.keys(state.facets).every(function (key) {
+            var want = state.facets[key];
+            if (!want) return true;
+            return (p.specs || []).some(function (s) { return s[0] === key && s[1] === want; });
+        });
+    }
+
+    function enterCollection(cat, sub) {
+        if (CATEGORY_LIST.indexOf(cat) === -1) {
+            exitCollection();
+            return;
+        }
+        if (sub && subsOf(cat).indexOf(sub) === -1) sub = '';
+        var changed = !state.collection || state.collection.cat !== cat || state.collection.sub !== sub;
+        state.collection = { cat: cat, sub: sub };
+        state.cat = cat;
+        state.sub = sub;
+        if (changed) {
+            state.facets = {};
+            state.brand = '';
+            $('shop-brand').value = '';
+            resetPage();
+        }
+        document.body.classList.add('collection-mode');
+        $('collection-head').hidden = false;
+        renderCollectionHead();
+        renderProducts();
+        document.title = (sub || cat) + ' | Catrian Racing';
+        if (changed) window.scrollTo(0, 0);
+    }
+
+    function exitCollection() {
+        if (!state.collection) return;
+        state.collection = null;
+        state.facets = {};
+        state.sub = '';
+        document.body.classList.remove('collection-mode');
+        $('collection-head').hidden = true;
+        $('facets').hidden = true;
+        document.title = 'Catrian Racing | Motos, Repuestos y Taller';
+        setCat('all');
+    }
+
+    function renderCollectionHead() {
+        var c = state.collection;
+        var inView = products.filter(function (p) { return p.cat === c.cat && (!c.sub || p.sub === c.sub); });
+
+        var crumbs = $('col-crumbs');
+        crumbs.textContent = '';
+        var trail = [['Inicio', '#inicio'], ['Tienda', '#tienda']];
+        if (c.sub) trail.push([c.cat, collectionHash(c.cat)]);
+        trail.forEach(function (t) {
+            var a = el('a', 'crumb', t[0]);
+            a.href = t[1];
+            crumbs.appendChild(a);
+            crumbs.appendChild(el('span', 'crumb-sep', '›'));
+        });
+        crumbs.appendChild(el('span', 'crumb current', c.sub || c.cat));
+
+        $('col-tag').textContent = c.sub ? c.cat : 'Categoría';
+        $('col-title').textContent = c.sub || c.cat;
+        $('col-desc').textContent = DESCRIPTIONS[c.sub || c.cat] || 'Encuentra ' + (c.sub || c.cat).toLowerCase() + ' con despacho a todo Chile y retiro gratis en tienda.';
+        var available = inView.filter(function (p) { return !soldOut(p); }).length;
+        $('col-count').textContent = inView.length + (inView.length === 1 ? ' producto' : ' productos') + ' · ' + available + ' disponibles';
+
+        var art = $('col-art');
+        art.textContent = '';
+        inView.filter(function (p) { return productImages(p).length; }).slice(0, 3).forEach(function (p, i) {
+            var bubble = el('span', 'col-bubble b' + i + (isStudio(p) ? ' studio' : ''));
+            productImage(p, bubble);
+            art.appendChild(bubble);
+        });
+
+        var tiles = $('col-subs');
+        tiles.textContent = '';
+        var subs = c.sub ? [] : subsOf(c.cat);
+        tiles.hidden = !subs.length;
+        if (subs.length) {
+            tiles.appendChild(el('h2', 'col-subs-title', 'Compra por subcategoría'));
+            var grid = el('div', 'col-subs-grid');
+            subs.forEach(function (sub) {
+                var items = products.filter(function (p) { return p.cat === c.cat && p.sub === sub; });
+                var a = el('a', 'col-tile');
+                a.href = collectionHash(c.cat, sub);
+                var media = el('span', 'col-tile-media' + (isStudio(items[0]) ? ' studio' : ''));
+                var withImg = items.filter(function (p) { return productImages(p).length; })[0];
+                if (withImg) productImage(withImg, media);
+                a.appendChild(media);
+                a.appendChild(el('strong', '', sub));
+                a.appendChild(el('span', '', items.length + (items.length === 1 ? ' producto' : ' productos')));
+                grid.appendChild(a);
+            });
+            tiles.appendChild(grid);
+        }
+        renderFacets(inView);
+    }
+
+    function renderFacets(inView) {
+        var wrap = $('facets');
+        wrap.textContent = '';
+        var c = state.collection;
+        if (!c || !c.sub) {
+            wrap.hidden = true;
+            return;
+        }
+        var keys = [];
+        var values = {};
+        inView.forEach(function (p) {
+            (p.specs || []).forEach(function (s) {
+                if (FACET_SKIP.indexOf(s[0]) !== -1) return;
+                if (!values[s[0]]) {
+                    values[s[0]] = [];
+                    keys.push(s[0]);
+                }
+                if (values[s[0]].indexOf(s[1]) === -1) values[s[0]].push(s[1]);
+            });
+        });
+        keys = keys.filter(function (k) { return values[k].length > 1 && values[k].length <= 15; });
+        wrap.hidden = !keys.length;
+        keys.forEach(function (key) {
+            var label = el('label', 'facet');
+            label.appendChild(el('span', '', key));
+            var sel = el('select', 'shop-select');
+            var all = el('option', '', 'Todas');
+            all.value = '';
+            sel.appendChild(all);
+            values[key].sort(function (a, b) { return a.localeCompare(b, 'es', { numeric: true }); }).forEach(function (v) {
+                var o = el('option', '', v);
+                o.value = v;
+                sel.appendChild(o);
+            });
+            sel.value = state.facets[key] || '';
+            sel.addEventListener('change', function () {
+                withTransition(function () {
+                    state.facets[key] = sel.value;
+                    resetPage();
+                    renderProducts();
+                });
+            });
+            label.appendChild(sel);
+            wrap.appendChild(label);
+        });
+        if (keys.length) {
+            var clear = el('button', 'back-link', 'Limpiar filtros');
+            clear.type = 'button';
+            clear.addEventListener('click', function () {
+                withTransition(function () {
+                    state.facets = {};
+                    resetPage();
+                    renderFacets(inView);
+                    renderProducts();
+                });
+            });
+            wrap.appendChild(clear);
+        }
+    }
+
+    function renderMegaMenu() {
+        var mega = $('mega');
+        mega.textContent = '';
+        CATEGORY_LIST.forEach(function (cat) {
+            var items = products.filter(function (p) { return p.cat === cat; });
+            if (!items.length) return;
+            var col = el('div', 'mega-col');
+            var head = el('a', 'mega-cat', cat);
+            head.href = collectionHash(cat);
+            head.appendChild(el('small', '', String(items.length)));
+            col.appendChild(head);
+            subsOf(cat).forEach(function (sub) {
+                var a = el('a', 'mega-sub', sub);
+                a.href = collectionHash(cat, sub);
+                a.appendChild(el('small', '', String(items.filter(function (p) { return p.sub === sub; }).length)));
+                col.appendChild(a);
+            });
+            mega.appendChild(col);
+        });
+    }
+
+    function route() {
+        var c = parseCollection();
+        if (c) {
+            if (!$('product-modal').hidden) closeModal(true);
+            enterCollection(c.cat, c.sub);
+            return;
+        }
+        if (/^#p\//.test(location.hash)) {
+            openFromHash();
+            return;
+        }
+        if (state.collection) {
+            exitCollection();
+            var target = location.hash && document.getElementById(location.hash.slice(1));
+            if (target) target.scrollIntoView();
+        }
     }
 
     function miniCard(p) {
@@ -835,20 +1104,18 @@
         // Ruta
         var crumbs = $('pm-crumbs');
         crumbs.textContent = '';
-        [['Tienda', 'all'], [p.cat, p.cat]].forEach(function (c) {
+        var trail = [['Tienda', '#tienda'], [p.cat, collectionHash(p.cat)]];
+        if (p.sub) trail.push([p.sub, collectionHash(p.cat, p.sub)]);
+        trail.forEach(function (c) {
             var b = el('button', 'crumb', c[0]);
             b.type = 'button';
             b.addEventListener('click', function () {
                 closeModal();
-                goToShop(c[1]);
+                location.hash = c[1];
             });
             crumbs.appendChild(b);
             crumbs.appendChild(el('span', 'crumb-sep', '›'));
         });
-        if (p.sub) {
-            crumbs.appendChild(el('span', 'crumb', p.sub));
-            crumbs.appendChild(el('span', 'crumb-sep', '›'));
-        }
         crumbs.appendChild(el('span', 'crumb current', p.name));
 
         renderGallery(p);
@@ -1039,13 +1306,18 @@
         modal.querySelector('.modal-box').scrollTop = 0;
         $('modal-close').focus();
         trackRecent(p.id);
+        if (!/^#p\//.test(location.hash)) returnHash = location.hash;
         if (location.hash !== '#p/' + p.id) history.replaceState(null, '', '#p/' + p.id);
     }
 
-    function closeModal() {
+    var returnHash = '';
+    function closeModal(keepHash) {
         $('product-modal').hidden = true;
         if (!$('cart').classList.contains('open')) document.body.classList.remove('locked');
-        if (/^#p\//.test(location.hash)) history.replaceState(null, '', location.pathname + location.search);
+        if (!keepHash && /^#p\//.test(location.hash)) {
+            history.replaceState(null, '', returnHash || location.pathname + location.search);
+        }
+        returnHash = '';
         if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
     }
 
@@ -1421,7 +1693,10 @@
             renderCart();
             renderFavCount();
             renderRecent();
-            if ($('product-modal').hidden) openFromHash();
+            renderMegaMenu();
+            if (state.collection) renderCollectionHead();
+            if (parseCollection()) route();
+            else if ($('product-modal').hidden) openFromHash();
         }, function () { /* sin conexión: se mantiene el catálogo de respaldo */ });
     }
 
@@ -1487,9 +1762,6 @@
             renderProducts();
         });
     });
-    document.querySelectorAll('[data-collection]').forEach(function (b) {
-        b.addEventListener('click', function () { goToShop(b.dataset.collection); });
-    });
     $('fav-open').addEventListener('click', function () { goToShop('fav'); });
     $('coupon-apply').addEventListener('click', applyCoupon);
     $('coupon-input').addEventListener('keydown', function (e) {
@@ -1498,7 +1770,19 @@
             applyCoupon();
         }
     });
-    window.addEventListener('hashchange', openFromHash);
+    window.addEventListener('hashchange', route);
+
+    var navCats = $('nav-cats');
+    $('nav-cats-btn').addEventListener('click', function () {
+        var open = navCats.classList.toggle('open');
+        this.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', function (e) {
+        if (!navCats.contains(e.target) || e.target.closest('.mega a')) {
+            navCats.classList.remove('open');
+            $('nav-cats-btn').setAttribute('aria-expanded', 'false');
+        }
+    });
 
     $('cart-open').addEventListener('click', openCart);
     $('cart-close').addEventListener('click', closeCart);
@@ -1575,6 +1859,7 @@
     renderCart();
     renderFavCount();
     renderRecent();
-    openFromHash();
+    renderMegaMenu();
+    route();
     loadRemoteCatalog();
 })();

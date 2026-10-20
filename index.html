@@ -29,6 +29,10 @@
             CATRIAN <span class="logo-accent">RACING</span>
         </a>
         <nav class="nav" id="main-nav">
+            <div class="nav-cats" id="nav-cats">
+                <button type="button" class="nav-cats-btn" id="nav-cats-btn" aria-expanded="false" aria-controls="mega">Categorías</button>
+                <div class="mega" id="mega"></div>
+            </div>
             <a href="#tienda">Tienda</a>
             <a href="#taller">Taller</a>
             <a href="#galeria">Galería</a>
@@ -112,30 +116,44 @@
 
     <section class="collections" aria-label="Colecciones">
         <div class="container collections-grid">
-            <button type="button" class="collection" data-collection="Motos">
+            <a href="#c/Motos" class="collection">
                 <img src="https://live.staticflickr.com/2315/1961611743_74c76f78f8.jpg" alt="" loading="lazy" onerror="this.remove()">
                 <span class="collection-label">Motos <em>Cotiza la tuya →</em></span>
-            </button>
-            <button type="button" class="collection" data-collection="Repuestos">
+            </a>
+            <a href="#c/Repuestos" class="collection">
                 <img src="https://live.staticflickr.com/4044/4381533356_0afbaa8402_b.jpg" alt="" loading="lazy" onerror="this.remove()">
                 <span class="collection-label">Repuestos <em>Stock real →</em></span>
-            </button>
-            <button type="button" class="collection" data-collection="Equipamiento">
-                <img src="https://loremflickr.com/600/450/motorcycle,helmet?lock=24" alt="" loading="lazy" onerror="this.remove()">
+            </a>
+            <a href="#c/Equipamiento" class="collection">
+                <img src="img/productos/casco.svg" alt="" loading="lazy" class="col-svg" onerror="this.remove()">
                 <span class="collection-label">Equipamiento <em>Cascos y más →</em></span>
-            </button>
-            <button type="button" class="collection" data-collection="Accesorios">
-                <img src="https://loremflickr.com/600/450/motorcycle,exhaust?lock=29" alt="" loading="lazy" onerror="this.remove()">
+            </a>
+            <a href="#c/Accesorios" class="collection">
+                <img src="img/productos/escape.svg" alt="" loading="lazy" class="col-svg" onerror="this.remove()">
                 <span class="collection-label">Accesorios <em>Personaliza →</em></span>
-            </button>
+            </a>
         </div>
     </section>
 
     <section id="tienda" class="section">
         <div class="container">
-            <div class="section-head reveal">
+            <div class="section-head reveal shop-head">
                 <span class="section-tag">Tienda online</span>
                 <h2>Motos, repuestos y equipamiento</h2>
+            </div>
+
+            <div class="collection-head" id="collection-head" hidden>
+                <nav class="pdp-crumbs col-crumbs" id="col-crumbs" aria-label="Ruta"></nav>
+                <div class="col-banner">
+                    <div class="col-text">
+                        <span class="section-tag" id="col-tag"></span>
+                        <h1 id="col-title"></h1>
+                        <p id="col-desc"></p>
+                        <span class="col-count" id="col-count"></span>
+                    </div>
+                    <div class="col-art" id="col-art" aria-hidden="true"></div>
+                </div>
+                <div class="col-subs" id="col-subs"></div>
             </div>
 
             <div class="shop-toolbar">
@@ -166,6 +184,7 @@
                 <span>Mostrando productos compatibles con tu <strong id="fit-current-name"></strong></span>
                 <button type="button" class="back-link" id="fit-clear">Quitar filtro ✕</button>
             </div>
+            <div class="facets" id="facets" hidden></div>
             <div class="shop-filters">
                 <label class="check"><input type="checkbox" id="only-sale"> Solo ofertas</label>
                 <label class="check"><input type="checkbox" id="only-stock"> Ocultar agotados</label>
@@ -534,10 +553,10 @@
         <div class="footer-cols">
             <nav aria-label="Tienda">
                 <h3>Tienda</h3>
-                <a href="#tienda" data-collection="Motos">Motos</a>
-                <a href="#tienda" data-collection="Repuestos">Repuestos</a>
-                <a href="#tienda" data-collection="Equipamiento">Equipamiento</a>
-                <a href="#tienda" data-collection="Accesorios">Accesorios</a>
+                <a href="#c/Motos">Motos</a>
+                <a href="#c/Repuestos">Repuestos</a>
+                <a href="#c/Equipamiento">Equipamiento</a>
+                <a href="#c/Accesorios">Accesorios</a>
             </nav>
             <nav aria-label="Catrian Racing">
                 <h3>Catrian Racing</h3>

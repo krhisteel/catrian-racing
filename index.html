@@ -665,26 +665,51 @@
         </div>
     </aside>
 
-    <div class="modal" id="product-modal" role="dialog" aria-modal="true" aria-labelledby="pm-title" hidden>
-        <div class="modal-box">
+    <div class="modal pdp-modal" id="product-modal" role="dialog" aria-modal="true" aria-labelledby="pm-title" hidden>
+        <div class="modal-box pdp">
             <button type="button" class="icon-btn modal-close" id="modal-close" aria-label="Cerrar">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
-            <div class="modal-media" id="pm-media"></div>
-            <div class="modal-info">
-                <span class="product-cat" id="pm-cat"></span>
-                <h2 id="pm-title"></h2>
-                <div class="price-row" id="pm-price"></div>
-                <p class="modal-desc" id="pm-desc"></p>
-                <ul class="card-specs" id="pm-specs"></ul>
-                <div id="pm-fit"></div>
-                <div id="pm-options"></div>
-                <div class="modal-buy" id="pm-buy"></div>
-                <p class="modal-stock" id="pm-stock"></p>
-                <div class="modal-tools" id="pm-tools"></div>
-                <div class="modal-related" id="pm-related"></div>
+            <nav class="pdp-crumbs" id="pm-crumbs" aria-label="Ruta del producto"></nav>
+            <div class="pdp-main">
+                <div class="pdp-gallery">
+                    <div class="pdp-stage-wrap">
+                        <div class="pdp-stage" id="pm-stage" tabindex="0" aria-label="Fotos del producto"></div>
+                        <button type="button" class="pdp-nav prev" id="pm-prev" aria-label="Foto anterior">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+                        </button>
+                        <button type="button" class="pdp-nav next" id="pm-next" aria-label="Foto siguiente">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                        </button>
+                        <span class="pdp-counter" id="pm-counter"></span>
+                        <span class="pdp-badges" id="pm-badges"></span>
+                    </div>
+                    <div class="pdp-thumbs" id="pm-thumbs"></div>
+                    <p class="pdp-hint" id="pm-hint">Pasa el mouse sobre la foto para ampliarla</p>
+                </div>
+                <div class="pdp-info">
+                    <div class="pdp-meta">
+                        <span class="pdp-brand" id="pm-brand"></span>
+                        <span class="pdp-sku" id="pm-sku"></span>
+                    </div>
+                    <h2 id="pm-title"></h2>
+                    <div class="pdp-price" id="pm-price"></div>
+                    <p class="pdp-stock" id="pm-stock"></p>
+                    <div id="pm-fit"></div>
+                    <div id="pm-options"></div>
+                    <div class="modal-buy" id="pm-buy"></div>
+                    <ul class="pdp-perks" id="pm-perks"></ul>
+                    <div class="modal-tools" id="pm-tools"></div>
+                </div>
             </div>
+            <div class="pdp-tabs">
+                <div class="pdp-tablist" role="tablist" aria-label="Información del producto" id="pm-tablist"></div>
+                <div class="pdp-panel" id="pm-panel" role="tabpanel"></div>
+            </div>
+            <div class="pdp-ask" id="pm-ask"></div>
+            <div class="pdp-related" id="pm-related"></div>
         </div>
+        <div class="pdp-bar" id="pm-bar"></div>
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>

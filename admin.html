@@ -24,48 +24,34 @@
             <h1>Administrador</h1>
 
             <form id="login-form" class="auth-form" novalidate>
-                <label for="login-email">Email</label>
-                <input id="login-email" name="email" type="email" autocomplete="username" required>
+                <label for="login-user">Usuario</label>
+                <input id="login-user" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
                 <label for="login-password">Contraseña</label>
                 <input id="login-password" name="password" type="password" autocomplete="current-password" required>
                 <button type="submit" class="btn btn-primary btn-block">Ingresar</button>
                 <div class="auth-links">
-                    <button type="button" class="link-btn" data-auth="recover-form">¿Olvidaste tu contraseña?</button>
-                    <button type="button" class="link-btn" data-auth="signup-form">Crear cuenta de administrador</button>
+                    <button type="button" class="link-btn" data-auth="activate-form">Tengo un código de activación</button>
                 </div>
             </form>
 
-            <form id="signup-form" class="auth-form" novalidate hidden>
-                <p class="auth-help">Crea tu cuenta con el email autorizado como administrador. Te enviaremos un correo para confirmarla.</p>
-                <label for="signup-email">Email</label>
-                <input id="signup-email" name="email" type="email" autocomplete="username" required>
-                <label for="signup-password">Contraseña (mínimo 8 caracteres)</label>
-                <input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="8" required>
-                <button type="submit" class="btn btn-primary btn-block">Crear cuenta</button>
+            <form id="activate-form" class="auth-form" novalidate hidden>
+                <p class="auth-help">Usa tu código de activación para crear tu usuario y contraseña (o para crear una contraseña nueva si la olvidaste). Cada código sirve una sola vez.</p>
+                <label for="activate-code">Código de activación</label>
+                <input id="activate-code" name="code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX" required>
+                <label for="activate-user">Usuario (3 a 30 letras o números, sin espacios)</label>
+                <input id="activate-user" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+                <label for="activate-password">Contraseña (mínimo 8 caracteres)</label>
+                <input id="activate-password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+                <label for="activate-password2">Repite la contraseña</label>
+                <input id="activate-password2" name="password2" type="password" autocomplete="new-password" minlength="8" required>
+                <button type="submit" class="btn btn-primary btn-block">Activar y entrar</button>
                 <div class="auth-links">
                     <button type="button" class="link-btn" data-auth="login-form">← Volver a ingresar</button>
                 </div>
-            </form>
-
-            <form id="recover-form" class="auth-form" novalidate hidden>
-                <p class="auth-help">Te enviaremos un enlace para crear una contraseña nueva.</p>
-                <label for="recover-email">Email</label>
-                <input id="recover-email" name="email" type="email" autocomplete="username" required>
-                <button type="submit" class="btn btn-primary btn-block">Enviar enlace</button>
-                <div class="auth-links">
-                    <button type="button" class="link-btn" data-auth="login-form">← Volver a ingresar</button>
-                </div>
-            </form>
-
-            <form id="reset-form" class="auth-form" novalidate hidden>
-                <p class="auth-help">Escribe tu nueva contraseña.</p>
-                <label for="reset-password">Nueva contraseña (mínimo 8 caracteres)</label>
-                <input id="reset-password" name="password" type="password" autocomplete="new-password" minlength="8" required>
-                <button type="submit" class="btn btn-primary btn-block">Guardar contraseña</button>
             </form>
 
             <div id="denied" class="auth-form" hidden>
-                <p class="auth-help">La cuenta <strong id="denied-email"></strong> no tiene permisos de administrador.</p>
+                <p class="auth-help">El usuario <strong id="denied-email"></strong> no tiene permisos de administrador.</p>
                 <button type="button" class="btn btn-ghost btn-block" id="denied-logout">Salir</button>
             </div>
 
@@ -229,14 +215,18 @@
                     </form>
                     <div class="admin-card">
                         <h2>Administradores</h2>
-                        <p class="admin-help">Emails que pueden entrar a este panel. Cada persona crea su cuenta con su email y lo confirma.</p>
+                        <p class="admin-help">Usuarios que pueden entrar a este panel. Para cambiarle la contraseña a alguien, crea el mismo usuario con una contraseña nueva.</p>
                         <div id="admins-list"></div>
-                        <form class="inline-form" id="admin-form" novalidate>
+                        <form class="inline-form user-form" id="admin-form" novalidate>
                             <div>
-                                <label for="admin-new-email">Nuevo administrador</label>
-                                <input id="admin-new-email" class="admin-input" type="email" placeholder="email@ejemplo.cl" required>
+                                <label for="admin-new-user">Usuario</label>
+                                <input id="admin-new-user" class="admin-input" autocomplete="off" autocapitalize="none" spellcheck="false" required>
                             </div>
-                            <button type="submit" class="btn btn-sm btn-ghost">Agregar</button>
+                            <div>
+                                <label for="admin-new-password">Contraseña</label>
+                                <input id="admin-new-password" class="admin-input" type="password" minlength="8" autocomplete="new-password" required>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-ghost">Guardar usuario</button>
                         </form>
                         <h2 class="mt">Mi contraseña</h2>
                         <form class="inline-form" id="password-form" novalidate>

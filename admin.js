@@ -1,6 +1,9 @@
 (function () {
     var DB = window.CATRIAN_SUPABASE;
     var SESSION_KEY = 'catrian-admin-session';
+    // Cada usuario del panel es una cuenta interna <usuario>@admin.catrianracing.cl (no recibe correos).
+    var USER_DOMAIN = '@admin.catrianracing.cl';
+    var USERNAME_RE = /^[a-z0-9][a-z0-9._-]{2,29}$/;
     var BUCKET = 'productos';
     var CATS = ['Motos', 'Repuestos', 'Accesorios', 'Equipamiento'];
     var STATUSES = [
@@ -155,12 +158,19 @@
 
     function translateError(msg) {
         var map = {
-            'Invalid login credentials': 'Email o contraseña incorrectos.',
-            'Email not confirmed': 'Debes confirmar tu email antes de ingresar. Revisa tu correo.',
-            'User already registered': 'Ese email ya tiene cuenta. Ingresa o recupera tu contraseña.',
+            'Invalid login credentials': 'Usuario o contraseña incorrectos.',
+            'User is banned': 'Este usuario fue desactivado. Pide a otro administrador que lo reactive.',
             'Password should be at least 6 characters.': 'La contraseña debe tener al menos 8 caracteres.'
         };
         return map[msg] || msg;
+    }
+
+    function cleanUsername(value) {
+        return (value || '').trim().toLowerCase();
+    }
+
+    function usernameOf(email) {
+        return (email || '').replace(USER_DOMAIN, '');
     }
 
     async function ensureFresh() {
@@ -190,16 +200,12 @@
         }
     }
 
-    function adminUrl() {
-        return location.href.split('#')[0].split('?')[0];
-    }
-
     /* ===== ACCESO ===== */
     function showAuth(formId, message, isOk) {
         clearInterval(pollTimer);
         $('app').hidden = true;
         $('auth-view').hidden = false;
-        ['login-form', 'signup-form', 'recover-form', 'reset-form', 'denied'].forEach(function (id) {
+        ['login-form', 'activate-form', 'denied'].forEach(function (id) {
             $(id).hidden = id !== formId;
         });
         var msg = $('auth-msg');
@@ -221,76 +227,51 @@
         b.disabled = on;
     }
 
+    async function signIn(username, password) {
+        var s = await raw('/auth/v1/token?grant_type=password', {
+            method: 'POST', auth: false, body: { email: username + USER_DOMAIN, password: password }
+        });
+        saveSession(withExpiry(s));
+        await enterApp();
+    }
+
     async function onLogin(e) {
         e.preventDefault();
         var form = e.target;
-        var email = form.email.value.trim();
+        var username = cleanUsername(form.username.value);
         var password = form.password.value;
-        if (!email || !password) return showAuth('login-form', 'Escribe tu email y contraseña.');
+        if (!username || !password) return showAuth('login-form', 'Escribe tu usuario y contraseña.');
+        if (!USERNAME_RE.test(username)) return showAuth('login-form', 'Usuario o contraseña incorrectos.');
         busy(form, true);
         try {
-            var s = await raw('/auth/v1/token?grant_type=password', { method: 'POST', auth: false, body: { email: email, password: password } });
-            saveSession(withExpiry(s));
+            await signIn(username, password);
             form.reset();
-            await enterApp();
         } catch (err) {
             showAuth('login-form', err.message);
         }
         busy(form, false);
     }
 
-    async function onSignup(e) {
+    async function onActivate(e) {
         e.preventDefault();
         var form = e.target;
-        var email = form.email.value.trim();
+        var code = form.code.value.trim().toUpperCase();
+        var username = cleanUsername(form.username.value);
         var password = form.password.value;
-        if (!email || password.length < 8) return showAuth('signup-form', 'Escribe tu email y una contraseña de al menos 8 caracteres.');
+        if (!code) return showAuth('activate-form', 'Escribe tu código de activación.');
+        if (!USERNAME_RE.test(username)) return showAuth('activate-form', 'El usuario debe tener de 3 a 30 caracteres: letras, números, punto, guion o guion bajo, sin espacios.');
+        if (password.length < 8) return showAuth('activate-form', 'La contraseña debe tener al menos 8 caracteres.');
+        if (password !== form.password2.value) return showAuth('activate-form', 'Las contraseñas no coinciden.');
         busy(form, true);
         try {
-            var res = await raw('/auth/v1/signup?redirect_to=' + encodeURIComponent(adminUrl()), {
-                method: 'POST', auth: false, body: { email: email, password: password }
+            await raw('/rest/v1/rpc/activate_admin', {
+                method: 'POST', auth: false, body: { p_code: code, p_username: username, p_password: password }
             });
+            await signIn(username, password);
             form.reset();
-            if (res && res.access_token) {
-                saveSession(withExpiry(res));
-                await enterApp();
-            } else {
-                showAuth('login-form', 'Cuenta creada. Revisa tu correo y confirma tu email para poder ingresar.', true);
-            }
+            toast('¡Listo! Desde ahora entras con tu usuario «' + username + '».');
         } catch (err) {
-            showAuth('signup-form', err.message);
-        }
-        busy(form, false);
-    }
-
-    async function onRecover(e) {
-        e.preventDefault();
-        var form = e.target;
-        var email = form.email.value.trim();
-        if (!email) return showAuth('recover-form', 'Escribe tu email.');
-        busy(form, true);
-        try {
-            await raw('/auth/v1/recover?redirect_to=' + encodeURIComponent(adminUrl()), { method: 'POST', auth: false, body: { email: email } });
-            showAuth('login-form', 'Si el email tiene cuenta, te llegará un enlace para crear una contraseña nueva.', true);
-        } catch (err) {
-            showAuth('recover-form', err.message);
-        }
-        busy(form, false);
-    }
-
-    async function onReset(e) {
-        e.preventDefault();
-        var form = e.target;
-        var password = form.password.value;
-        if (password.length < 8) return showAuth('reset-form', 'La contraseña debe tener al menos 8 caracteres.');
-        busy(form, true);
-        try {
-            await api('/auth/v1/user', { method: 'PUT', body: { password: password } });
-            form.reset();
-            toast('Contraseña actualizada');
-            await enterApp();
-        } catch (err) {
-            showAuth('reset-form', err.message);
+            showAuth('activate-form', err.message);
         }
         busy(form, false);
     }
@@ -300,25 +281,6 @@
         saveSession(null);
         closeSide();
         showAuth('login-form', 'Sesión cerrada.', true);
-    }
-
-    function readHashSession() {
-        if (!location.hash || location.hash.length < 2) return null;
-        var params = new URLSearchParams(location.hash.slice(1));
-        history.replaceState(null, '', location.pathname + location.search);
-        if (params.get('error_description')) {
-            return { error: params.get('error_description').replace(/\+/g, ' ') };
-        }
-        if (!params.get('access_token')) return null;
-        return {
-            type: params.get('type'),
-            session: withExpiry({
-                access_token: params.get('access_token'),
-                refresh_token: params.get('refresh_token'),
-                expires_in: Number(params.get('expires_in')) || 3600,
-                expires_at: Number(params.get('expires_at')) || 0
-            })
-        };
     }
 
     async function enterApp() {
@@ -334,13 +296,13 @@
         session.email = me && me.email || session.email || '';
         saveSession(session);
         if (!isAdmin) {
-            $('denied-email').textContent = session.email;
+            $('denied-email').textContent = usernameOf(session.email);
             showAuth('denied');
             return;
         }
         $('auth-view').hidden = true;
         $('app').hidden = false;
-        $('admin-email').textContent = session.email;
+        $('admin-email').textContent = usernameOf(session.email);
         await loadAll();
         clearInterval(pollTimer);
         pollTimer = setInterval(pollOrders, 60000);
@@ -1118,19 +1080,22 @@
 
         var wrap = $('admins-list');
         wrap.textContent = '';
-        data.admins.forEach(function (a) {
-            var row = el('div', 'mini-row static');
-            row.appendChild(el('span', 'mini-row-main', a.email));
+        data.admins.filter(function (a) { return a.email.slice(-USER_DOMAIN.length) === USER_DOMAIN; }).forEach(function (a) {
+            var name = usernameOf(a.email);
+            var row = el('div', 'mini-row static' + (a.disabled_at ? ' inactive' : ''));
+            row.appendChild(el('span', 'mini-row-main', name));
             var isMe = session && session.email && a.email.toLowerCase() === session.email.toLowerCase();
             if (isMe) {
                 row.appendChild(el('span', 'row-sub', 'Tú'));
+            } else if (a.disabled_at) {
+                row.appendChild(el('span', 'row-sub', 'Desactivado · para reactivarlo, guárdalo con una contraseña nueva'));
             } else {
-                row.appendChild(button('Quitar', 'link-btn danger', async function () {
-                    if (!confirm('¿Quitar el acceso de ' + a.email + '?')) return;
+                row.appendChild(button('Quitar acceso', 'link-btn danger', async function () {
+                    if (!confirm('¿Quitar el acceso de «' + name + '»? No podrá entrar al panel.')) return;
                     try {
-                        await api('/rest/v1/admins?email=eq.' + encodeURIComponent(a.email), { method: 'DELETE' });
-                        data.admins = data.admins.filter(function (x) { return x.email !== a.email; });
-                        toast('Acceso quitado');
+                        await api('/rest/v1/rpc/admin_disable_user', { method: 'POST', body: { p_username: name } });
+                        a.disabled_at = new Date().toISOString();
+                        toast('Acceso quitado a ' + name);
                         renderSettings();
                     } catch (e) { toast(e.message, true); }
                 }));
@@ -1166,15 +1131,18 @@
 
     async function onAdminAdd(e) {
         e.preventDefault();
-        var email = $('admin-new-email').value.trim().toLowerCase();
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast('Escribe un email válido.', true);
+        var username = cleanUsername($('admin-new-user').value);
+        var password = $('admin-new-password').value;
+        if (!USERNAME_RE.test(username)) return toast('El usuario debe tener de 3 a 30 caracteres: letras, números, punto, guion o guion bajo, sin espacios.', true);
+        if (password.length < 8) return toast('La contraseña debe tener al menos 8 caracteres.', true);
+        var exists = data.admins.some(function (a) { return a.email === username + USER_DOMAIN; });
         try {
-            var rows = await api('/rest/v1/admins', { method: 'POST', body: { email: email }, headers: { Prefer: 'return=representation' } });
-            data.admins.push(rows[0]);
+            await api('/rest/v1/rpc/admin_save_user', { method: 'POST', body: { p_username: username, p_password: password } });
+            data.admins = await api('/rest/v1/admins?select=*&order=created_at.asc');
             e.target.reset();
-            toast(email + ' ahora puede crear su cuenta de administrador');
+            toast(exists ? 'Contraseña de «' + username + '» actualizada' : 'Usuario «' + username + '» creado');
             renderSettings();
-        } catch (err) { toast(err.status === 409 ? 'Ese email ya es administrador.' : err.message, true); }
+        } catch (err) { toast(err.message, true); }
     }
 
     async function onPasswordChange(e) {
@@ -1216,9 +1184,7 @@
 
     /* ===== EVENTOS ===== */
     $('login-form').addEventListener('submit', onLogin);
-    $('signup-form').addEventListener('submit', onSignup);
-    $('recover-form').addEventListener('submit', onRecover);
-    $('reset-form').addEventListener('submit', onReset);
+    $('activate-form').addEventListener('submit', onActivate);
     $('denied-logout').addEventListener('click', logout);
     $('logout').addEventListener('click', logout);
     document.querySelectorAll('[data-auth]').forEach(function (b) {
@@ -1268,20 +1234,7 @@
             showAuth('login-form', 'Falta la configuración de la base de datos (supabase-config.js).');
             return;
         }
-        var fromHash = readHashSession();
-        if (fromHash && fromHash.error) {
-            showAuth('login-form', fromHash.error);
-            return;
-        }
-        if (fromHash && fromHash.session) {
-            saveSession(fromHash.session);
-            if (fromHash.type === 'recovery') {
-                showAuth('reset-form');
-                return;
-            }
-        } else {
-            loadSession();
-        }
+        loadSession();
         if (session) await enterApp();
         else showAuth('login-form');
     })();

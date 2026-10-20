@@ -888,3 +888,8 @@ select.status-select.status-cancelado {
         padding: 32px 22px 24px;
     }
 }
+
+.mini-row.inactive .mini-row-main {
+    color: var(--muted);
+    text-decoration: line-through;
+}

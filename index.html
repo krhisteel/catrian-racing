@@ -14,19 +14,38 @@
 </head>
 <body>
 
+    <div class="announce">
+        <span>Envío gratis sobre $100.000</span>
+        <span>Retiro gratis en tienda</span>
+        <span>Envíos a todo Chile</span>
+    </div>
+
     <header class="header">
         <a href="#inicio" class="logo">
             <span class="logo-mark" aria-hidden="true"></span>
             CATRIAN <span class="logo-accent">RACING</span>
         </a>
-        <nav class="nav">
-            <a href="#motos">Motos</a>
-            <a href="#repuestos">Repuestos</a>
+        <nav class="nav" id="main-nav">
+            <a href="#tienda">Tienda</a>
             <a href="#taller">Taller</a>
             <a href="#galeria">Galería</a>
             <a href="#testimonios">Opiniones</a>
+            <a href="#ayuda">Ayuda</a>
             <a href="#contacto">Contacto</a>
         </nav>
+        <div class="header-actions">
+        <button type="button" class="cart-btn" id="fav-open" aria-label="Ver favoritos">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-9.2-8.6C1.2 8.2 3 4.5 6.6 4.5c2.1 0 3.4 1.2 4.4 2.6h2c1-1.4 2.3-2.6 4.4-2.6 3.6 0 5.4 3.7 3.8 6.9C19 15.6 12 20 12 20z"/></svg>
+            <span class="cart-count" id="fav-count">0</span>
+        </button>
+        <button type="button" class="cart-btn" id="cart-open" aria-label="Abrir carro de compras">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6"/><circle cx="10" cy="20.5" r="1.3"/><circle cx="17" cy="20.5" r="1.3"/></svg>
+            <span class="cart-count" id="cart-count">0</span>
+        </button>
+        <button type="button" class="cart-btn menu-btn" id="menu-btn" aria-label="Abrir menú" aria-expanded="false" aria-controls="main-nav">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        </div>
     </header>
 
     <section id="inicio" class="hero">
@@ -39,7 +58,7 @@
             <p>Venta de motos y repuestos, mantención y preparación. Todo bajo un mismo techo.</p>
             <div class="hero-cta">
                 <a href="https://wa.me/56936621284?text=Hola%2C%20quiero%20agendar%20una%20visita%20al%20taller" target="_blank" rel="noopener" class="btn btn-primary">Agendar visita</a>
-                <a href="#motos" class="btn btn-ghost">Ver motos</a>
+                <a href="#tienda" class="btn btn-ghost">Ir a la tienda</a>
             </div>
         </div>
         <div class="checkered" aria-hidden="true"></div>
@@ -64,130 +83,86 @@
         </div>
     </div>
 
-    <section id="motos" class="section">
+    <section class="collections" aria-label="Colecciones">
+        <div class="container collections-grid">
+            <button type="button" class="collection" data-collection="Motos">
+                <img src="https://live.staticflickr.com/2315/1961611743_74c76f78f8.jpg" alt="" loading="lazy" onerror="this.remove()">
+                <span class="collection-label">Motos <em>Cotiza la tuya →</em></span>
+            </button>
+            <button type="button" class="collection" data-collection="Repuestos">
+                <img src="https://live.staticflickr.com/4044/4381533356_0afbaa8402_b.jpg" alt="" loading="lazy" onerror="this.remove()">
+                <span class="collection-label">Repuestos <em>Stock real →</em></span>
+            </button>
+            <button type="button" class="collection" data-collection="Equipamiento">
+                <img src="https://loremflickr.com/600/450/motorcycle,helmet?lock=24" alt="" loading="lazy" onerror="this.remove()">
+                <span class="collection-label">Equipamiento <em>Cascos y más →</em></span>
+            </button>
+            <button type="button" class="collection" data-collection="Accesorios">
+                <img src="https://loremflickr.com/600/450/motorcycle,exhaust?lock=29" alt="" loading="lazy" onerror="this.remove()">
+                <span class="collection-label">Accesorios <em>Personaliza →</em></span>
+            </button>
+        </div>
+    </section>
+
+    <section id="tienda" class="section">
         <div class="container">
             <div class="section-head reveal">
-                <span class="section-tag">Catálogo</span>
-                <h2>Motos en venta</h2>
+                <span class="section-tag">Tienda online</span>
+                <h2>Motos, repuestos y equipamiento</h2>
             </div>
-            <div class="grid">
-                <article class="card reveal">
-                    <div class="card-media">
-                        <img src="https://live.staticflickr.com/2311/2354229865_5dd534fba7.jpg" alt="Modelo Pista 250" loading="lazy" onerror="this.remove()">
-                        <span class="card-media-tag">Disponible</span>
-                        <span class="card-media-number">250</span>
-                    </div>
-                    <div class="card-body">
-                        <h3>Modelo Pista 250</h3>
-                        <p class="card-desc">Deportiva 250cc, ideal para ciudad y ruta.</p>
-                        <ul class="card-specs">
-                            <li>Cilindrada <span>250 cc</span></li>
-                            <li>Potencia <span>28 HP</span></li>
-                            <li>Año <span>2025</span></li>
-                        </ul>
-                        <div class="card-footer">
-                            <span class="price">$2.490.000</span>
-                            <a href="#contacto" class="card-link">Cotizar →</a>
-                        </div>
-                    </div>
-                </article>
 
-                <article class="card reveal">
-                    <div class="card-media">
-                        <img src="https://live.staticflickr.com/2186/2269295323_8c741e70e3.jpg" alt="Trail 400" loading="lazy" onerror="this.remove()">
-                        <span class="card-media-tag">Disponible</span>
-                        <span class="card-media-number">400</span>
-                    </div>
-                    <div class="card-body">
-                        <h3>Trail 400</h3>
-                        <p class="card-desc">Doble propósito, lista para el barro.</p>
-                        <ul class="card-specs">
-                            <li>Cilindrada <span>400 cc</span></li>
-                            <li>Potencia <span>35 HP</span></li>
-                            <li>Año <span>2024</span></li>
-                        </ul>
-                        <div class="card-footer">
-                            <span class="price">$3.190.000</span>
-                            <a href="#contacto" class="card-link">Cotizar →</a>
-                        </div>
-                    </div>
-                </article>
+            <div class="shop-toolbar">
+                <label class="shop-search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                    <input type="search" id="shop-search" placeholder="Buscar productos..." aria-label="Buscar productos">
+                </label>
+                <select id="shop-sort" aria-label="Ordenar productos">
+                    <option value="featured">Destacados</option>
+                    <option value="price-asc">Precio: menor a mayor</option>
+                    <option value="price-desc">Precio: mayor a menor</option>
+                    <option value="name">Nombre A–Z</option>
+                </select>
+            </div>
+            <div class="shop-chips" id="shop-chips" role="group" aria-label="Filtrar por categoría">
+                <button type="button" class="chip active" data-cat="all">Todo</button>
+                <button type="button" class="chip" data-cat="Motos">Motos</button>
+                <button type="button" class="chip" data-cat="Repuestos">Repuestos</button>
+                <button type="button" class="chip" data-cat="Accesorios">Accesorios</button>
+                <button type="button" class="chip" data-cat="Equipamiento">Equipamiento</button>
+                <button type="button" class="chip" data-cat="fav">♥ Favoritos</button>
+            </div>
+            <div class="shop-filters">
+                <label class="check"><input type="checkbox" id="only-sale"> Solo ofertas</label>
+                <label class="check"><input type="checkbox" id="only-stock"> Ocultar agotados</label>
+            </div>
+            <p class="shop-count" id="shop-count" aria-live="polite"></p>
+            <div class="grid" id="product-grid"></div>
+            <p class="shop-empty" id="shop-empty" hidden></p>
 
-                <article class="card reveal">
-                    <div class="card-media">
-                        <img src="https://live.staticflickr.com/2315/1961611743_74c76f78f8.jpg" alt="Naked 500" loading="lazy" onerror="this.remove()">
-                        <span class="card-media-tag">Disponible</span>
-                        <span class="card-media-number">500</span>
-                    </div>
-                    <div class="card-body">
-                        <h3>Naked 500</h3>
-                        <p class="card-desc">Potencia urbana con estilo agresivo.</p>
-                        <ul class="card-specs">
-                            <li>Cilindrada <span>500 cc</span></li>
-                            <li>Potencia <span>47 HP</span></li>
-                            <li>Año <span>2025</span></li>
-                        </ul>
-                        <div class="card-footer">
-                            <span class="price">$4.050.000</span>
-                            <a href="#contacto" class="card-link">Cotizar →</a>
-                        </div>
-                    </div>
-                </article>
+            <div class="recent" id="recent" hidden>
+                <h3>Vistos recientemente</h3>
+                <div class="recent-list" id="recent-list"></div>
             </div>
         </div>
     </section>
 
-    <section id="repuestos" class="section section-alt">
-        <div class="container">
-            <div class="section-head reveal">
-                <span class="section-tag">Inventario</span>
-                <h2>Repuestos y accesorios</h2>
+    <section class="perks">
+        <div class="container perks-grid">
+            <div class="perk">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>
+                <div><strong>Envíos a todo Chile</strong><span>Gratis sobre $100.000</span></div>
             </div>
-            <div class="grid">
-                <article class="card reveal">
-                    <div class="card-media">
-                        <img src="https://live.staticflickr.com/4044/4381533356_0afbaa8402_b.jpg" alt="Kit de arrastre" loading="lazy" onerror="this.remove()">
-                        <span class="card-media-tag">En stock</span>
-                    </div>
-                    <div class="card-body">
-                        <h3>Kit de arrastre</h3>
-                        <p class="card-desc">Cadena, piñón y catalina. Varias medidas.</p>
-                        <div class="card-footer">
-                            <span class="price">Desde $24.990</span>
-                            <a href="#contacto" class="card-link">Consultar →</a>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="card reveal">
-                    <div class="card-media">
-                        <img src="https://live.staticflickr.com/8203/8191327093_438c1d7f25_b.jpg" alt="Neumáticos" loading="lazy" onerror="this.remove()">
-                        <span class="card-media-tag">En stock</span>
-                    </div>
-                    <div class="card-body">
-                        <h3>Neumáticos</h3>
-                        <p class="card-desc">Calle, pista y off-road. Todas las marcas.</p>
-                        <div class="card-footer">
-                            <span class="price">Desde $69.990</span>
-                            <a href="#contacto" class="card-link">Consultar →</a>
-                        </div>
-                    </div>
-                </article>
-
-                <article class="card reveal">
-                    <div class="card-media">
-                        <img src="https://live.staticflickr.com/1478/24128240646_13f2c61d80_b.jpg" alt="Baterías y filtros" loading="lazy" onerror="this.remove()">
-                        <span class="card-media-tag">En stock</span>
-                    </div>
-                    <div class="card-body">
-                        <h3>Baterías y filtros</h3>
-                        <p class="card-desc">Repuestos de mantención siempre en stock.</p>
-                        <div class="card-footer">
-                            <span class="price">Desde $15.990</span>
-                            <a href="#contacto" class="card-link">Consultar →</a>
-                        </div>
-                    </div>
-                </article>
+            <div class="perk">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6v10H3z"/><path d="M9 20v-6h6v6"/></svg>
+                <div><strong>Retiro en tienda</strong><span>Sin costo, en Santiago</span></div>
+            </div>
+            <div class="perk">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>
+                <div><strong>Pago seguro</strong><span>Transferencia, tarjetas o efectivo</span></div>
+            </div>
+            <div class="perk">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>
+                <div><strong>Garantía</strong><span>Productos originales</span></div>
             </div>
         </div>
     </section>
@@ -351,7 +326,38 @@
         </div>
     </section>
 
-    <section id="contacto" class="section section-alt">
+    <section id="ayuda" class="section section-alt">
+        <div class="container">
+            <div class="section-head reveal">
+                <span class="section-tag">Preguntas frecuentes</span>
+                <h2>Compra con confianza</h2>
+            </div>
+            <div class="faq reveal">
+                <details>
+                    <summary>¿Cómo compro en la tienda?</summary>
+                    <p>Agrega productos al carro, completa tus datos en «Finalizar compra» y envía el pedido. Te confirmamos stock, total y datos de pago por WhatsApp.</p>
+                </details>
+                <details>
+                    <summary>¿Qué medios de pago aceptan?</summary>
+                    <p>Transferencia bancaria, tarjetas de débito y crédito (te enviamos un link de pago) y efectivo al retirar en tienda.</p>
+                </details>
+                <details>
+                    <summary>¿Hacen envíos a regiones?</summary>
+                    <p>Sí, despachamos a todo Chile. El envío es gratis en compras sobre $100.000; bajo ese monto, el costo se cotiza según tu comuna.</p>
+                </details>
+                <details>
+                    <summary>¿Puedo cambiar o devolver un producto?</summary>
+                    <p>Tienes 10 días desde la recepción para cambios, con el producto sin uso y en su empaque original. Escríbenos y lo coordinamos.</p>
+                </details>
+                <details>
+                    <summary>¿Cómo compro una moto?</summary>
+                    <p>Las motos se cotizan directamente: presiona «Cotizar» y te contactamos con disponibilidad, opciones de financiamiento y fecha de entrega.</p>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <section id="contacto" class="section">
         <div class="container">
             <div class="section-head reveal">
                 <span class="section-tag">Ubicación</span>
@@ -417,20 +423,51 @@
         </div>
     </section>
 
+    <section class="newsletter">
+        <div class="container newsletter-inner">
+            <div>
+                <h2>Ofertas exclusivas</h2>
+                <p>Súmate a nuestra lista y recibe ofertas, lanzamientos y fechas de track days por WhatsApp.</p>
+            </div>
+            <form class="newsletter-form" id="newsletter-form">
+                <label for="nl-name" class="sr-only">Tu nombre</label>
+                <input id="nl-name" name="name" placeholder="Tu nombre" autocomplete="given-name" required>
+                <button type="submit" class="btn btn-primary">Quiero ofertas</button>
+            </form>
+        </div>
+    </section>
+
     <footer class="footer">
         <div class="checkered" aria-hidden="true"></div>
         <a href="#inicio" class="logo">
             <span class="logo-mark" aria-hidden="true"></span>
             CATRIAN <span class="logo-accent">RACING</span>
         </a>
-        <nav class="footer-nav">
-            <a href="#motos">Motos</a>
-            <a href="#repuestos">Repuestos</a>
-            <a href="#taller">Taller</a>
-            <a href="#galeria">Galería</a>
-            <a href="#testimonios">Opiniones</a>
-            <a href="#contacto">Contacto</a>
-        </nav>
+        <p class="footer-tagline">Motos, repuestos y taller en Santiago. Envíos a todo Chile.</p>
+        <div class="footer-cols">
+            <nav aria-label="Tienda">
+                <h3>Tienda</h3>
+                <a href="#tienda" data-collection="Motos">Motos</a>
+                <a href="#tienda" data-collection="Repuestos">Repuestos</a>
+                <a href="#tienda" data-collection="Equipamiento">Equipamiento</a>
+                <a href="#tienda" data-collection="Accesorios">Accesorios</a>
+            </nav>
+            <nav aria-label="Catrian Racing">
+                <h3>Catrian Racing</h3>
+                <a href="#taller">Taller</a>
+                <a href="#galeria">Galería</a>
+                <a href="#testimonios">Opiniones</a>
+                <a href="#contacto">Contacto</a>
+            </nav>
+            <nav aria-label="Ayuda">
+                <h3>Ayuda</h3>
+                <a href="#ayuda">Preguntas frecuentes</a>
+                <a href="politicas.html#envios">Envíos y entregas</a>
+                <a href="politicas.html#cambios">Cambios y devoluciones</a>
+                <a href="politicas.html#privacidad">Privacidad</a>
+                <a href="politicas.html#terminos">Términos y condiciones</a>
+            </nav>
+        </div>
         <div class="footer-social">
             <a href="https://instagram.com" target="_blank" rel="noopener" aria-label="Instagram">
                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zm0 10.162a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
@@ -442,8 +479,125 @@
                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
             </a>
         </div>
+        <ul class="footer-pay" aria-label="Medios de pago">
+            <li>Transferencia</li>
+            <li>Débito</li>
+            <li>Crédito</li>
+            <li>Efectivo</li>
+        </ul>
         <p>Catrian Racing · Todos los derechos reservados</p>
     </footer>
+
+    <div class="overlay" id="overlay" hidden></div>
+
+    <aside class="drawer" id="cart" role="dialog" aria-modal="true" aria-labelledby="cart-title" aria-hidden="true">
+        <div class="drawer-head">
+            <h2 id="cart-title">Tu carro</h2>
+            <button type="button" class="icon-btn" id="cart-close" aria-label="Cerrar carro">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+        </div>
+
+        <div class="drawer-view" id="cart-view">
+            <div class="ship-progress" id="ship-progress">
+                <p id="ship-text"></p>
+                <div class="ship-bar"><span id="ship-fill"></span></div>
+            </div>
+            <ul class="cart-items" id="cart-items"></ul>
+            <div class="cart-empty" id="cart-empty">
+                <p>Tu carro está vacío.</p>
+                <a href="#tienda" class="btn btn-ghost" data-close-cart>Ver productos</a>
+            </div>
+            <div class="drawer-foot" id="cart-foot">
+                <div class="totals-row"><span>Subtotal</span><strong id="cart-subtotal">$0</strong></div>
+                <p class="drawer-note">Envío y medio de pago se eligen en el siguiente paso.</p>
+                <button type="button" class="btn btn-primary btn-block" id="checkout-start">Finalizar compra</button>
+            </div>
+        </div>
+
+        <form class="drawer-view checkout" id="checkout-view" hidden novalidate>
+            <button type="button" class="back-link" id="checkout-back">← Volver al carro</button>
+            <fieldset>
+                <legend>Tus datos</legend>
+                <label for="co-name">Nombre y apellido</label>
+                <input id="co-name" name="name" autocomplete="name" required>
+                <label for="co-phone">Teléfono</label>
+                <input id="co-phone" name="phone" type="tel" autocomplete="tel" placeholder="+56 9 1234 5678" required>
+                <label for="co-email">Email (opcional)</label>
+                <input id="co-email" name="email" type="email" autocomplete="email">
+            </fieldset>
+            <fieldset>
+                <legend>Entrega</legend>
+                <label class="radio"><input type="radio" name="delivery" value="retiro" checked> Retiro en tienda <em>Gratis</em></label>
+                <label class="radio"><input type="radio" name="delivery" value="despacho"> Despacho a domicilio <em id="ship-label">A cotizar</em></label>
+                <div class="ship-fields" id="ship-fields" hidden>
+                    <label for="co-region">Región</label>
+                    <select id="co-region" name="region">
+                        <option>Arica y Parinacota</option><option>Tarapacá</option><option>Antofagasta</option><option>Atacama</option><option>Coquimbo</option><option>Valparaíso</option><option selected>Metropolitana</option><option>O'Higgins</option><option>Maule</option><option>Ñuble</option><option>Biobío</option><option>La Araucanía</option><option>Los Ríos</option><option>Los Lagos</option><option>Aysén</option><option>Magallanes</option>
+                    </select>
+                    <label for="co-commune">Comuna</label>
+                    <input id="co-commune" name="commune" autocomplete="address-level2">
+                    <label for="co-address">Dirección</label>
+                    <input id="co-address" name="address" autocomplete="street-address" placeholder="Calle, número, depto.">
+                </div>
+            </fieldset>
+            <fieldset>
+                <legend>Pago</legend>
+                <label class="radio"><input type="radio" name="payment" value="Transferencia bancaria" checked> Transferencia bancaria</label>
+                <label class="radio"><input type="radio" name="payment" value="Tarjeta de débito o crédito (link de pago)"> Débito o crédito <em>Link de pago</em></label>
+                <label class="radio"><input type="radio" name="payment" value="Efectivo al retirar"> Efectivo al retirar</label>
+            </fieldset>
+            <label for="co-notes">Notas del pedido (opcional)</label>
+            <textarea id="co-notes" name="notes" rows="2"></textarea>
+            <label for="coupon-input">Cupón de descuento</label>
+            <div class="coupon">
+                <input id="coupon-input" autocomplete="off" placeholder="Ingresa tu código">
+                <button type="button" class="btn btn-sm btn-ghost" id="coupon-apply">Aplicar</button>
+            </div>
+            <p class="coupon-msg" id="coupon-msg" aria-live="polite"></p>
+            <p class="form-error" id="checkout-error" role="alert"></p>
+            <div class="drawer-foot">
+                <div class="totals-row"><span>Subtotal</span><span id="co-subtotal">$0</span></div>
+                <div class="totals-row discount" id="co-discount-row" hidden><span>Descuento</span><span id="co-discount"></span></div>
+                <div class="totals-row"><span>Envío</span><span id="co-shipping">Gratis</span></div>
+                <div class="totals-row total"><span>Total</span><strong id="co-total">$0</strong></div>
+                <button type="submit" class="btn btn-primary btn-block">Enviar pedido por WhatsApp</button>
+            </div>
+        </form>
+
+        <div class="drawer-view checkout-done" id="done-view" hidden>
+            <span class="done-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+            </span>
+            <h3>¡Pedido enviado!</h3>
+            <p>Te responderemos por WhatsApp para confirmar stock, total y datos de pago.</p>
+            <p class="done-ref">Pedido <strong id="done-ref"></strong></p>
+            <button type="button" class="btn btn-ghost" data-close-cart>Seguir comprando</button>
+        </div>
+    </aside>
+
+    <div class="modal" id="product-modal" role="dialog" aria-modal="true" aria-labelledby="pm-title" hidden>
+        <div class="modal-box">
+            <button type="button" class="icon-btn modal-close" id="modal-close" aria-label="Cerrar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+            <div class="modal-media" id="pm-media"></div>
+            <div class="modal-info">
+                <span class="product-cat" id="pm-cat"></span>
+                <h2 id="pm-title"></h2>
+                <div class="price-row" id="pm-price"></div>
+                <p class="modal-desc" id="pm-desc"></p>
+                <ul class="card-specs" id="pm-specs"></ul>
+                <div id="pm-options"></div>
+                <div class="modal-buy" id="pm-buy"></div>
+                <p class="modal-stock" id="pm-stock"></p>
+                <div class="modal-tools" id="pm-tools"></div>
+                <div class="modal-related" id="pm-related"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <a href="https://wa.me/56936621284" target="_blank" rel="noopener" class="wa-float" aria-label="Escríbenos por WhatsApp">
         <span class="wa-float-label">¿Hablamos?</span>
@@ -456,6 +610,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 15l-6-6-6 6"/></svg>
     </button>
 
+    <script src="store.js" defer></script>
     <script>
         (function () {
             var root = document.documentElement;
@@ -584,6 +739,31 @@
                     texto += ' Me interesa: ' + servicio + '.';
                     if (mensaje) texto += ' ' + mensaje;
                     window.open('https://wa.me/56936621284?text=' + encodeURIComponent(texto), '_blank');
+                });
+            }
+
+            var menuBtn = document.getElementById('menu-btn');
+            var mainNav = document.getElementById('main-nav');
+            if (menuBtn && mainNav) {
+                menuBtn.addEventListener('click', function () {
+                    var open = mainNav.classList.toggle('open');
+                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                });
+                mainNav.addEventListener('click', function (e) {
+                    if (e.target.closest('a')) {
+                        mainNav.classList.remove('open');
+                        menuBtn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+
+            var newsletter = document.getElementById('newsletter-form');
+            if (newsletter) {
+                newsletter.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    var texto = 'Hola Catrian Racing! Soy ' + newsletter.name.value.trim() + ' y quiero recibir sus ofertas por WhatsApp.';
+                    window.open('https://wa.me/56936621284?text=' + encodeURIComponent(texto), '_blank');
+                    newsletter.reset();
                 });
             }
 

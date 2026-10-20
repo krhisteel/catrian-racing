@@ -344,7 +344,8 @@
     }
 
     function productCard(p) {
-        var card = el('article', 'card product' + (soldOut(p) ? ' sold-out' : ''));
+        var card = el('article', 'card product' + (soldOut(p) ? ' sold-out' : '') + (inTransition ? ' no-in' : ''));
+        card.style.viewTransitionName = 'p-' + p.id.replace(/[^a-zA-Z0-9_-]/g, '-');
 
         var media = el('button', 'card-media product-media');
         media.type = 'button';
@@ -407,6 +408,20 @@
             : 'No encontramos productos con esos filtros.';
     }
 
+    // Transición de vista al filtrar: las tarjetas se deslizan a su nueva posición.
+    var inTransition = false;
+    function withTransition(update) {
+        var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!document.startViewTransition || reduce) {
+            update();
+            return;
+        }
+        document.startViewTransition(function () {
+            inTransition = true;
+            try { update(); } finally { inTransition = false; }
+        });
+    }
+
     function resetPage() {
         state.limit = PAGE_SIZE;
     }
@@ -432,9 +447,11 @@
             c.dataset.sub = sub;
             c.classList.toggle('active', sub === state.sub);
             c.addEventListener('click', function () {
-                state.sub = sub;
-                resetPage();
-                renderProducts();
+                withTransition(function () {
+                    state.sub = sub;
+                    resetPage();
+                    renderProducts();
+                });
             });
             wrap.appendChild(c);
         });
@@ -1098,13 +1115,17 @@
         renderProducts();
     });
     $('shop-sort').addEventListener('change', function (e) {
-        state.sort = e.target.value;
-        renderProducts();
+        withTransition(function () {
+            state.sort = e.target.value;
+            renderProducts();
+        });
     });
     $('shop-brand').addEventListener('change', function (e) {
-        state.brand = e.target.value;
-        resetPage();
-        renderProducts();
+        withTransition(function () {
+            state.brand = e.target.value;
+            resetPage();
+            renderProducts();
+        });
     });
     $('shop-more').addEventListener('click', function () {
         state.limit += PAGE_SIZE;
@@ -1119,20 +1140,26 @@
         setVehicle($('fit-model').value);
         $('tienda').scrollIntoView();
     });
-    $('fit-clear').addEventListener('click', function () { setVehicle(''); });
+    $('fit-clear').addEventListener('click', function () {
+        withTransition(function () { setVehicle(''); });
+    });
     $('shop-chips').addEventListener('click', function (e) {
         var chip = e.target.closest('.chip');
-        if (chip) setCat(chip.dataset.cat);
+        if (chip) withTransition(function () { setCat(chip.dataset.cat); });
     });
     $('only-sale').addEventListener('change', function (e) {
-        state.onlySale = e.target.checked;
-        resetPage();
-        renderProducts();
+        withTransition(function () {
+            state.onlySale = e.target.checked;
+            resetPage();
+            renderProducts();
+        });
     });
     $('only-stock').addEventListener('change', function (e) {
-        state.onlyStock = e.target.checked;
-        resetPage();
-        renderProducts();
+        withTransition(function () {
+            state.onlyStock = e.target.checked;
+            resetPage();
+            renderProducts();
+        });
     });
     document.querySelectorAll('[data-collection]').forEach(function (b) {
         b.addEventListener('click', function () { goToShop(b.dataset.collection); });

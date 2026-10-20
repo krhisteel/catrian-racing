@@ -679,56 +679,100 @@
         f.specs = input('textarea', (p.specs || []).map(function (s) { return s[0] + ': ' + s[1]; }).join('\n'), { rows: 3, placeholder: 'Una por línea. Ej:\nVoltaje: 12 V\nCapacidad: 7 Ah' });
         f.optName = input('text', p.options ? p.options.name : '', { placeholder: 'Ej: Talla' });
         f.optValues = input('text', p.options ? p.options.values.join(', ') : '', { placeholder: 'Ej: S, M, L, XL' });
-        f.img = input('url', p.img || '', { placeholder: 'https://...' });
+        f.sku = input('text', p.sku || '', { placeholder: 'Ej: NGK-CR8E (opcional)', maxlength: 40 });
+        f.warranty = input('text', p.warranty || '', { placeholder: 'Vacío = Garantía legal de 6 meses', maxlength: 80 });
 
         form.appendChild(datalist('dl-subs', uniqValues('sub')));
         form.appendChild(datalist('dl-brands', uniqValues('brand')));
         form.appendChild(datalist('dl-badges', ['Nuevo', 'Más vendido', 'Oferta', 'Últimas unidades']));
 
-        // Imagen
-        var imgBlock = el('div', 'img-block');
-        var preview = el('div', 'img-preview');
-        function updatePreview() {
-            preview.textContent = '';
-            if (f.img.value) {
+        // Fotos: la primera es la principal (se ve en el catálogo); la segunda aparece al pasar el mouse.
+        var imgs = (p.images && p.images.length) ? p.images.slice() : (p.img ? [p.img] : []);
+        var photos = el('fieldset', 'photos-box');
+        photos.appendChild(el('legend', '', 'Fotos del producto'));
+        photos.appendChild(el('p', 'admin-help', 'Recomendado: foto cuadrada del producto sobre fondo blanco, de al menos 800 × 800 px. La primera foto es la principal.'));
+        var photoGrid = el('div', 'photo-grid');
+        photos.appendChild(photoGrid);
+
+        function renderPhotos() {
+            photoGrid.textContent = '';
+            imgs.forEach(function (src, i) {
+                var item = el('div', 'photo-item' + (i === 0 ? ' main' : ''));
                 var img = el('img');
-                img.src = f.img.value;
-                img.alt = 'Vista previa';
-                img.onerror = function () { img.remove(); };
-                preview.appendChild(img);
-            } else {
-                preview.appendChild(el('span', '', 'Sin imagen'));
-            }
+                img.src = src;
+                img.alt = 'Foto ' + (i + 1);
+                img.onerror = function () { img.classList.add('broken'); };
+                item.appendChild(img);
+                if (i === 0) item.appendChild(el('span', 'photo-main-tag', 'Principal'));
+                var actions = el('div', 'photo-actions');
+                if (i > 0) {
+                    actions.appendChild(button('★', 'photo-btn', function () {
+                        imgs.unshift(imgs.splice(i, 1)[0]);
+                        renderPhotos();
+                    }));
+                    actions.lastChild.setAttribute('aria-label', 'Usar como foto principal');
+                    actions.lastChild.title = 'Usar como principal';
+                    actions.appendChild(button('←', 'photo-btn', function () {
+                        var tmp = imgs[i - 1];
+                        imgs[i - 1] = imgs[i];
+                        imgs[i] = tmp;
+                        renderPhotos();
+                    }));
+                    actions.lastChild.setAttribute('aria-label', 'Mover a la izquierda');
+                }
+                actions.appendChild(button('✕', 'photo-btn danger', function () {
+                    imgs.splice(i, 1);
+                    renderPhotos();
+                }));
+                actions.lastChild.setAttribute('aria-label', 'Quitar foto');
+                item.appendChild(actions);
+                photoGrid.appendChild(item);
+            });
+
+            var file = el('input');
+            file.type = 'file';
+            file.accept = 'image/jpeg,image/png,image/webp';
+            file.multiple = true;
+            file.className = 'sr-only';
+            file.id = 'f-file';
+            var add = el('label', 'photo-add');
+            add.htmlFor = 'f-file';
+            add.appendChild(el('strong', '', '+'));
+            add.appendChild(el('span', '', 'Subir fotos'));
+            file.addEventListener('change', async function () {
+                var picked = Array.prototype.slice.call(file.files);
+                file.value = '';
+                for (var k = 0; k < picked.length; k++) {
+                    if (picked[k].size > 5 * 1024 * 1024) {
+                        toast(picked[k].name + ' pesa más de 5 MB.', true);
+                        continue;
+                    }
+                    add.lastChild.textContent = 'Subiendo ' + (k + 1) + '/' + picked.length + '...';
+                    try {
+                        imgs.push(await uploadImage(picked[k], p.id || slugify(f.name.value)));
+                    } catch (e) { toast(e.message, true); }
+                }
+                renderPhotos();
+                if (picked.length) toast(picked.length === 1 ? 'Foto subida' : 'Fotos subidas');
+            });
+            photoGrid.appendChild(add);
+            photoGrid.appendChild(file);
         }
-        updatePreview();
-        f.img.addEventListener('change', updatePreview);
-        imgBlock.appendChild(preview);
-        var imgFields = el('div', 'img-fields');
-        var file = el('input');
-        file.type = 'file';
-        file.accept = 'image/jpeg,image/png,image/webp';
-        file.className = 'sr-only';
-        file.id = 'f-file';
-        var upload = el('label', 'btn btn-sm btn-ghost', 'Subir foto');
-        upload.htmlFor = 'f-file';
-        file.addEventListener('change', async function () {
-            if (!file.files[0]) return;
-            var picked = file.files[0];
-            if (picked.size > 5 * 1024 * 1024) return toast('La foto pesa más de 5 MB.', true);
-            upload.textContent = 'Subiendo...';
-            try {
-                f.img.value = await uploadImage(picked, p.id || slugify(f.name.value));
-                updatePreview();
-                toast('Foto subida');
-            } catch (e) { toast(e.message, true); }
-            upload.textContent = 'Subir foto';
-            file.value = '';
-        });
-        imgFields.appendChild(upload);
-        imgFields.appendChild(file);
-        imgFields.appendChild(field('o pega el enlace de una imagen', f.img));
-        imgBlock.appendChild(imgFields);
-        form.appendChild(imgBlock);
+        renderPhotos();
+
+        var urlRow = el('div', 'photo-url');
+        var urlInput = input('url', '', { placeholder: 'o pega el enlace de una imagen (https://...)' });
+        urlInput.setAttribute('aria-label', 'Enlace de una imagen');
+        urlRow.appendChild(urlInput);
+        urlRow.appendChild(button('Agregar', 'btn btn-sm btn-ghost', function () {
+            var url = urlInput.value.trim();
+            if (!/^https?:\/\//.test(url)) return toast('Pega un enlace que empiece con https://', true);
+            imgs.push(url);
+            urlInput.value = '';
+            renderPhotos();
+        }));
+        photos.appendChild(urlRow);
+        form.appendChild(photos);
 
         form.appendChild(field('Nombre', f.name));
         var grid = el('div', 'form-grid');
@@ -740,6 +784,8 @@
         grid.appendChild(field('Precio anterior ($)', f.compare));
         grid.appendChild(field('Stock', f.stock));
         grid.appendChild(field('Cilindrada (cc)', f.cc));
+        grid.appendChild(field('Código (SKU)', f.sku));
+        grid.appendChild(field('Garantía', f.warranty));
         form.appendChild(grid);
         form.appendChild(field('Descripción', f.desc));
 
@@ -842,7 +888,10 @@
                 price: price,
                 compare: num(f.compare.value),
                 stock: num(f.stock.value),
-                img: f.img.value.trim() || null,
+                img: imgs[0] || null,
+                images: imgs,
+                sku: f.sku.value.trim() || null,
+                warranty: f.warranty.value.trim() || null,
                 desc: f.desc.value.trim(),
                 specs: specs,
                 options: optValues.length ? { name: f.optName.value.trim(), values: optValues } : null,

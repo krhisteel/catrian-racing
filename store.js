@@ -54,105 +54,105 @@
         },
         {
             id: 'kit-arrastre', name: 'Kit de arrastre', cat: 'Repuestos', sub: 'Transmisión', brand: 'EK', price: 24990, stock: 14,
-            img: 'https://live.staticflickr.com/4044/4381533356_0afbaa8402_b.jpg',
+            img: 'img/productos/kit-arrastre.svg', images: ['img/productos/kit-arrastre.svg', 'img/productos/kit-arrastre-2.svg'],
             desc: 'Cadena, piñón y catalina de acero templado.',
             options: { name: 'Paso de cadena', values: ['428', '520', '525'] },
             fits: STREET.concat(OFFROAD)
         },
         {
             id: 'neumatico', name: 'Neumático', cat: 'Repuestos', sub: 'Neumáticos', brand: 'Dunlop', price: 69990, stock: 9, freeShip: true,
-            img: 'https://live.staticflickr.com/8203/8191327093_438c1d7f25_b.jpg',
+            img: 'img/productos/neumatico.svg', images: ['img/productos/neumatico.svg', 'img/productos/neumatico-2.svg'],
             desc: 'Calle, pista y off-road. Todas las marcas.',
             options: { name: 'Medida', values: ['110/70-17', '140/70-17', '90/90-21', '120/80-18'] }
         },
         {
             id: 'bateria', name: 'Batería 12V', cat: 'Repuestos', sub: 'Baterías', brand: 'Yuasa', price: 34990, stock: 6,
-            img: 'https://live.staticflickr.com/1478/24128240646_13f2c61d80_b.jpg',
+            img: 'img/productos/bateria.svg', images: ['img/productos/bateria.svg', 'img/productos/bateria-2.svg'],
             desc: 'Batería sellada libre de mantención.',
             specs: [['Voltaje', '12 V'], ['Capacidad', '7 Ah']],
             fits: STREET.concat(SCOOTER, ['honda-xr150l', 'yamaha-xtz250'])
         },
         {
             id: 'filtro-aceite', name: 'Filtro de aceite', cat: 'Repuestos', sub: 'Filtros', brand: 'Hiflo', price: 8990, compare: 11990, stock: 30,
-            img: 'https://loremflickr.com/600/450/motorcycle,engine?lock=21',
+            img: 'img/productos/filtro-aceite.svg', images: ['img/productos/filtro-aceite.svg', 'img/productos/filtro-aceite-2.svg'],
             desc: 'Filtro de alto flujo para mantención periódica.',
             fits: STREET.concat(OFFROAD, SCOOTER)
         },
         {
             id: 'filtro-aire', name: 'Filtro de aire', cat: 'Repuestos', sub: 'Filtros', brand: 'Hiflo', price: 12990, stock: 11,
-            img: 'https://loremflickr.com/600/450/motorcycle,filter?lock=30',
+            img: 'img/productos/filtro-aire.svg', images: ['img/productos/filtro-aire.svg', 'img/productos/filtro-aire-2.svg'],
             desc: 'Mejor respiración del motor y protección contra el polvo.',
             fits: ['honda-cb190r', 'yamaha-fz25', 'honda-xr150l', 'yamaha-xtz250', 'honda-pcx160', 'yamaha-nmax155']
         },
         {
             id: 'pastillas', name: 'Pastillas de freno', cat: 'Repuestos', sub: 'Frenos', brand: 'EBC', price: 19990, stock: 3,
-            img: 'https://loremflickr.com/600/450/motorcycle,brake?lock=22',
+            img: 'img/productos/pastillas.svg', images: ['img/productos/pastillas.svg', 'img/productos/pastillas-2.svg'],
             desc: 'Compuesto sinterizado para calle y pista.',
             options: { name: 'Posición', values: ['Delantera', 'Trasera'] },
             fits: STREET.concat(OFFROAD, SCOOTER)
         },
         {
             id: 'bujia', name: 'Bujía de iridio', cat: 'Repuestos', sub: 'Encendido', brand: 'NGK', price: 9990, stock: 40, badge: 'Más vendido',
-            img: 'https://loremflickr.com/600/450/spark,plug?lock=31',
+            img: 'img/productos/bujia.svg', images: ['img/productos/bujia.svg', 'img/productos/bujia-2.svg'],
             desc: 'Encendido más rápido y mayor duración que una bujía estándar.',
             fits: STREET.concat(OFFROAD, SCOOTER)
         },
         {
             id: 'aceite', name: 'Aceite 10W-40 4L', cat: 'Repuestos', sub: 'Aceites y lubricantes', brand: 'Motul', price: 39990, stock: 18, freeShip: true,
-            img: 'https://loremflickr.com/600/450/motor,oil?lock=23',
+            img: 'img/productos/aceite.svg', images: ['img/productos/aceite.svg', 'img/productos/aceite-2.svg'],
             desc: 'Aceite semisintético para motores 4T.',
             fits: STREET.concat(['honda-xr150l', 'yamaha-xtz250', 'suzuki-dr650'], SCOOTER)
         },
         {
             id: 'lubricante-cadena', name: 'Lubricante de cadena', cat: 'Repuestos', sub: 'Aceites y lubricantes', brand: 'Motul', price: 11990, stock: 22,
-            img: 'https://loremflickr.com/600/450/motorcycle,chain?lock=32',
+            img: 'img/productos/lubricante-cadena.svg', images: ['img/productos/lubricante-cadena.svg', 'img/productos/lubricante-cadena-2.svg'],
             desc: 'Spray que protege la cadena del desgaste y la corrosión.',
             fits: STREET.concat(OFFROAD)
         },
         {
             id: 'retenes', name: 'Kit de retenes de horquilla', cat: 'Repuestos', sub: 'Suspensión', brand: 'All Balls', price: 21990, stock: 7,
-            img: 'https://loremflickr.com/600/450/motorcycle,suspension?lock=33',
+            img: 'img/productos/retenes.svg', images: ['img/productos/retenes.svg', 'img/productos/retenes-2.svg'],
             desc: 'Retenes y guardapolvos para evitar fugas en la suspensión.',
             fits: ['honda-cb190r', 'yamaha-fz25', 'kawasaki-ninja400', 'ktm-duke390'].concat(OFFROAD)
         },
         {
             id: 'correa', name: 'Correa de transmisión', cat: 'Repuestos', sub: 'Transmisión', brand: 'Bando', price: 32990, stock: 5,
-            img: 'https://loremflickr.com/600/450/scooter,engine?lock=34',
+            img: 'img/productos/correa.svg', images: ['img/productos/correa.svg', 'img/productos/correa-2.svg'],
             desc: 'Correa reforzada para transmisión automática de scooter.',
             fits: SCOOTER
         },
         {
             id: 'casco', name: 'Casco integral', cat: 'Equipamiento', brand: 'LS2', price: 129990, compare: 159990, stock: 5, freeShip: true,
-            img: 'https://loremflickr.com/600/450/motorcycle,helmet?lock=24',
+            img: 'img/productos/casco.svg', images: ['img/productos/casco.svg', 'img/productos/casco-2.svg'],
             desc: 'Certificación DOT/ECE, visor antiempañante.',
             options: { name: 'Talla', values: ['S', 'M', 'L', 'XL'] }
         },
         {
             id: 'chaqueta', name: 'Chaqueta con protecciones', cat: 'Equipamiento', brand: 'Alpinestars', price: 149990, stock: 4, badge: 'Nuevo', freeShip: true,
-            img: 'https://loremflickr.com/600/450/motorcycle,jacket?lock=25',
+            img: 'img/productos/chaqueta.svg', images: ['img/productos/chaqueta.svg', 'img/productos/chaqueta-2.svg'],
             desc: 'Textil ventilada con protecciones en codos y hombros.',
             options: { name: 'Talla', values: ['S', 'M', 'L', 'XL'] }
         },
         {
             id: 'guantes', name: 'Guantes racing', cat: 'Equipamiento', brand: 'Alpinestars', price: 29990, stock: 12,
-            img: 'https://loremflickr.com/600/450/motorcycle,gloves?lock=26',
+            img: 'img/productos/guantes.svg', images: ['img/productos/guantes.svg', 'img/productos/guantes-2.svg'],
             desc: 'Cuero con refuerzos en nudillos y palma.',
             options: { name: 'Talla', values: ['S', 'M', 'L', 'XL'] }
         },
         {
             id: 'candado', name: 'Candado de disco', cat: 'Accesorios', brand: 'Kovix', price: 24990, stock: 2,
-            img: 'https://loremflickr.com/600/450/motorcycle,lock?lock=27',
+            img: 'img/productos/candado.svg', images: ['img/productos/candado.svg', 'img/productos/candado-2.svg'],
             desc: 'Acero reforzado con alarma de 110 dB.'
         },
         {
             id: 'escape', name: 'Escape deportivo', cat: 'Accesorios', brand: 'Akrapovič', price: 189990, stock: 0,
-            img: 'https://loremflickr.com/600/450/motorcycle,exhaust?lock=29',
+            img: 'img/productos/escape.svg', images: ['img/productos/escape.svg', 'img/productos/escape-2.svg'],
             desc: 'Silenciador de acero inoxidable, sonido racing.',
             fits: ['kawasaki-ninja400', 'ktm-duke390', 'yamaha-fz25']
         },
         {
             id: 'soporte-celular', name: 'Soporte de celular', cat: 'Accesorios', brand: 'Quad Lock', price: 14990, compare: 18990, stock: 20,
-            img: 'https://loremflickr.com/600/450/motorcycle,handlebar?lock=28',
+            img: 'img/productos/soporte-celular.svg', images: ['img/productos/soporte-celular.svg', 'img/productos/soporte-celular-2.svg'],
             desc: 'Montaje a manubrio con amortiguación de vibraciones.'
         }
     ];
@@ -312,13 +312,31 @@
         return row;
     }
 
-    function productImage(p, parent) {
+    function productImages(p) {
+        if (p.images && p.images.length) return p.images;
+        return p.img ? [p.img] : [];
+    }
+
+    // Fotos tipo estudio (producto sobre fondo blanco); las motos usan foto completa.
+    function isStudio(p) {
+        return p.cat !== 'Motos';
+    }
+
+    function productImage(p, parent, index, className) {
+        var src = productImages(p)[index || 0];
+        if (!src) return null;
         var img = document.createElement('img');
-        img.src = p.img;
-        img.alt = p.name;
+        img.src = src;
+        img.alt = index ? p.name + ' (foto ' + (index + 1) + ')' : p.name;
         img.loading = 'lazy';
+        if (className) img.className = className;
         img.onerror = function () { img.remove(); };
         parent.appendChild(img);
+        return img;
+    }
+
+    function skuOf(p) {
+        return p.sku || ('CR-' + p.id.replace(/[^a-z0-9]/gi, '').slice(0, 8).toUpperCase());
     }
 
     /* ===== CATÁLOGO ===== */
@@ -347,11 +365,12 @@
         var card = el('article', 'card product' + (soldOut(p) ? ' sold-out' : '') + (inTransition ? ' no-in' : ''));
         card.style.viewTransitionName = 'p-' + p.id.replace(/[^a-zA-Z0-9_-]/g, '-');
 
-        var media = el('button', 'card-media product-media');
+        var media = el('button', 'card-media product-media' + (isStudio(p) ? ' studio' : ''));
         media.type = 'button';
         media.setAttribute('aria-label', 'Ver ' + p.name);
         media.addEventListener('click', function () { openModal(p.id); });
         productImage(p, media);
+        if (productImages(p).length > 1) productImage(p, media, 1, 'alt-img');
         if (soldOut(p)) media.appendChild(el('span', 'card-media-tag tag-out', 'Agotado'));
         else if (p.compare) media.appendChild(el('span', 'card-media-tag tag-sale', '-' + discount(p) + '%'));
         else if (p.badge) media.appendChild(el('span', 'card-media-tag', p.badge));
@@ -571,53 +590,285 @@
     }
 
     /* ===== VISTA RÁPIDA ===== */
+    /* ===== FICHA DE PRODUCTO ===== */
+    var gallery = { index: 0, count: 0 };
+
+    function svgIcon(path) {
+        var ns = 'http://www.w3.org/2000/svg';
+        var svg = document.createElementNS(ns, 'svg');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke', 'currentColor');
+        svg.setAttribute('stroke-width', '1.8');
+        svg.setAttribute('stroke-linecap', 'round');
+        svg.setAttribute('stroke-linejoin', 'round');
+        svg.setAttribute('aria-hidden', 'true');
+        var pathEl = document.createElementNS(ns, 'path');
+        pathEl.setAttribute('d', path);
+        svg.appendChild(pathEl);
+        return svg;
+    }
+
+    var ICONS = {
+        truck: 'M3 7h11v9H3zM14 10h4l3 3v3h-7zM7 19.5a1.8 1.8 0 1 0 0-.1M17 19.5a1.8 1.8 0 1 0 0-.1',
+        store: 'M3 10l9-6 9 6v10H3zM9 20v-6h6v6',
+        shield: 'M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6zM8.5 12l2.5 2.5 4.5-5',
+        gift: 'M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7c-1.5-3-5-3-5-.5S12 7 12 7zM12 7c1.5-3 5-3 5-.5S12 7 12 7z',
+        chat: 'M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.5 0-2.9-.4-4.1-1.1L3 20l1.1-5.4A8.5 8.5 0 1 1 21 11.5z'
+    };
+
+    function renderGallery(p) {
+        var stage = $('pm-stage');
+        var thumbs = $('pm-thumbs');
+        var images = productImages(p);
+        stage.textContent = '';
+        thumbs.textContent = '';
+        stage.classList.toggle('studio', isStudio(p));
+        gallery.index = 0;
+        gallery.count = images.length;
+
+        images.forEach(function (src, i) {
+            var slide = el('div', 'pdp-slide');
+            var img = productImage(p, slide, i);
+            if (img) img.loading = i === 0 ? 'eager' : 'lazy';
+            attachZoom(slide);
+            stage.appendChild(slide);
+
+            var t = el('button', 'pdp-thumb' + (isStudio(p) ? ' studio' : '') + (i === 0 ? ' active' : ''));
+            t.type = 'button';
+            t.setAttribute('aria-label', 'Ver foto ' + (i + 1));
+            productImage(p, t, i);
+            t.addEventListener('click', function () { goToSlide(i); });
+            thumbs.appendChild(t);
+        });
+        if (!images.length) stage.appendChild(el('div', 'pdp-slide pdp-noimg', 'Sin foto'));
+
+        var multi = images.length > 1;
+        thumbs.hidden = !multi;
+        $('pm-prev').hidden = $('pm-next').hidden = !multi;
+        $('pm-counter').hidden = !multi;
+        $('pm-hint').hidden = !window.matchMedia('(hover: hover)').matches || !images.length;
+        updateGalleryUI();
+        stage.scrollLeft = 0;
+
+        var badges = $('pm-badges');
+        badges.textContent = '';
+        if (soldOut(p)) badges.appendChild(el('span', 'card-media-tag tag-out', 'Agotado'));
+        else if (p.compare) badges.appendChild(el('span', 'card-media-tag tag-sale', '-' + discount(p) + '%'));
+        if (p.badge) badges.appendChild(el('span', 'card-media-tag', p.badge));
+        if (p.freeShip && !soldOut(p)) badges.appendChild(el('span', 'card-media-tag tag-ship', 'Despacho gratis'));
+    }
+
+    function attachZoom(slide) {
+        if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+        slide.addEventListener('pointermove', function (e) {
+            var img = slide.querySelector('img');
+            if (!img) return;
+            var r = slide.getBoundingClientRect();
+            img.style.transformOrigin = ((e.clientX - r.left) / r.width * 100) + '% ' + ((e.clientY - r.top) / r.height * 100) + '%';
+            slide.classList.add('zoomed');
+        });
+        slide.addEventListener('pointerleave', function () { slide.classList.remove('zoomed'); });
+    }
+
+    function goToSlide(i) {
+        var stage = $('pm-stage');
+        if (!gallery.count) return;
+        gallery.index = (i + gallery.count) % gallery.count;
+        stage.scrollTo({ left: stage.clientWidth * gallery.index, behavior: 'smooth' });
+        updateGalleryUI();
+    }
+
+    function updateGalleryUI() {
+        $('pm-counter').textContent = (gallery.index + 1) + ' / ' + gallery.count;
+        $('pm-thumbs').querySelectorAll('.pdp-thumb').forEach(function (t, i) {
+            t.classList.toggle('active', i === gallery.index);
+            t.setAttribute('aria-current', i === gallery.index ? 'true' : 'false');
+        });
+    }
+
+    function stockInfo(p) {
+        if (p.quote) return ['info', 'Disponible para cotizar · Financiamiento y entrega a coordinar'];
+        if (soldOut(p)) return ['out', 'Sin stock para venta web por ahora'];
+        if (p.stock === undefined) return ['ok', 'En stock para envío o retiro en tienda'];
+        if (p.stock <= 3) return ['low', '¡Últimas ' + p.stock + ' unidades! En stock para envío o retiro'];
+        return ['ok', 'En stock para envío o retiro (' + p.stock + ' disponibles)'];
+    }
+
+    function renderFitChecker(p) {
+        var fit = $('pm-fit');
+        fit.textContent = '';
+        if (p.quote) return;
+        var box = el('div', 'pdp-fit');
+        if (!p.fits) {
+            box.classList.add('ok');
+            box.appendChild(el('strong', '', '✓ Universal'));
+            box.appendChild(el('span', '', 'Sirve para cualquier moto.'));
+            fit.appendChild(box);
+            return;
+        }
+        box.appendChild(el('strong', '', '¿Le sirve a tu moto?'));
+        var sel = el('select', 'pdp-fit-select');
+        sel.setAttribute('aria-label', 'Elige tu moto para comprobar la compatibilidad');
+        var first = el('option', '', 'Elige tu moto...');
+        first.value = '';
+        sel.appendChild(first);
+        uniq(vehicles.map(function (v) { return v.type; })).forEach(function (type) {
+            var group = el('optgroup');
+            group.label = type;
+            vehicles.filter(function (v) { return v.type === type; }).forEach(function (v) {
+                var o = el('option', '', v.brand + ' ' + v.model);
+                o.value = v.id;
+                group.appendChild(o);
+            });
+            sel.appendChild(group);
+        });
+        var result = el('p', 'pdp-fit-result');
+        result.setAttribute('aria-live', 'polite');
+        function check() {
+            box.classList.remove('ok', 'no');
+            if (!sel.value) {
+                result.textContent = 'Compatible con ' + p.fits.length + (p.fits.length === 1 ? ' modelo.' : ' modelos.');
+                return;
+            }
+            var ok = p.fits.indexOf(sel.value) !== -1;
+            box.classList.add(ok ? 'ok' : 'no');
+            result.textContent = ok
+                ? '✓ Sí, es compatible con tu ' + vehicleName(sel.value) + '.'
+                : '✕ No figura como compatible con tu ' + vehicleName(sel.value) + '. Pregúntanos por WhatsApp.';
+        }
+        sel.addEventListener('change', check);
+        if (state.vehicle && vehicleById[state.vehicle]) sel.value = state.vehicle;
+        check();
+        box.appendChild(sel);
+        box.appendChild(result);
+        fit.appendChild(box);
+    }
+
+    function renderTabs(p) {
+        var list = $('pm-tablist');
+        var panel = $('pm-panel');
+        list.textContent = '';
+        var tabs = [['desc', 'Descripción'], ['specs', 'Especificaciones']];
+        if (!p.quote) tabs.push(['fit', 'Compatibilidad']);
+        tabs.push(['ship', 'Envío y retiro']);
+
+        function show(key) {
+            list.querySelectorAll('[role="tab"]').forEach(function (t) {
+                var on = t.dataset.key === key;
+                t.setAttribute('aria-selected', on ? 'true' : 'false');
+                t.tabIndex = on ? 0 : -1;
+            });
+            panel.textContent = '';
+            panel.setAttribute('aria-labelledby', 'pm-tab-' + key);
+            if (key === 'desc') {
+                panel.appendChild(el('p', '', p.desc || 'Sin descripción.'));
+                if (p.options) panel.appendChild(el('p', 'pdp-note', 'Disponible en ' + p.options.name.toLowerCase() + ': ' + p.options.values.join(', ') + '.'));
+            } else if (key === 'specs') {
+                var table = el('table', 'pdp-specs');
+                var rows = [['Código', skuOf(p)], ['Marca', p.brand || '—'], ['Categoría', [p.cat, p.sub].filter(Boolean).join(' · ')]]
+                    .concat(p.specs || []);
+                if (p.options) rows.push([p.options.name, p.options.values.join(', ')]);
+                rows.push(['Garantía', p.warranty || 'Garantía legal de 6 meses']);
+                rows.forEach(function (r) {
+                    var tr = el('tr');
+                    tr.appendChild(el('th', '', r[0]));
+                    tr.appendChild(el('td', '', r[1]));
+                    table.appendChild(tr);
+                });
+                panel.appendChild(table);
+            } else if (key === 'fit') {
+                if (!p.fits) {
+                    panel.appendChild(el('p', '', 'Producto universal: sirve para cualquier moto.'));
+                } else {
+                    var groups = el('div', 'pdp-fit-groups');
+                    uniq(p.fits.map(function (id) { return vehicleById[id] ? vehicleById[id].type : ''; }).filter(Boolean)).forEach(function (type) {
+                        var g = el('div');
+                        g.appendChild(el('strong', '', type));
+                        var ul = el('ul');
+                        p.fits.forEach(function (id) {
+                            var v = vehicleById[id];
+                            if (v && v.type === type) ul.appendChild(el('li', '', v.brand + ' ' + v.model));
+                        });
+                        g.appendChild(ul);
+                        groups.appendChild(g);
+                    });
+                    panel.appendChild(groups);
+                    panel.appendChild(el('p', 'pdp-note', '¿No aparece tu moto? Escríbenos y revisamos la compatibilidad por ti.'));
+                }
+            } else {
+                var ul2 = el('ul', 'pdp-ship');
+                [
+                    'Despacho a todo Chile en 24–48 h hábiles desde que confirmamos tu pago.',
+                    p.freeShip ? 'Este producto tiene despacho gratis.' : 'Envío gratis en compras sobre ' + money(FREE_SHIPPING_FROM) + '; bajo ese monto se cotiza según tu comuna.',
+                    'Retiro gratis en tienda de lunes a viernes de 9:00 a 19:00 y sábados de 10:00 a 14:00.',
+                    'Tienes 10 días para cambios con el producto sin uso y en su empaque original.'
+                ].forEach(function (t) { ul2.appendChild(el('li', '', t)); });
+                panel.appendChild(ul2);
+            }
+        }
+
+        tabs.forEach(function (t) {
+            var b = el('button', 'pdp-tab', t[1]);
+            b.type = 'button';
+            b.id = 'pm-tab-' + t[0];
+            b.dataset.key = t[0];
+            b.setAttribute('role', 'tab');
+            b.setAttribute('aria-controls', 'pm-panel');
+            b.addEventListener('click', function () { show(t[0]); });
+            b.addEventListener('keydown', function (e) {
+                if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+                var all = Array.prototype.slice.call(list.children);
+                var next = all[(all.indexOf(b) + (e.key === 'ArrowRight' ? 1 : -1) + all.length) % all.length];
+                next.focus();
+                next.click();
+            });
+            list.appendChild(b);
+        });
+        show('desc');
+    }
+
     function openModal(id) {
         var p = byId[id];
         var modal = $('product-modal');
 
-        var media = $('pm-media');
-        media.textContent = '';
-        productImage(p, media);
+        // Ruta
+        var crumbs = $('pm-crumbs');
+        crumbs.textContent = '';
+        [['Tienda', 'all'], [p.cat, p.cat]].forEach(function (c) {
+            var b = el('button', 'crumb', c[0]);
+            b.type = 'button';
+            b.addEventListener('click', function () {
+                closeModal();
+                goToShop(c[1]);
+            });
+            crumbs.appendChild(b);
+            crumbs.appendChild(el('span', 'crumb-sep', '›'));
+        });
+        if (p.sub) {
+            crumbs.appendChild(el('span', 'crumb', p.sub));
+            crumbs.appendChild(el('span', 'crumb-sep', '›'));
+        }
+        crumbs.appendChild(el('span', 'crumb current', p.name));
 
-        $('pm-cat').textContent = p.cat;
+        renderGallery(p);
+
+        $('pm-brand').textContent = p.brand || p.cat;
+        $('pm-sku').textContent = 'Código: ' + skuOf(p);
         $('pm-title').textContent = p.name;
+
         var price = $('pm-price');
         price.textContent = '';
         price.appendChild(priceRow(p));
         if (p.compare) price.appendChild(el('span', 'save-tag', 'Ahorras ' + money(p.compare - p.price)));
-        $('pm-desc').textContent = p.desc;
+        if (!p.quote) price.appendChild(el('p', 'pdp-tax', 'Precio con IVA incluido'));
 
-        var specs = $('pm-specs');
-        specs.textContent = '';
-        (p.specs || []).forEach(function (s) {
-            var li = el('li', '', s[0] + ' ');
-            li.appendChild(el('span', '', s[1]));
-            specs.appendChild(li);
-        });
-        if (p.brand) {
-            var brandLi = el('li', '', 'Marca ');
-            brandLi.appendChild(el('span', '', p.brand));
-            specs.insertBefore(brandLi, specs.firstChild);
-        }
-        if (!p.quote) {
-            var fitLi = el('li', '', 'Compatibilidad ');
-            fitLi.appendChild(el('span', '', p.fits ? p.fits.length + ' modelos' : 'Universal'));
-            specs.appendChild(fitLi);
-        }
-        specs.hidden = !specs.childElementCount;
+        var stock = stockInfo(p);
+        var stockEl = $('pm-stock');
+        stockEl.className = 'pdp-stock ' + stock[0];
+        stockEl.textContent = stock[1];
 
-        var fit = $('pm-fit');
-        fit.textContent = '';
-        if (p.fits) {
-            var details = el('details', 'fit-list');
-            details.appendChild(el('summary', '', state.vehicle && p.fits.indexOf(state.vehicle) !== -1
-                ? '✓ Compatible con tu ' + vehicleName(state.vehicle) + ' · ver todas'
-                : 'Ver motos compatibles'));
-            var ul = el('ul');
-            p.fits.forEach(function (id) { ul.appendChild(el('li', '', vehicleName(id))); });
-            details.appendChild(ul);
-            fit.appendChild(details);
-        }
+        renderFitChecker(p);
 
         var options = $('pm-options');
         options.textContent = '';
@@ -645,13 +896,32 @@
         }
 
         var buy = $('pm-buy');
+        var bar = $('pm-bar');
         buy.textContent = '';
+        bar.textContent = '';
+        var barPrice = el('div', 'pdp-bar-price');
+        barPrice.appendChild(el('span', '', p.name));
+        barPrice.appendChild(el('strong', '', money(p.price)));
+        bar.appendChild(barPrice);
+
+        var qty = 1;
+        function tryAdd() {
+            if (p.options && !selected) {
+                $('pm-error').textContent = 'Elige una opción de ' + p.options.name.toLowerCase() + '.';
+                $('pm-options').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+            addToCart(p.id, selected, qty);
+            return true;
+        }
+
         if (p.quote) {
             buy.appendChild(externalLink('btn btn-primary btn-block', 'Cotizar por WhatsApp', quoteUrl(p)));
+            bar.appendChild(externalLink('btn btn-primary btn-sm', 'Cotizar', quoteUrl(p)));
         } else if (soldOut(p)) {
             buy.appendChild(externalLink('btn btn-ghost btn-block', 'Avísame cuando llegue', notifyUrl(p)));
+            bar.appendChild(externalLink('btn btn-ghost btn-sm', 'Avísame', notifyUrl(p)));
         } else {
-            var qty = 1;
             var stepper = el('div', 'qty');
             var minus = el('button', '', '−');
             var count = el('span', '', '1');
@@ -674,21 +944,47 @@
             var add = el('button', 'btn btn-primary', 'Agregar al carro');
             add.type = 'button';
             add.addEventListener('click', function () {
-                if (p.options && !selected) {
-                    $('pm-error').textContent = 'Elige una opción de ' + p.options.name.toLowerCase() + '.';
-                    return;
-                }
-                addToCart(p.id, selected, qty);
+                if (tryAdd()) closeModal();
+            });
+            var now = el('button', 'btn btn-ghost btn-block pdp-buy-now', 'Comprar ahora');
+            now.type = 'button';
+            now.addEventListener('click', function () {
+                if (!tryAdd()) return;
                 closeModal();
+                openCart();
+                showView('checkout-view');
+                $('co-name').focus();
             });
             buy.appendChild(stepper);
             buy.appendChild(add);
+            buy.appendChild(now);
             buy.appendChild(el('p', 'form-error', ''));
             buy.lastChild.id = 'pm-error';
+
+            var barAdd = el('button', 'btn btn-primary btn-sm', 'Agregar');
+            barAdd.type = 'button';
+            barAdd.addEventListener('click', function () {
+                if (tryAdd()) closeModal();
+            });
+            bar.appendChild(barAdd);
         }
 
-        $('pm-stock').textContent = p.quote ? 'Financiamiento y entrega a coordinar.'
-            : (p.stock > 0 ? 'En stock · Despacho en 24–48 h hábiles' + (p.freeShip ? ' · Despacho gratis' : '') : 'Agotado por ahora');
+        var perks = $('pm-perks');
+        perks.textContent = '';
+        [
+            [ICONS.truck, 'Despacho a todo Chile', '24–48 h hábiles'],
+            [ICONS.gift, p.freeShip ? 'Despacho gratis' : 'Envío gratis', p.freeShip ? 'En este producto' : 'Sobre ' + money(FREE_SHIPPING_FROM)],
+            [ICONS.store, 'Retiro en tienda', 'Gratis, en Santiago'],
+            [ICONS.shield, 'Garantía', p.warranty || 'Legal de 6 meses']
+        ].forEach(function (k) {
+            var li = el('li');
+            li.appendChild(svgIcon(k[0]));
+            var txt = el('span');
+            txt.appendChild(el('strong', '', k[1]));
+            txt.appendChild(el('small', '', k[2]));
+            li.appendChild(txt);
+            perks.appendChild(li);
+        });
 
         var tools = $('pm-tools');
         tools.textContent = '';
@@ -700,12 +996,38 @@
         share.addEventListener('click', function () { shareProduct(p); });
         tools.appendChild(share);
 
+        renderTabs(p);
+
+        var ask = $('pm-ask');
+        ask.textContent = '';
+        var askText = el('div');
+        askText.appendChild(el('strong', '', '¿Tienes una duda sobre este producto?'));
+        askText.appendChild(el('span', '', 'Te ayudamos a confirmar la compatibilidad, la medida o el stock.'));
+        ask.appendChild(svgIcon(ICONS.chat));
+        ask.appendChild(askText);
+        ask.appendChild(externalLink('btn btn-sm btn-ghost', 'Preguntar por WhatsApp',
+            waUrl('Hola Catrian Racing! Tengo una consulta sobre: ' + p.name + ' (código ' + skuOf(p) + ').')));
+
         var related = $('pm-related');
         related.textContent = '';
-        var others = products.filter(function (o) { return o.cat === p.cat && o.id !== p.id; }).slice(0, 3);
+        var others = products.filter(function (o) {
+            return o.id !== p.id && (o.sub && o.sub === p.sub || o.cat === p.cat);
+        }).sort(function (a, b) { return (b.sub === p.sub) - (a.sub === p.sub); }).slice(0, 8);
         if (others.length) {
-            related.appendChild(el('p', 'option-label', 'También te puede interesar'));
-            others.forEach(function (o) { related.appendChild(miniCard(o)); });
+            related.appendChild(el('h3', '', 'También te puede interesar'));
+            var row = el('div', 'pdp-related-row');
+            others.forEach(function (o) {
+                var c = el('button', 'pdp-rel');
+                c.type = 'button';
+                var m = el('span', 'pdp-rel-media' + (isStudio(o) ? ' studio' : ''));
+                productImage(o, m);
+                c.appendChild(m);
+                c.appendChild(el('span', 'pdp-rel-name', o.name));
+                c.appendChild(el('span', 'pdp-rel-price', money(o.price)));
+                c.addEventListener('click', function () { openModal(o.id); });
+                row.appendChild(c);
+            });
+            related.appendChild(row);
         }
 
         if (modal.hidden) {
@@ -713,6 +1035,7 @@
             modal.hidden = false;
             document.body.classList.add('locked');
         }
+        modal.scrollTop = 0;
         modal.querySelector('.modal-box').scrollTop = 0;
         $('modal-close').focus();
         trackRecent(p.id);
@@ -1057,6 +1380,9 @@
         if (row.quote) p.quote = true;
         if (row.cc) p.cc = row.cc;
         if (row.free_ship) p.freeShip = true;
+        if (row.images && row.images.length) p.images = row.images;
+        if (row.sku) p.sku = row.sku;
+        if (row.warranty) p.warranty = row.warranty;
         return p;
     }
 
@@ -1194,10 +1520,30 @@
     });
 
     document.addEventListener('keydown', function (e) {
+        var modalOpen = !$('product-modal').hidden;
+        if (modalOpen && (e.key === 'ArrowRight' || e.key === 'ArrowLeft') && !/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName) && e.target.getAttribute('role') !== 'tab') {
+            goToSlide(gallery.index + (e.key === 'ArrowRight' ? 1 : -1));
+            return;
+        }
         if (e.key !== 'Escape') return;
-        if (!$('product-modal').hidden) closeModal();
+        if (modalOpen) closeModal();
         else if ($('cart').classList.contains('open')) closeCart();
     });
+
+    $('pm-prev').addEventListener('click', function () { goToSlide(gallery.index - 1); });
+    $('pm-next').addEventListener('click', function () { goToSlide(gallery.index + 1); });
+    var stageTimer = null;
+    $('pm-stage').addEventListener('scroll', function () {
+        clearTimeout(stageTimer);
+        stageTimer = setTimeout(function () {
+            var stage = $('pm-stage');
+            var i = Math.round(stage.scrollLeft / Math.max(stage.clientWidth, 1));
+            if (i !== gallery.index) {
+                gallery.index = i;
+                updateGalleryUI();
+            }
+        }, 80);
+    }, { passive: true });
 
     window.addEventListener('storage', function (e) {
         if (e.key === STORAGE_KEY) {

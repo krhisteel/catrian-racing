@@ -10,9 +10,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="fx.css">
     <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
+
+    <div class="scroll-progress" aria-hidden="true"></div>
 
     <div class="announce">
         <span>Envío gratis sobre $100.000</span>
@@ -52,6 +55,11 @@
         <img class="hero-bg" src="https://loremflickr.com/1600/900/motorcycle,racing?lock=1" alt="" onerror="this.remove()">
         <div class="hero-shade" aria-hidden="true"></div>
         <div class="hero-lines" aria-hidden="true"></div>
+        <div class="hero-glow" aria-hidden="true"></div>
+        <div class="hero-word" aria-hidden="true">RACING</div>
+        <div class="hero-streaks" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
         <div class="hero-content">
             <span class="hero-badge">Taller · Venta · Competición</span>
             <h1>Bienvenido a <span class="accent">Catrian Racing</span></h1>
@@ -61,6 +69,7 @@
                 <a href="#tienda" class="btn btn-ghost">Ir a la tienda</a>
             </div>
         </div>
+        <a href="#tienda" class="scroll-cue" aria-label="Bajar a la tienda"><span></span></a>
         <div class="checkered" aria-hidden="true"></div>
     </section>
 
@@ -693,6 +702,7 @@
 
     <script src="supabase-config.js" defer></script>
     <script src="store.js" defer></script>
+    <script src="fx.js" defer></script>
     <script>
         (function () {
             var root = document.documentElement;

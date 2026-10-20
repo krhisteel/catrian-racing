@@ -4325,3 +4325,366 @@ a.product-cat:hover {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+/* ===== PAGO SEGÚN ENTREGA ===== */
+.radio[hidden],
+.pay-note[hidden] {
+    display: none;
+}
+
+.pay-note {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(245, 197, 24, 0.55);
+    background: rgba(245, 197, 24, 0.12);
+    font-size: 13.5px;
+    color: var(--text);
+}
+
+.done-track {
+    font-size: 13.5px;
+}
+
+/* ===== SEGUIMIENTO DEL PEDIDO ===== */
+.modal-box.track-box {
+    display: block;
+    width: min(640px, 100%);
+    padding: 30px 30px 26px;
+}
+
+.track-box .modal-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+}
+
+.track-box h2 {
+    font-size: clamp(26px, 4vw, 34px);
+    margin: 4px 0 16px;
+}
+
+.track-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 12px;
+}
+
+.track-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.track-form input {
+    padding: 11px 13px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px;
+}
+
+.track-form input:focus {
+    outline: none;
+    border-color: var(--yellow);
+}
+
+.track-form .btn {
+    border: none;
+    cursor: pointer;
+    padding: 13px 22px;
+}
+
+.track-box .form-error {
+    margin-top: 8px;
+}
+
+.track-result {
+    margin-top: 8px;
+    animation: fade-in 0.4s ease both;
+}
+
+.track-result[hidden] {
+    display: none;
+}
+
+.track-loading,
+.track-muted {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.track-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+}
+
+.track-head div {
+    display: flex;
+    flex-direction: column;
+}
+
+.track-head span {
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.track-head .track-status {
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #111;
+    background: rgba(245, 197, 24, 0.35);
+}
+
+.track-status.st-pagado,
+.track-status.st-entregado {
+    background: rgba(21, 128, 61, 0.15);
+    color: var(--ok, #15803d);
+}
+
+.track-status.st-enviado {
+    background: rgba(37, 99, 235, 0.12);
+    color: #1d4ed8;
+}
+
+.track-status.st-cancelado {
+    background: rgba(220, 38, 38, 0.12);
+    color: var(--danger, #dc2626);
+}
+
+.track-cancel {
+    margin: 14px 0;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(220, 38, 38, 0.08);
+    color: var(--danger, #dc2626);
+    font-weight: 600;
+}
+
+.track-steps {
+    list-style: none;
+    margin: 18px 0 6px;
+    padding: 0;
+}
+
+.track-steps li {
+    position: relative;
+    display: flex;
+    gap: 14px;
+    padding-bottom: 18px;
+    color: var(--muted);
+}
+
+.track-steps li:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 32px;
+    bottom: 2px;
+    width: 2px;
+    background: var(--border);
+}
+
+.track-steps li.done:not(:last-child)::before {
+    background: linear-gradient(180deg, #f5c518, #d99a00);
+}
+
+.track-dot {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: #fff;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.track-steps li.done .track-dot {
+    border-color: transparent;
+    color: #111;
+    background: linear-gradient(115deg, #d99a00, #f5c518 40%, #fff0a6 60%, #f5c518);
+}
+
+.track-steps li.current .track-dot {
+    box-shadow: 0 0 0 5px rgba(245, 197, 24, 0.3);
+    animation: track-pulse 2s ease-in-out infinite;
+}
+
+@keyframes track-pulse {
+    50% { box-shadow: 0 0 0 9px rgba(245, 197, 24, 0.12); }
+}
+
+.track-steps div {
+    display: flex;
+    flex-direction: column;
+    padding-top: 4px;
+}
+
+.track-steps strong {
+    color: var(--muted);
+}
+
+.track-steps li.done strong {
+    color: var(--text);
+}
+
+.track-steps span {
+    font-size: 13px;
+}
+
+.track-ship {
+    margin: 6px 0 14px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--card);
+}
+
+.track-ship h3 {
+    font-size: 16px;
+    margin-bottom: 6px;
+}
+
+.track-ship p {
+    margin: 4px 0;
+    font-size: 14.5px;
+}
+
+.track-ship .btn {
+    margin-top: 8px;
+}
+
+.track-number {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.track-items {
+    margin: 12px 0 6px;
+    padding-left: 18px;
+    font-size: 14.5px;
+}
+
+.track-total {
+    font-size: 14.5px;
+}
+
+.track-total span {
+    color: var(--muted);
+}
+
+.track-help {
+    margin-top: 14px;
+}
+
+@media (max-width: 560px) {
+    .track-form {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-box.track-box {
+        padding: 28px 20px 22px;
+    }
+}
+
+.nav-mobile-only {
+    display: none;
+}
+
+@media (max-width: 700px) {
+    .nav .nav-mobile-only {
+        display: block;
+    }
+
+    .track-btn {
+        display: none;
+    }
+}
+
+@media (max-width: 1100px) and (min-width: 701px) {
+    .nav .nav-mid {
+        display: none;
+    }
+
+    .header {
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+}
+
+@media (max-width: 860px) and (min-width: 701px) {
+    .nav .nav-narrow {
+        display: none;
+    }
+}
+
+@media (max-width: 1400px) and (min-width: 701px) {
+    .nav {
+        flex-wrap: nowrap;
+        gap: 2px;
+    }
+
+    .nav a,
+    .nav-cats-btn {
+        padding: 8px 10px;
+        font-size: 14px;
+        letter-spacing: 1px;
+        white-space: nowrap;
+    }
+
+    .nav a::after {
+        left: 10px;
+        right: 10px;
+    }
+}
+
+@media (max-width: 1180px) and (min-width: 701px) {
+    .nav .nav-wide {
+        display: none;
+    }
+}
+
+@media (max-width: 900px) and (min-width: 701px) {
+    .logo {
+        font-size: 20px;
+        letter-spacing: 2px;
+    }
+}
+
+/* El menú de categorías se centra bajo la cabecera (no desborda la página). */
+@media (min-width: 701px) {
+    .nav-cats {
+        position: static;
+    }
+
+    .mega {
+        top: 100%;
+        left: 50%;
+        transform: translate(-50%, -8px);
+        max-width: calc(100vw - 32px);
+    }
+
+    .nav-cats.open .mega {
+        transform: translate(-50%, 0);
+    }
+}

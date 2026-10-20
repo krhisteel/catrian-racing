@@ -812,7 +812,178 @@
         });
     }
 
+    /* ===== SEGUIMIENTO DEL PEDIDO ===== */
+    var LAST_ORDER_KEY = 'catrian-last-order';
+    var trackReturn = '';
+
+    function trackingLink(ref) {
+        return location.href.split('#')[0] + '#seguimiento/' + ref;
+    }
+
+    function openTracking(ref) {
+        var modal = $('track-modal');
+        if (modal.hidden) {
+            if (!/^#seguimiento/.test(location.hash)) trackReturn = location.hash;
+            lastFocus = document.activeElement;
+            modal.hidden = false;
+            document.body.classList.add('locked');
+        }
+        var last = null;
+        try { last = JSON.parse(localStorage.getItem(LAST_ORDER_KEY) || 'null'); } catch (e) { last = null; }
+        $('track-error').textContent = '';
+        $('track-result').hidden = true;
+        $('track-ref').value = ref || (last && last.ref) || '';
+        $('track-phone').value = last && last.ref === $('track-ref').value ? last.phone : '';
+        if ($('track-ref').value && $('track-phone').value) searchTracking();
+        else ($('track-ref').value ? $('track-phone') : $('track-ref')).focus();
+    }
+
+    function closeTracking() {
+        var modal = $('track-modal');
+        if (modal.hidden) return;
+        modal.hidden = true;
+        if (!$('cart').classList.contains('open') && $('product-modal').hidden) document.body.classList.remove('locked');
+        if (/^#seguimiento/.test(location.hash)) {
+            history.replaceState(null, '', trackReturn || location.pathname + location.search);
+        }
+        trackReturn = '';
+        if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+    }
+
+    function fmtDate(iso) {
+        var d = new Date(iso);
+        return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }) + ', ' +
+            d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function searchTracking(e) {
+        if (e) e.preventDefault();
+        var ref = $('track-ref').value.trim().toUpperCase();
+        var phone = $('track-phone').value.replace(/\D/g, '');
+        var error = $('track-error');
+        var result = $('track-result');
+        if (!/^CR-[A-Z0-9]{4,10}$/.test(ref)) {
+            error.textContent = 'Escribe tu número de pedido, por ejemplo CR-1A2B3C.';
+            return;
+        }
+        if (phone.length < 4) {
+            error.textContent = 'Escribe los últimos 4 dígitos de tu teléfono.';
+            return;
+        }
+        error.textContent = '';
+        result.hidden = false;
+        result.textContent = '';
+        result.appendChild(el('p', 'track-loading', 'Buscando tu pedido...'));
+        rpc('track_order', { p_ref: ref, p_phone: phone }).then(function (order) {
+            if (!order) {
+                result.hidden = true;
+                error.textContent = 'No encontramos un pedido con esos datos. Revisa el número y los dígitos del teléfono.';
+                return;
+            }
+            history.replaceState(null, '', '#seguimiento/' + order.ref);
+            renderTracking(order);
+        }, function (err) {
+            result.hidden = true;
+            error.textContent = err && err.status === 400 && err.message ? err.message : 'No pudimos consultar el pedido ahora. Intenta en unos minutos o escríbenos por WhatsApp.';
+        });
+    }
+
+    function renderTracking(o) {
+        var result = $('track-result');
+        result.textContent = '';
+        var pickup = o.delivery === 'retiro';
+
+        var head = el('div', 'track-head');
+        var title = el('div');
+        title.appendChild(el('strong', '', 'Pedido ' + o.ref));
+        title.appendChild(el('span', '', 'Realizado el ' + fmtDate(o.created_at)));
+        head.appendChild(title);
+        var labels = {
+            nuevo: 'Recibido', confirmado: 'Confirmado', pagado: 'Pagado',
+            enviado: pickup ? 'Listo para retiro' : 'En camino',
+            entregado: pickup ? 'Retirado' : 'Entregado', cancelado: 'Cancelado'
+        };
+        head.appendChild(el('span', 'track-status st-' + o.status, labels[o.status] || o.status));
+        result.appendChild(head);
+
+        if (o.status === 'cancelado') {
+            result.appendChild(el('p', 'track-cancel', 'Este pedido fue cancelado' + (o.cancelled_at ? ' el ' + fmtDate(o.cancelled_at) : '') + '. Si tienes dudas, escríbenos por WhatsApp.'));
+        } else {
+            var steps = [
+                ['Pedido recibido', o.created_at, 'Recibimos tu pedido y lo estamos revisando.'],
+                ['Confirmado', o.confirmed_at, 'Confirmamos stock y te enviamos los datos de pago.'],
+                ['Pago recibido', o.paid_at, 'Tu pago fue confirmado.'],
+                [pickup ? 'Listo para retiro' : 'Despachado', o.shipped_at, pickup ? 'Ya puedes retirarlo en tienda.' : 'Tu pedido va en camino.'],
+                [pickup ? 'Retirado' : 'Entregado', o.delivered_at, pickup ? '¡Gracias por tu compra!' : 'Tu pedido fue entregado.']
+            ];
+            var current = -1;
+            steps.forEach(function (st, i) { if (st[1]) current = i; });
+            var ol = el('ol', 'track-steps');
+            steps.forEach(function (st, i) {
+                var li = el('li', i < current ? 'done' : (i === current ? 'done current' : ''));
+                li.appendChild(el('span', 'track-dot', i <= current ? '✓' : String(i + 1)));
+                var txt = el('div');
+                txt.appendChild(el('strong', '', st[0]));
+                txt.appendChild(el('span', '', st[1] ? fmtDate(st[1]) : st[2]));
+                li.appendChild(txt);
+                ol.appendChild(li);
+            });
+            result.appendChild(ol);
+        }
+
+        if (!pickup) {
+            var ship = el('div', 'track-ship');
+            ship.appendChild(el('h3', '', 'Envío'));
+            if (o.tracking_number || o.courier) {
+                if (o.courier) ship.appendChild(el('p', '', 'Empresa de transporte: ' + o.courier));
+                if (o.tracking_number) {
+                    var row = el('p', 'track-number');
+                    row.appendChild(document.createTextNode('N° de seguimiento: '));
+                    row.appendChild(el('strong', '', o.tracking_number));
+                    var copy = el('button', 'share-btn', 'Copiar');
+                    copy.type = 'button';
+                    copy.addEventListener('click', function () {
+                        if (navigator.clipboard) navigator.clipboard.writeText(o.tracking_number).then(function () { toast('Número copiado'); });
+                    });
+                    row.appendChild(copy);
+                    ship.appendChild(row);
+                }
+                if (o.tracking_url && /^https:\/\//.test(o.tracking_url)) {
+                    ship.appendChild(externalLink('btn btn-primary btn-sm', 'Ver seguimiento' + (o.courier ? ' en ' + o.courier : ''), o.tracking_url));
+                }
+            } else {
+                ship.appendChild(el('p', '', 'Cuando despachemos tu pedido verás aquí la empresa de transporte y el número de seguimiento.'));
+            }
+            ship.appendChild(el('p', 'track-muted', 'Despacho a ' + [o.commune, o.region].filter(Boolean).join(', ') + (o.shipping_pending ? ' · costo de envío por cotizar' : '')));
+            result.appendChild(ship);
+        } else {
+            result.appendChild(el('p', 'track-muted', 'Retiro en tienda · Lunes a viernes de 9:00 a 19:00 y sábados de 10:00 a 14:00.'));
+        }
+
+        var items = el('ul', 'track-items');
+        (o.items || []).forEach(function (it) {
+            items.appendChild(el('li', '', it.qty + ' × ' + it.name + (it.option ? ' (' + it.option + ')' : '')));
+        });
+        result.appendChild(items);
+        var total = el('p', 'track-total');
+        total.appendChild(document.createTextNode('Total: '));
+        total.appendChild(el('strong', '', money(o.total) + (o.shipping_pending ? ' + envío' : '')));
+        total.appendChild(el('span', '', ' · ' + o.payment));
+        result.appendChild(total);
+
+        result.appendChild(externalLink('btn btn-ghost btn-sm track-help', '¿Dudas? Escríbenos por WhatsApp',
+            waUrl('Hola Catrian Racing! Tengo una consulta sobre mi pedido ' + o.ref + '.')));
+    }
+
     function route() {
+        var tm = /^#seguimiento(?:\/(.+))?$/.exec(location.hash);
+        if (tm) {
+            if (!$('product-modal').hidden) closeModal(true);
+            if ($('cart').classList.contains('open')) closeCart();
+            openTracking(tm[1] ? decodeURIComponent(tm[1]).toUpperCase() : '');
+            return;
+        }
+        if (!$('track-modal').hidden) closeTracking();
         var c = parseCollection();
         if (c) {
             if (!$('product-modal').hidden) closeModal(true);
@@ -1071,6 +1242,8 @@
                     'Despacho a todo Chile en 24–48 h hábiles desde que confirmamos tu pago.',
                     p.freeShip ? 'Este producto tiene despacho gratis.' : 'Envío gratis en compras sobre ' + money(FREE_SHIPPING_FROM) + '; bajo ese monto se cotiza según tu comuna.',
                     'Retiro gratis en tienda de lunes a viernes de 9:00 a 19:00 y sábados de 10:00 a 14:00.',
+                    'El despacho a domicilio se paga solo con tarjeta de débito o crédito (link de pago). Al retirar en tienda también puedes pagar con transferencia o efectivo.',
+                    'Puedes seguir tu pedido en «Mi pedido» con tu número de pedido y los últimos 4 dígitos de tu teléfono.',
                     'Tienes 10 días para cambios con el producto sin uso y en su empaque original.'
                 ].forEach(function (t) { ul2.appendChild(el('li', '', t)); });
                 panel.appendChild(ul2);
@@ -1464,11 +1637,28 @@
         var free = subtotal >= FREE_SHIPPING_FROM;
         $('ship-label').textContent = free ? 'Gratis' : 'A cotizar';
         $('ship-fields').hidden = form.delivery.value !== 'despacho';
+        syncPayment();
         $('co-subtotal').textContent = money(subtotal);
         $('co-discount-row').hidden = !discountValue;
         $('co-discount').textContent = '−' + money(discountValue);
         $('co-shipping').textContent = shipping === null ? 'A cotizar' : 'Gratis';
         $('co-total').textContent = money(subtotal - discountValue) + (shipping === null ? ' + envío' : '');
+    }
+
+    // Despacho a domicilio: solo tarjeta (no transferencia ni efectivo).
+    var CARD_PAYMENT = 'Tarjeta de débito o crédito (link de pago)';
+    function syncPayment() {
+        var form = $('checkout-view');
+        var shipping = form.delivery.value === 'despacho';
+        form.querySelectorAll('.pay-pickup').forEach(function (label) {
+            var radio = label.querySelector('input');
+            label.hidden = shipping;
+            radio.disabled = shipping;
+        });
+        if (shipping) {
+            form.querySelector('input[name="payment"][value="' + CARD_PAYMENT + '"]').checked = true;
+        }
+        $('pay-note').hidden = !shipping;
     }
 
     function showView(name) {
@@ -1593,6 +1783,8 @@
         }
         lines.push('Pago: ' + data.payment);
         if (data.notes) lines.push('Notas: ' + data.notes);
+        lines.push('');
+        lines.push('Seguimiento del pedido: ' + trackingLink(order.ref));
 
         var url = waUrl(lines.join('\n'));
         if (win && !win.closed) win.location.href = url;
@@ -1609,6 +1801,10 @@
         resetSubmit(form.querySelector('button[type="submit"]'));
         updateTotals();
         $('done-ref').textContent = order.ref;
+        $('done-track').href = '#seguimiento/' + order.ref;
+        try {
+            localStorage.setItem(LAST_ORDER_KEY, JSON.stringify({ ref: order.ref, phone: data.phone.replace(/\D/g, '').slice(-4) }));
+        } catch (e) { /* sin almacenamiento */ }
         showView('done-view');
     }
 
@@ -1810,9 +2006,17 @@
             return;
         }
         if (e.key !== 'Escape') return;
-        if (modalOpen) closeModal();
+        if (!$('track-modal').hidden) closeTracking();
+        else if (modalOpen) closeModal();
         else if ($('cart').classList.contains('open')) closeCart();
     });
+
+    $('track-form').addEventListener('submit', searchTracking);
+    $('track-close').addEventListener('click', closeTracking);
+    $('track-modal').addEventListener('click', function (e) {
+        if (e.target === this) closeTracking();
+    });
+    $('done-track').addEventListener('click', function () { closeCart(); });
 
     $('pm-prev').addEventListener('click', function () { goToSlide(gallery.index - 1); });
     $('pm-next').addEventListener('click', function () { goToSlide(gallery.index + 1); });

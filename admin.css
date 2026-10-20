@@ -1031,3 +1031,48 @@ select.status-select.status-cancelado {
     margin-top: 0;
     flex-shrink: 0;
 }
+
+/* ===== DESPACHO RÁPIDO ===== */
+.quick-ship {
+    flex-basis: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 2px 4px 2px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+}
+
+.quick-ship-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-ink);
+}
+
+.quick-ship select.admin-input,
+.quick-ship input.admin-input {
+    width: auto;
+    flex: 1 1 160px;
+    padding: 8px 10px;
+    font-size: 14px;
+}
+
+.order-row {
+    flex-wrap: wrap;
+}
+
+.track-more {
+    margin: 10px 0 4px;
+    font-size: 13.5px;
+}
+
+.track-more summary {
+    cursor: pointer;
+    color: var(--muted);
+}
+
+.detail-block > .btn {
+    margin-top: 12px;
+    margin-right: 8px;
+}

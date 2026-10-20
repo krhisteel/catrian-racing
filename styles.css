@@ -4688,3 +4688,119 @@ a.product-cat:hover {
         transform: translate(-50%, 0);
     }
 }
+
+/* ===== AVISOS DE PEDIDO ===== */
+.track-mine {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.track-mine[hidden] {
+    display: none;
+}
+
+.track-mine .chip {
+    padding: 5px 12px;
+    font-size: 12px;
+}
+
+.track-updated {
+    margin-top: 12px;
+    font-size: 12.5px;
+    color: var(--muted);
+}
+
+.order-notice {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 280;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: min(560px, calc(100% - 32px));
+    padding: 14px 44px 14px 16px;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    box-shadow: 0 24px 50px -20px rgba(20, 22, 26, 0.5);
+    transform: translateX(-50%);
+    animation: notice-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes notice-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 30px);
+    }
+}
+
+.order-notice::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 4px;
+    border-radius: 0 4px 4px 0;
+    background: linear-gradient(180deg, #fff0a6, #f5c518 40%, #d99a00);
+}
+
+.order-notice-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(245, 197, 24, 0.18);
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.order-notice div {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.order-notice span {
+    font-size: 13.5px;
+    color: var(--muted);
+}
+
+.order-notice .btn {
+    flex-shrink: 0;
+}
+
+.order-notice-close {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-size: 22px;
+    cursor: pointer;
+}
+
+@media (max-width: 520px) {
+    .order-notice {
+        flex-wrap: wrap;
+        bottom: 90px;
+    }
+
+    .order-notice .btn {
+        width: 100%;
+        text-align: center;
+    }
+}

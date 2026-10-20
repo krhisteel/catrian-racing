@@ -473,6 +473,9 @@
             s.setAttribute('aria-label', 'Estado del pedido ' + o.ref);
             s.addEventListener('change', function () { updateOrder(o, { status: s.value }); });
             row.appendChild(s);
+            if (o.delivery === 'despacho' && ['nuevo', 'confirmado', 'pagado'].indexOf(o.status) !== -1) {
+                row.appendChild(quickShip(o));
+            }
         }
         return row;
     }
@@ -482,9 +485,12 @@
             var rows = await api('/rest/v1/orders?id=eq.' + encodeURIComponent(o.id), {
                 method: 'PATCH', body: patch, headers: { Prefer: 'return=representation' }
             });
+            var before = o.status;
             Object.assign(o, rows[0]);
-            if (patch.status) {
-                toast('Pedido ' + o.ref + ': ' + statusLabel(o.status));
+            if (o.status !== before) {
+                toast(patch.tracking_number && o.status === 'enviado'
+                    ? 'Pedido ' + o.ref + ' despachado. El cliente ya lo ve en «Mi pedido».'
+                    : 'Pedido ' + o.ref + ': ' + statusLabel(o.status));
                 // El stock cambia al confirmar o cancelar: se recargan los productos.
                 data.products = await api('/rest/v1/products?select=*&order=sort.asc,name.asc');
             } else {
@@ -545,15 +551,26 @@
         var trackNumber = null;
         var trackUrl = null;
         if (o.delivery === 'despacho') {
-            courier = input('text', o.courier || '', { list: 'dl-couriers', placeholder: 'Ej: Starken', maxlength: 60 });
+            courier = courierSelect(o.courier);
             trackNumber = input('text', o.tracking_number || '', { placeholder: 'N° de seguimiento u orden de flete', maxlength: 80 });
-            trackUrl = input('url', o.tracking_url || '', { placeholder: 'https://... (opcional)' });
-            track.appendChild(datalist('dl-couriers', ['Starken', 'Chilexpress', 'Blue Express', 'Correos de Chile', '99minutos', 'Despacho propio']));
+            trackUrl = input('url', o.tracking_url || '', { placeholder: 'https://... (se completa solo)' });
+            track.appendChild(el('p', 'admin-help', 'Solo elige la empresa y escribe el número: al guardar, el pedido pasa solo a «Enviado» y el cliente lo ve en «Mi pedido».'));
             var tgrid = el('div', 'form-grid');
             tgrid.appendChild(field('Empresa de transporte', courier));
             tgrid.appendChild(field('N° de seguimiento', trackNumber));
             track.appendChild(tgrid);
-            track.appendChild(field('Enlace de seguimiento de la empresa (opcional)', trackUrl));
+            var more = el('details', 'track-more');
+            more.appendChild(el('summary', '', 'Enlace exacto de seguimiento (opcional)'));
+            more.appendChild(field('Enlace', trackUrl));
+            track.appendChild(more);
+            var shipNow = button(o.tracking_number ? 'Guardar seguimiento' : 'Guardar y despachar', 'btn btn-sm btn-primary', async function () {
+                if (!courier.value) return toast('Elige la empresa de transporte.', true);
+                if (!trackNumber.value.trim()) return toast('Escribe el número de seguimiento.', true);
+                var url = trackUrl.value.trim();
+                if (url && !/^https:\/\//.test(url)) return toast('El enlace debe empezar con https://', true);
+                if (await updateOrder(o, { courier: courier.value, tracking_number: trackNumber.value.trim(), tracking_url: url || null })) closeSide();
+            });
+            track.appendChild(shipNow);
         }
         var link = trackingPageUrl(o.ref);
         var linkRow = el('p', 'admin-help');
@@ -565,7 +582,7 @@
         linkRow.appendChild(linkA);
         linkRow.appendChild(document.createTextNode(' con el N° ' + o.ref + ' y los últimos 4 dígitos de su teléfono.'));
         track.appendChild(linkRow);
-        var sendTrack = button('Enviar seguimiento por WhatsApp', 'btn btn-sm btn-primary', function () {
+        var sendTrack = button('Avisar también por WhatsApp (opcional)', 'btn btn-sm btn-ghost', function () {
             var lines = ['Hola ' + o.name + '! Te escribimos de Catrian Racing.', ''];
             lines.push('Tu pedido ' + o.ref + ' está: ' + trackingStatusLabel(status.value, o.delivery) + '.');
             if (courier && courier.value.trim()) lines.push('Empresa de transporte: ' + courier.value.trim());
@@ -593,6 +610,7 @@
                 patch.tracking_number = trackNumber.value.trim() || null;
                 patch.tracking_url = url || null;
                 if (patch.status === 'enviado' && !patch.tracking_number && !confirm('Vas a marcar el pedido como enviado sin número de seguimiento. ¿Continuar?')) return;
+                if (patch.tracking_number && !patch.courier) return toast('Elige la empresa de transporte.', true);
             }
             if (await updateOrder(o, patch)) closeSide();
         }));
@@ -612,6 +630,42 @@
             } catch (e) { toast(e.message, true); }
         }));
         body.appendChild(actions);
+    }
+
+    var COURIERS = ['Starken', 'Chilexpress', 'Blue Express', 'Correos de Chile', '99minutos', 'Despacho propio'];
+
+    function courierSelect(value) {
+        var sel = select([['', 'Empresa...']].concat(COURIERS.map(function (c) { return [c, c]; })), value || '');
+        if (value && COURIERS.indexOf(value) === -1) {
+            var o = el('option', '', value);
+            o.value = value;
+            sel.appendChild(o);
+            sel.value = value;
+        }
+        return sel;
+    }
+
+    // Despacho rápido desde la lista: empresa + N° → el pedido pasa solo a «Enviado».
+    function quickShip(o) {
+        var form = el('form', 'quick-ship');
+        form.noValidate = true;
+        form.appendChild(el('span', 'quick-ship-label', 'Despachar:'));
+        var c = courierSelect(o.courier);
+        c.setAttribute('aria-label', 'Empresa de transporte del pedido ' + o.ref);
+        var n = input('text', '', { placeholder: 'N° de seguimiento', maxlength: 80, 'aria-label': 'N° de seguimiento del pedido ' + o.ref });
+        var b = el('button', 'btn btn-sm btn-primary', 'Guardar');
+        b.type = 'submit';
+        form.appendChild(c);
+        form.appendChild(n);
+        form.appendChild(b);
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (!c.value) return toast('Elige la empresa de transporte.', true);
+            if (!n.value.trim()) return toast('Escribe el número de seguimiento.', true);
+            b.disabled = true;
+            updateOrder(o, { courier: c.value, tracking_number: n.value.trim() }).then(function () { b.disabled = false; });
+        });
+        return form;
     }
 
     function trackingPageUrl(ref) {

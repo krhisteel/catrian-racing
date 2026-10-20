@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Administrador | Catrian Racing</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23f5c518'/%3E%3Crect width='8' height='8' fill='%23111'/%3E%3Crect x='8' y='8' width='8' height='8' fill='%23111'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin">
+
+    <!-- ===== ACCESO ===== -->
+    <main class="auth" id="auth-view" hidden>
+        <div class="auth-card">
+            <a href="index.html" class="logo">
+                <span class="logo-mark" aria-hidden="true"></span>
+                CATRIAN <span class="logo-accent">RACING</span>
+            </a>
+            <h1>Administrador</h1>
+
+            <form id="login-form" class="auth-form" novalidate>
+                <label for="login-email">Email</label>
+                <input id="login-email" name="email" type="email" autocomplete="username" required>
+                <label for="login-password">Contraseña</label>
+                <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+                <button type="submit" class="btn btn-primary btn-block">Ingresar</button>
+                <div class="auth-links">
+                    <button type="button" class="link-btn" data-auth="recover-form">¿Olvidaste tu contraseña?</button>
+                    <button type="button" class="link-btn" data-auth="signup-form">Crear cuenta de administrador</button>
+                </div>
+            </form>
+
+            <form id="signup-form" class="auth-form" novalidate hidden>
+                <p class="auth-help">Crea tu cuenta con el email autorizado como administrador. Te enviaremos un correo para confirmarla.</p>
+                <label for="signup-email">Email</label>
+                <input id="signup-email" name="email" type="email" autocomplete="username" required>
+                <label for="signup-password">Contraseña (mínimo 8 caracteres)</label>
+                <input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+                <button type="submit" class="btn btn-primary btn-block">Crear cuenta</button>
+                <div class="auth-links">
+                    <button type="button" class="link-btn" data-auth="login-form">← Volver a ingresar</button>
+                </div>
+            </form>
+
+            <form id="recover-form" class="auth-form" novalidate hidden>
+                <p class="auth-help">Te enviaremos un enlace para crear una contraseña nueva.</p>
+                <label for="recover-email">Email</label>
+                <input id="recover-email" name="email" type="email" autocomplete="username" required>
+                <button type="submit" class="btn btn-primary btn-block">Enviar enlace</button>
+                <div class="auth-links">
+                    <button type="button" class="link-btn" data-auth="login-form">← Volver a ingresar</button>
+                </div>
+            </form>
+
+            <form id="reset-form" class="auth-form" novalidate hidden>
+                <p class="auth-help">Escribe tu nueva contraseña.</p>
+                <label for="reset-password">Nueva contraseña (mínimo 8 caracteres)</label>
+                <input id="reset-password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+                <button type="submit" class="btn btn-primary btn-block">Guardar contraseña</button>
+            </form>
+
+            <div id="denied" class="auth-form" hidden>
+                <p class="auth-help">La cuenta <strong id="denied-email"></strong> no tiene permisos de administrador.</p>
+                <button type="button" class="btn btn-ghost btn-block" id="denied-logout">Salir</button>
+            </div>
+
+            <p class="auth-msg" id="auth-msg" role="alert"></p>
+            <a href="index.html" class="back-store">← Volver a la tienda</a>
+        </div>
+    </main>
+
+    <!-- ===== PANEL ===== -->
+    <div id="app" hidden>
+        <header class="admin-top">
+            <a href="index.html" class="logo">
+                <span class="logo-mark" aria-hidden="true"></span>
+                CATRIAN <span class="logo-accent">RACING</span>
+            </a>
+            <nav class="admin-tabs" id="admin-tabs" aria-label="Secciones">
+                <button type="button" class="admin-tab active" data-tab="resumen">Resumen</button>
+                <button type="button" class="admin-tab" data-tab="pedidos">Pedidos <span class="tab-badge" id="badge-orders" hidden></span></button>
+                <button type="button" class="admin-tab" data-tab="productos">Productos</button>
+                <button type="button" class="admin-tab" data-tab="cupones">Cupones</button>
+                <button type="button" class="admin-tab" data-tab="motos">Motos</button>
+                <button type="button" class="admin-tab" data-tab="ajustes">Ajustes</button>
+            </nav>
+            <div class="admin-user">
+                <a href="index.html" target="_blank" rel="noopener" class="btn btn-sm btn-ghost">Ver tienda</a>
+                <button type="button" class="btn btn-sm btn-ghost" id="logout">Salir</button>
+            </div>
+        </header>
+
+        <main class="admin-main container">
+
+            <!-- RESUMEN -->
+            <section class="admin-panel" id="tab-resumen">
+                <div class="panel-head">
+                    <div>
+                        <span class="section-tag">Hola, <span id="admin-email"></span></span>
+                        <h1>Resumen</h1>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-ghost" id="refresh">Actualizar datos</button>
+                </div>
+                <div class="kpis" id="kpis"></div>
+                <div class="admin-cols">
+                    <div class="admin-card">
+                        <h2>Últimos pedidos</h2>
+                        <div id="recent-orders"></div>
+                    </div>
+                    <div class="admin-card">
+                        <h2>Stock bajo</h2>
+                        <div id="low-stock"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PEDIDOS -->
+            <section class="admin-panel" id="tab-pedidos" hidden>
+                <div class="panel-head">
+                    <div>
+                        <span class="section-tag">Ventas</span>
+                        <h1>Pedidos</h1>
+                    </div>
+                </div>
+                <div class="admin-toolbar">
+                    <input type="search" id="orders-search" class="admin-input" placeholder="Buscar por pedido, nombre o teléfono" aria-label="Buscar pedidos">
+                </div>
+                <div class="shop-chips" id="orders-filter" role="group" aria-label="Filtrar por estado"></div>
+                <div id="orders-list" class="admin-list"></div>
+            </section>
+
+            <!-- PRODUCTOS -->
+            <section class="admin-panel" id="tab-productos" hidden>
+                <div class="panel-head">
+                    <div>
+                        <span class="section-tag">Catálogo</span>
+                        <h1>Productos</h1>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" id="product-new">+ Nuevo producto</button>
+                </div>
+                <div class="admin-toolbar">
+                    <input type="search" id="products-search" class="admin-input" placeholder="Buscar por nombre, marca o subcategoría" aria-label="Buscar productos">
+                    <select id="products-cat" class="admin-input" aria-label="Filtrar por categoría">
+                        <option value="">Todas las categorías</option>
+                        <option>Motos</option>
+                        <option>Repuestos</option>
+                        <option>Accesorios</option>
+                        <option>Equipamiento</option>
+                    </select>
+                    <label class="check"><input type="checkbox" id="products-low"> Solo stock bajo</label>
+                </div>
+                <p class="admin-count" id="products-count"></p>
+                <div id="products-list" class="admin-list"></div>
+            </section>
+
+            <!-- CUPONES -->
+            <section class="admin-panel" id="tab-cupones" hidden>
+                <div class="panel-head">
+                    <div>
+                        <span class="section-tag">Promociones</span>
+                        <h1>Cupones de descuento</h1>
+                    </div>
+                </div>
+                <form class="admin-card inline-form" id="coupon-form" novalidate>
+                    <div>
+                        <label for="coupon-code">Código</label>
+                        <input id="coupon-code" class="admin-input" placeholder="EJ: VERANO20" required>
+                    </div>
+                    <div>
+                        <label for="coupon-percent">% de descuento</label>
+                        <input id="coupon-percent" class="admin-input" type="number" min="1" max="90" placeholder="10" required>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary">Crear cupón</button>
+                </form>
+                <div id="coupons-list" class="admin-list"></div>
+            </section>
+
+            <!-- MOTOS -->
+            <section class="admin-panel" id="tab-motos" hidden>
+                <div class="panel-head">
+                    <div>
+                        <span class="section-tag">Buscador por moto</span>
+                        <h1>Motos compatibles</h1>
+                    </div>
+                </div>
+                <p class="admin-help">Estas motos aparecen en «Busca por tu moto». En cada producto eliges con cuáles es compatible.</p>
+                <form class="admin-card inline-form" id="vehicle-form" novalidate>
+                    <div>
+                        <label for="vehicle-type">Tipo</label>
+                        <input id="vehicle-type" class="admin-input" list="vehicle-types" placeholder="Calle, Off-road, Scooter..." required>
+                        <datalist id="vehicle-types"></datalist>
+                    </div>
+                    <div>
+                        <label for="vehicle-brand">Marca</label>
+                        <input id="vehicle-brand" class="admin-input" placeholder="Honda" required>
+                    </div>
+                    <div>
+                        <label for="vehicle-model">Modelo</label>
+                        <input id="vehicle-model" class="admin-input" placeholder="CB190R" required>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary">Agregar moto</button>
+                </form>
+                <div id="vehicles-list" class="admin-list"></div>
+            </section>
+
+            <!-- AJUSTES -->
+            <section class="admin-panel" id="tab-ajustes" hidden>
+                <div class="panel-head">
+                    <div>
+                        <span class="section-tag">Configuración</span>
+                        <h1>Ajustes de la tienda</h1>
+                    </div>
+                </div>
+                <div class="admin-cols">
+                    <form class="admin-card admin-form" id="settings-form" novalidate>
+                        <h2>Tienda</h2>
+                        <label for="set-whatsapp">WhatsApp para pedidos (con código de país)</label>
+                        <input id="set-whatsapp" class="admin-input" inputmode="numeric" placeholder="56912345678">
+                        <label for="set-free">Envío gratis desde ($)</label>
+                        <input id="set-free" class="admin-input" type="number" min="0" step="1000">
+                        <label for="set-announce">Barra de anuncios (un mensaje por línea, máximo 3)</label>
+                        <textarea id="set-announce" class="admin-input" rows="3"></textarea>
+                        <button type="submit" class="btn btn-sm btn-primary">Guardar ajustes</button>
+                    </form>
+                    <div class="admin-card">
+                        <h2>Administradores</h2>
+                        <p class="admin-help">Emails que pueden entrar a este panel. Cada persona crea su cuenta con su email y lo confirma.</p>
+                        <div id="admins-list"></div>
+                        <form class="inline-form" id="admin-form" novalidate>
+                            <div>
+                                <label for="admin-new-email">Nuevo administrador</label>
+                                <input id="admin-new-email" class="admin-input" type="email" placeholder="email@ejemplo.cl" required>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-ghost">Agregar</button>
+                        </form>
+                        <h2 class="mt">Mi contraseña</h2>
+                        <form class="inline-form" id="password-form" novalidate>
+                            <div>
+                                <label for="new-password">Nueva contraseña</label>
+                                <input id="new-password" class="admin-input" type="password" minlength="8" autocomplete="new-password" required>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-ghost">Cambiar</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ===== PANEL LATERAL (pedido / producto) ===== -->
+    <div class="overlay" id="overlay" hidden></div>
+    <aside class="drawer drawer-wide" id="side" role="dialog" aria-modal="true" aria-labelledby="side-title" aria-hidden="true">
+        <div class="drawer-head">
+            <h2 id="side-title"></h2>
+            <button type="button" class="icon-btn" id="side-close" aria-label="Cerrar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+        </div>
+        <div class="drawer-view" id="side-body"></div>
+    </aside>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="supabase-config.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

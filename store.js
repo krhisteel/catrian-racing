@@ -4,11 +4,10 @@
     var STORAGE_KEY = 'catrian-cart';
     var FAVS_KEY = 'catrian-favs';
     var RECENT_KEY = 'catrian-recent';
+    var DB = window.CATRIAN_SUPABASE || null;
 
-    // Cupones de descuento: código → % de descuento sobre el subtotal.
-    var COUPONS = { BIENVENIDA10: 10, RACING15: 15 };
-
-    // Catálogo: edita aquí precios, stock, fotos y variantes.
+    // El catálogo, las motos, los cupones y los ajustes se administran desde admin.html
+    // (Supabase). Los datos de abajo son el respaldo si la base de datos no responde.
     // quote: true → el producto se cotiza por WhatsApp en vez de ir al carro.
     // Motos para el buscador «Busca por tu moto». Los ids se usan en «fits» de cada repuesto.
     var vehicles = [
@@ -159,18 +158,23 @@
     ];
 
     var byId = {};
-    products.forEach(function (p, i) {
-        p.order = i;
-        byId[p.id] = p;
-    });
-
     var vehicleById = {};
-    vehicles.forEach(function (v) { vehicleById[v.id] = v; });
+
+    function indexCatalog() {
+        byId = {};
+        products.forEach(function (p, i) {
+            p.order = i;
+            byId[p.id] = p;
+        });
+        vehicleById = {};
+        vehicles.forEach(function (v) { vehicleById[v.id] = v; });
+    }
+    indexCatalog();
 
     var PAGE_SIZE = 9;
     var MOTO_KEY = 'catrian-moto';
 
-    var state = { cat: 'all', sub: '', brand: '', vehicle: '', query: '', sort: 'featured', onlySale: false, onlyStock: false, coupon: null, limit: PAGE_SIZE };
+    var state = { cat: 'all', sub: '', brand: '', vehicle: '', query: '', sort: 'featured', onlySale: false, onlyStock: false, coupon: null, couponPercent: 0, limit: PAGE_SIZE };
     var cart = loadCart();
     var favs = loadList(FAVS_KEY);
     var recent = loadList(RECENT_KEY);
@@ -438,6 +442,7 @@
 
     function fillBrandSelect() {
         var select = $('shop-brand');
+        while (select.options.length > 1) select.remove(1);
         var brands = [];
         products.forEach(function (p) {
             if (p.brand && brands.indexOf(p.brand) === -1) brands.push(p.brand);
@@ -809,7 +814,7 @@
     }
 
     function couponDiscount() {
-        return state.coupon ? Math.round(cartSubtotal() * COUPONS[state.coupon] / 100) : 0;
+        return state.coupon ? Math.round(cartSubtotal() * state.couponPercent / 100) : 0;
     }
 
     function applyCoupon() {
@@ -817,16 +822,26 @@
         var code = input.value.trim().toUpperCase();
         var msg = $('coupon-msg');
         if (!code) return;
-        if (COUPONS[code]) {
-            state.coupon = code;
-            msg.textContent = 'Cupón ' + code + ' aplicado: ' + COUPONS[code] + '% de descuento.';
-            msg.className = 'coupon-msg ok';
-        } else {
+        msg.className = 'coupon-msg';
+        msg.textContent = 'Validando cupón...';
+        rpc('validate_coupon', { p_code: code }).then(function (percent) {
+            if (percent) {
+                state.coupon = code;
+                state.couponPercent = percent;
+                msg.textContent = 'Cupón ' + code + ' aplicado: ' + percent + '% de descuento.';
+                msg.className = 'coupon-msg ok';
+            } else {
+                state.coupon = null;
+                state.couponPercent = 0;
+                msg.textContent = 'El cupón no es válido.';
+            }
+            updateTotals();
+        }, function () {
             state.coupon = null;
-            msg.textContent = 'El cupón no es válido.';
-            msg.className = 'coupon-msg';
-        }
-        updateTotals();
+            state.couponPercent = 0;
+            msg.textContent = 'No pudimos validar el cupón ahora. Escríbelo en las notas del pedido.';
+            updateTotals();
+        });
     }
 
     function updateTotals() {
@@ -876,6 +891,7 @@
         e.preventDefault();
         var form = $('checkout-view');
         var error = $('checkout-error');
+        var submit = form.querySelector('button[type="submit"]');
         var name = form.name.value.trim();
         var phone = form.phone.value.trim();
         var delivery = form.delivery.value;
@@ -892,41 +908,178 @@
         }
         error.textContent = '';
 
-        var ref = 'CR-' + Date.now().toString(36).toUpperCase().slice(-6);
-        var subtotal = cartSubtotal();
-        var discountValue = couponDiscount();
-        var shipping = shippingCost();
-        var lines = ['Hola Catrian Racing! Quiero hacer este pedido (' + ref + '):', ''];
-        cart.forEach(function (line) {
-            var p = byId[line.id];
-            lines.push('• ' + line.qty + ' x ' + p.name + (line.option ? ' (' + line.option + ')' : '') + ' — ' + money(p.price * line.qty));
+        var data = {
+            name: name,
+            phone: phone,
+            email: form.email.value.trim(),
+            delivery: delivery,
+            region: form.region.value,
+            commune: form.commune.value.trim(),
+            address: form.address.value.trim(),
+            payment: form.payment.value,
+            notes: form.notes.value.trim()
+        };
+
+        // Se abre la pestaña ahora (con el clic) para que el navegador no la bloquee.
+        var win = window.open('', '_blank');
+        submit.disabled = true;
+        submit.textContent = 'Enviando pedido...';
+
+        rpc('place_order', {
+            p_items: cart.map(function (line) { return { id: line.id, option: line.option, qty: line.qty }; }),
+            p_name: data.name, p_phone: data.phone, p_email: data.email, p_delivery: data.delivery,
+            p_region: data.region, p_commune: data.commune, p_address: data.address,
+            p_payment: data.payment, p_notes: data.notes, p_coupon: state.coupon || ''
+        }).then(function (order) {
+            finishOrder(win, data, order);
+        }, function (err) {
+            if (err && err.status === 400) {
+                if (win) win.close();
+                error.textContent = err.message || 'No pudimos registrar el pedido. Revisa tu carro.';
+                resetSubmit(submit);
+                return;
+            }
+            // Sin conexión a la base de datos: el pedido igual se envía por WhatsApp.
+            var subtotal = cartSubtotal();
+            var discountValue = couponDiscount();
+            finishOrder(win, data, {
+                ref: 'CR-' + Date.now().toString(36).toUpperCase().slice(-6),
+                items: cart.map(function (line) {
+                    var p = byId[line.id];
+                    return { name: p.name, option: line.option, qty: line.qty, price: p.price };
+                }),
+                subtotal: subtotal,
+                discount: discountValue,
+                coupon: state.coupon,
+                shipping_pending: shippingCost() === null,
+                total: subtotal - discountValue
+            });
+        });
+    }
+
+    function resetSubmit(submit) {
+        submit.disabled = false;
+        submit.textContent = 'Enviar pedido por WhatsApp';
+    }
+
+    function finishOrder(win, data, order) {
+        var lines = ['Hola Catrian Racing! Quiero hacer este pedido (' + order.ref + '):', ''];
+        order.items.forEach(function (item) {
+            lines.push('• ' + item.qty + ' x ' + item.name + (item.option ? ' (' + item.option + ')' : '') + ' — ' + money(item.price * item.qty));
         });
         lines.push('');
-        lines.push('Subtotal: ' + money(subtotal));
-        if (discountValue) lines.push('Cupón ' + state.coupon + ': −' + money(discountValue));
-        lines.push('Envío: ' + (delivery === 'retiro' ? 'Retiro en tienda' : (shipping === null ? 'A cotizar' : 'Gratis')));
-        lines.push('Total: ' + money(subtotal - discountValue) + (shipping === null ? ' + envío' : ''));
+        lines.push('Subtotal: ' + money(order.subtotal));
+        if (order.discount) lines.push('Cupón ' + order.coupon + ': −' + money(order.discount));
+        lines.push('Envío: ' + (data.delivery === 'retiro' ? 'Retiro en tienda' : (order.shipping_pending ? 'A cotizar' : 'Gratis')));
+        lines.push('Total: ' + money(order.total) + (order.shipping_pending ? ' + envío' : ''));
         lines.push('');
-        lines.push('Nombre: ' + name);
-        lines.push('Teléfono: ' + phone);
-        if (form.email.value.trim()) lines.push('Email: ' + form.email.value.trim());
-        if (delivery === 'despacho') {
-            lines.push('Dirección: ' + form.address.value.trim() + ', ' + form.commune.value.trim() + ', ' + form.region.value);
+        lines.push('Nombre: ' + data.name);
+        lines.push('Teléfono: ' + data.phone);
+        if (data.email) lines.push('Email: ' + data.email);
+        if (data.delivery === 'despacho') {
+            lines.push('Dirección: ' + data.address + ', ' + data.commune + ', ' + data.region);
         }
-        lines.push('Pago: ' + form.payment.value);
-        if (form.notes.value.trim()) lines.push('Notas: ' + form.notes.value.trim());
+        lines.push('Pago: ' + data.payment);
+        if (data.notes) lines.push('Notas: ' + data.notes);
 
-        window.open(waUrl(lines.join('\n')), '_blank');
+        var url = waUrl(lines.join('\n'));
+        if (win && !win.closed) win.location.href = url;
+        else window.open(url, '_blank');
 
+        var form = $('checkout-view');
         cart = [];
         saveCart();
         renderCart();
         form.reset();
         state.coupon = null;
+        state.couponPercent = 0;
         $('coupon-msg').textContent = '';
+        resetSubmit(form.querySelector('button[type="submit"]'));
         updateTotals();
-        $('done-ref').textContent = ref;
+        $('done-ref').textContent = order.ref;
         showView('done-view');
+    }
+
+    /* ===== BASE DE DATOS (SUPABASE) ===== */
+    function dbFetch(path, options) {
+        if (!DB) return Promise.reject({ status: 0 });
+        options = options || {};
+        var headers = { apikey: DB.key, 'Content-Type': 'application/json' };
+        return fetch(DB.url + path, { method: options.method || 'GET', headers: headers, body: options.body }).then(function (res) {
+            return res.text().then(function (text) {
+                var body = null;
+                try { body = text ? JSON.parse(text) : null; } catch (e) { body = text; }
+                if (!res.ok) {
+                    var message = body && (body.message || body.error_description || body.error);
+                    return Promise.reject({ status: res.status, message: message });
+                }
+                return body;
+            });
+        }, function () {
+            return Promise.reject({ status: 0 });
+        });
+    }
+
+    function rpc(name, args) {
+        return dbFetch('/rest/v1/rpc/' + name, { method: 'POST', body: JSON.stringify(args) });
+    }
+
+    function fromDbProduct(row) {
+        var p = {
+            id: row.id, name: row.name, cat: row.cat, price: row.price, desc: row.desc || '',
+            img: row.img || ''
+        };
+        if (row.sub) p.sub = row.sub;
+        if (row.brand) p.brand = row.brand;
+        if (row.compare) p.compare = row.compare;
+        if (row.stock !== null && row.stock !== undefined) p.stock = row.stock;
+        if (row.specs && row.specs.length) p.specs = row.specs;
+        if (row.options && row.options.values && row.options.values.length) p.options = row.options;
+        if (row.fits && row.fits.length) p.fits = row.fits;
+        if (row.badge) p.badge = row.badge;
+        if (row.quote) p.quote = true;
+        if (row.cc) p.cc = row.cc;
+        if (row.free_ship) p.freeShip = true;
+        return p;
+    }
+
+    function applySettings(rows) {
+        rows.forEach(function (row) {
+            if (row.key === 'whatsapp' && row.value) WHATSAPP = String(row.value).replace(/\D/g, '');
+            if (row.key === 'free_shipping_from' && row.value >= 0) FREE_SHIPPING_FROM = Number(row.value);
+            if (row.key === 'announce' && Array.isArray(row.value)) {
+                var bar = document.querySelector('.announce');
+                if (bar) {
+                    bar.textContent = '';
+                    row.value.filter(Boolean).forEach(function (text) { bar.appendChild(el('span', '', text)); });
+                    bar.hidden = !bar.childElementCount;
+                }
+            }
+        });
+    }
+
+    function loadRemoteCatalog() {
+        Promise.all([
+            dbFetch('/rest/v1/products?select=*&order=sort.asc,name.asc'),
+            dbFetch('/rest/v1/vehicles?select=*&order=sort.asc,brand.asc'),
+            dbFetch('/rest/v1/settings?select=*')
+        ]).then(function (res) {
+            if (!res[0] || !res[0].length) return;
+            products = res[0].map(fromDbProduct);
+            if (res[1] && res[1].length) vehicles = res[1];
+            indexCatalog();
+            applySettings(res[2] || []);
+            cart = loadCart();
+            favs = loadList(FAVS_KEY);
+            recent = loadList(RECENT_KEY);
+            if (state.vehicle && !vehicleById[state.vehicle]) setVehicle('');
+            setupFinder();
+            renderProducts();
+            renderCart();
+            renderFavCount();
+            renderRecent();
+            if ($('product-modal').hidden) openFromHash();
+        }, function () { /* sin conexión: se mantiene el catálogo de respaldo */ });
     }
 
     var toastTimer = null;
@@ -1030,9 +1183,13 @@
         }
     });
 
-    fillBrandSelect();
-    fillSelect($('fit-type'), 'Tipo', uniq(vehicles.map(function (v) { return v.type; })).map(function (t) { return [t, t]; }));
-    updateFitBrands();
+    function setupFinder() {
+        fillBrandSelect();
+        fillSelect($('fit-type'), 'Tipo', uniq(vehicles.map(function (v) { return v.type; })).map(function (t) { return [t, t]; }));
+        updateFitBrands();
+    }
+
+    setupFinder();
     var savedMoto = '';
     try { savedMoto = localStorage.getItem(MOTO_KEY) || ''; } catch (e) { /* sin almacenamiento */ }
     if (vehicleById[savedMoto]) {
@@ -1046,4 +1203,5 @@
     renderFavCount();
     renderRecent();
     openFromHash();
+    loadRemoteCatalog();
 })();

@@ -21,7 +21,7 @@
     </div>
 
     <header class="header">
-        <a href="#inicio" class="logo">
+        <a href="#inicio" class="logo" id="logo">
             <span class="logo-mark" aria-hidden="true"></span>
             CATRIAN <span class="logo-accent">RACING</span>
         </a>
@@ -691,6 +691,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 15l-6-6-6 6"/></svg>
     </button>
 
+    <script src="supabase-config.js" defer></script>
     <script src="store.js" defer></script>
     <script>
         (function () {
@@ -820,6 +821,33 @@
                     texto += ' Me interesa: ' + servicio + '.';
                     if (mensaje) texto += ' ' + mensaje;
                     window.open('https://wa.me/56936621284?text=' + encodeURIComponent(texto), '_blank');
+                });
+            }
+
+            // Acceso oculto al administrador: mantener presionado el logo 2 s o 5 clics seguidos.
+            var logo = document.getElementById('logo');
+            if (logo) {
+                var pressTimer = null;
+                var clicks = 0;
+                var clickTimer = null;
+                var goAdmin = function () { window.location.href = 'admin.html'; };
+                var cancelPress = function () {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                };
+                logo.addEventListener('pointerdown', function () {
+                    cancelPress();
+                    pressTimer = setTimeout(goAdmin, 2000);
+                });
+                ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (type) {
+                    logo.addEventListener(type, cancelPress);
+                });
+                logo.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+                logo.addEventListener('click', function () {
+                    clicks += 1;
+                    clearTimeout(clickTimer);
+                    clickTimer = setTimeout(function () { clicks = 0; }, 1500);
+                    if (clicks >= 5) goAdmin();
                 });
             }
 

@@ -73,6 +73,12 @@ img {
     text-decoration: none;
 }
 
+#logo {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
 .logo-accent {
     color: #111;
     background-color: var(--yellow);

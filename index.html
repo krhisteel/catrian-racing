@@ -83,6 +83,24 @@
         </div>
     </div>
 
+    <section class="finder" aria-labelledby="finder-title">
+        <div class="container">
+            <form class="finder-card" id="fit-form">
+                <div class="finder-head">
+                    <span class="section-tag">Repuestos compatibles</span>
+                    <h2 id="finder-title">Busca por tu moto</h2>
+                </div>
+                <label class="sr-only" for="fit-type">Tipo de moto</label>
+                <select id="fit-type"></select>
+                <label class="sr-only" for="fit-brand">Marca</label>
+                <select id="fit-brand"></select>
+                <label class="sr-only" for="fit-model">Modelo</label>
+                <select id="fit-model"></select>
+                <button type="submit" class="btn btn-primary" id="fit-go" disabled>Buscar repuestos</button>
+            </form>
+        </div>
+    </section>
+
     <section class="collections" aria-label="Colecciones">
         <div class="container collections-grid">
             <button type="button" class="collection" data-collection="Motos">
@@ -116,7 +134,10 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
                     <input type="search" id="shop-search" placeholder="Buscar productos..." aria-label="Buscar productos">
                 </label>
-                <select id="shop-sort" aria-label="Ordenar productos">
+                <select id="shop-brand" class="shop-select" aria-label="Filtrar por marca">
+                    <option value="">Todas las marcas</option>
+                </select>
+                <select id="shop-sort" class="shop-select" aria-label="Ordenar productos">
                     <option value="featured">Destacados</option>
                     <option value="price-asc">Precio: menor a mayor</option>
                     <option value="price-desc">Precio: mayor a menor</option>
@@ -131,6 +152,11 @@
                 <button type="button" class="chip" data-cat="Equipamiento">Equipamiento</button>
                 <button type="button" class="chip" data-cat="fav">♥ Favoritos</button>
             </div>
+            <div class="shop-chips shop-subs" id="shop-subs" role="group" aria-label="Filtrar repuestos por tipo" hidden></div>
+            <div class="fit-current" id="fit-current" hidden>
+                <span>Mostrando productos compatibles con tu <strong id="fit-current-name"></strong></span>
+                <button type="button" class="back-link" id="fit-clear">Quitar filtro ✕</button>
+            </div>
             <div class="shop-filters">
                 <label class="check"><input type="checkbox" id="only-sale"> Solo ofertas</label>
                 <label class="check"><input type="checkbox" id="only-stock"> Ocultar agotados</label>
@@ -138,6 +164,9 @@
             <p class="shop-count" id="shop-count" aria-live="polite"></p>
             <div class="grid" id="product-grid"></div>
             <p class="shop-empty" id="shop-empty" hidden></p>
+            <div class="shop-more-wrap">
+                <button type="button" class="btn btn-ghost" id="shop-more" hidden>Cargar más productos</button>
+            </div>
 
             <div class="recent" id="recent" hidden>
                 <h3>Vistos recientemente</h3>
@@ -326,6 +355,55 @@
         </div>
     </section>
 
+    <section id="como-comprar" class="section section-alt">
+        <div class="container">
+            <div class="section-head reveal">
+                <span class="section-tag">Paso a paso</span>
+                <h2>Cómo comprar</h2>
+            </div>
+            <ul class="services">
+                <li class="service reveal">
+                    <span class="service-num">01</span>
+                    <h3>Busca por tu moto</h3>
+                    <p>Elige tipo, marca y modelo para ver solo los repuestos compatibles.</p>
+                </li>
+                <li class="service reveal">
+                    <span class="service-num">02</span>
+                    <h3>Agrega al carro</h3>
+                    <p>Elige talla o medida y la cantidad. Tu carro se guarda aunque cierres la página.</p>
+                </li>
+                <li class="service reveal">
+                    <span class="service-num">03</span>
+                    <h3>Elige entrega y pago</h3>
+                    <p>Retiro en tienda o despacho a todo Chile. Transferencia, tarjetas o efectivo.</p>
+                </li>
+                <li class="service reveal">
+                    <span class="service-num">04</span>
+                    <h3>Confirmamos tu pedido</h3>
+                    <p>Te escribimos por WhatsApp con el total y los datos de pago, y despachamos en 24–48 h hábiles.</p>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <section id="mayoristas" class="section">
+        <div class="container">
+            <div class="wholesale reveal">
+                <div>
+                    <span class="section-tag">Talleres y revendedores</span>
+                    <h2>Venta por mayor</h2>
+                    <p>¿Tienes un taller o una tienda? Accede a precios mayoristas en aceites, filtros, frenos, transmisión y neumáticos, con despacho a todo Chile.</p>
+                    <ul class="wholesale-list">
+                        <li>Precios especiales por volumen</li>
+                        <li>Atención y cotización personalizada</li>
+                        <li>Despacho prioritario</li>
+                    </ul>
+                </div>
+                <a href="https://wa.me/56936621284?text=Hola%20Catrian%20Racing%2C%20quiero%20cotizar%20precios%20por%20mayor%20para%20mi%20taller%2Ftienda." target="_blank" rel="noopener" class="btn btn-primary">Cotizar por mayor</a>
+            </div>
+        </div>
+    </section>
+
     <section id="ayuda" class="section section-alt">
         <div class="container">
             <div class="section-head reveal">
@@ -461,7 +539,9 @@
             </nav>
             <nav aria-label="Ayuda">
                 <h3>Ayuda</h3>
+                <a href="#como-comprar">Cómo comprar</a>
                 <a href="#ayuda">Preguntas frecuentes</a>
+                <a href="#mayoristas">Venta por mayor</a>
                 <a href="politicas.html#envios">Envíos y entregas</a>
                 <a href="politicas.html#cambios">Cambios y devoluciones</a>
                 <a href="politicas.html#privacidad">Privacidad</a>
@@ -588,6 +668,7 @@
                 <div class="price-row" id="pm-price"></div>
                 <p class="modal-desc" id="pm-desc"></p>
                 <ul class="card-specs" id="pm-specs"></ul>
+                <div id="pm-fit"></div>
                 <div id="pm-options"></div>
                 <div class="modal-buy" id="pm-buy"></div>
                 <p class="modal-stock" id="pm-stock"></p>

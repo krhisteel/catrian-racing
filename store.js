@@ -10,6 +10,30 @@
 
     // Catálogo: edita aquí precios, stock, fotos y variantes.
     // quote: true → el producto se cotiza por WhatsApp en vez de ir al carro.
+    // Motos para el buscador «Busca por tu moto». Los ids se usan en «fits» de cada repuesto.
+    var vehicles = [
+        { id: 'honda-cb190r', type: 'Calle', brand: 'Honda', model: 'CB190R' },
+        { id: 'yamaha-fz25', type: 'Calle', brand: 'Yamaha', model: 'FZ25' },
+        { id: 'suzuki-gixxer150', type: 'Calle', brand: 'Suzuki', model: 'Gixxer 150' },
+        { id: 'bajaj-ns200', type: 'Calle', brand: 'Bajaj', model: 'Pulsar NS200' },
+        { id: 'kawasaki-ninja400', type: 'Calle', brand: 'Kawasaki', model: 'Ninja 400' },
+        { id: 'ktm-duke390', type: 'Calle', brand: 'KTM', model: 'Duke 390' },
+        { id: 'honda-xr150l', type: 'Off-road', brand: 'Honda', model: 'XR150L' },
+        { id: 'yamaha-xtz250', type: 'Off-road', brand: 'Yamaha', model: 'XTZ 250' },
+        { id: 'suzuki-dr650', type: 'Off-road', brand: 'Suzuki', model: 'DR650' },
+        { id: 'ktm-exc300', type: 'Off-road', brand: 'KTM', model: 'EXC 300' },
+        { id: 'honda-pcx160', type: 'Scooter', brand: 'Honda', model: 'PCX 160' },
+        { id: 'yamaha-nmax155', type: 'Scooter', brand: 'Yamaha', model: 'NMAX 155' },
+        { id: 'suzuki-burgman125', type: 'Scooter', brand: 'Suzuki', model: 'Burgman 125' }
+    ];
+
+    var STREET = ['honda-cb190r', 'yamaha-fz25', 'suzuki-gixxer150', 'bajaj-ns200', 'kawasaki-ninja400', 'ktm-duke390'];
+    var OFFROAD = ['honda-xr150l', 'yamaha-xtz250', 'suzuki-dr650', 'ktm-exc300'];
+    var SCOOTER = ['honda-pcx160', 'yamaha-nmax155', 'suzuki-burgman125'];
+
+    // Catálogo: edita aquí precios, stock, fotos y variantes.
+    // quote: true → el producto se cotiza por WhatsApp en vez de ir al carro.
+    // fits: motos compatibles (sin «fits» = universal). freeShip: despacho gratis a todo Chile.
     var products = [
         {
             id: 'pista-250', name: 'Modelo Pista 250', cat: 'Motos', price: 2490000, quote: true, cc: 250,
@@ -30,69 +54,105 @@
             specs: [['Cilindrada', '500 cc'], ['Potencia', '47 HP'], ['Año', '2025']]
         },
         {
-            id: 'kit-arrastre', name: 'Kit de arrastre', cat: 'Repuestos', price: 24990, stock: 14,
+            id: 'kit-arrastre', name: 'Kit de arrastre', cat: 'Repuestos', sub: 'Transmisión', brand: 'EK', price: 24990, stock: 14,
             img: 'https://live.staticflickr.com/4044/4381533356_0afbaa8402_b.jpg',
             desc: 'Cadena, piñón y catalina de acero templado.',
-            options: { name: 'Paso de cadena', values: ['428', '520', '525'] }
+            options: { name: 'Paso de cadena', values: ['428', '520', '525'] },
+            fits: STREET.concat(OFFROAD)
         },
         {
-            id: 'neumatico', name: 'Neumático', cat: 'Repuestos', price: 69990, stock: 9,
+            id: 'neumatico', name: 'Neumático', cat: 'Repuestos', sub: 'Neumáticos', brand: 'Dunlop', price: 69990, stock: 9, freeShip: true,
             img: 'https://live.staticflickr.com/8203/8191327093_438c1d7f25_b.jpg',
             desc: 'Calle, pista y off-road. Todas las marcas.',
             options: { name: 'Medida', values: ['110/70-17', '140/70-17', '90/90-21', '120/80-18'] }
         },
         {
-            id: 'bateria', name: 'Batería 12V', cat: 'Repuestos', price: 34990, stock: 6,
+            id: 'bateria', name: 'Batería 12V', cat: 'Repuestos', sub: 'Baterías', brand: 'Yuasa', price: 34990, stock: 6,
             img: 'https://live.staticflickr.com/1478/24128240646_13f2c61d80_b.jpg',
             desc: 'Batería sellada libre de mantención.',
-            specs: [['Voltaje', '12 V'], ['Capacidad', '7 Ah']]
+            specs: [['Voltaje', '12 V'], ['Capacidad', '7 Ah']],
+            fits: STREET.concat(SCOOTER, ['honda-xr150l', 'yamaha-xtz250'])
         },
         {
-            id: 'filtro-aceite', name: 'Filtro de aceite', cat: 'Repuestos', price: 8990, compare: 11990, stock: 30,
+            id: 'filtro-aceite', name: 'Filtro de aceite', cat: 'Repuestos', sub: 'Filtros', brand: 'Hiflo', price: 8990, compare: 11990, stock: 30,
             img: 'https://loremflickr.com/600/450/motorcycle,engine?lock=21',
-            desc: 'Filtro de alto flujo para mantención periódica.'
+            desc: 'Filtro de alto flujo para mantención periódica.',
+            fits: STREET.concat(OFFROAD, SCOOTER)
         },
         {
-            id: 'pastillas', name: 'Pastillas de freno', cat: 'Repuestos', price: 19990, stock: 3,
+            id: 'filtro-aire', name: 'Filtro de aire', cat: 'Repuestos', sub: 'Filtros', brand: 'Hiflo', price: 12990, stock: 11,
+            img: 'https://loremflickr.com/600/450/motorcycle,filter?lock=30',
+            desc: 'Mejor respiración del motor y protección contra el polvo.',
+            fits: ['honda-cb190r', 'yamaha-fz25', 'honda-xr150l', 'yamaha-xtz250', 'honda-pcx160', 'yamaha-nmax155']
+        },
+        {
+            id: 'pastillas', name: 'Pastillas de freno', cat: 'Repuestos', sub: 'Frenos', brand: 'EBC', price: 19990, stock: 3,
             img: 'https://loremflickr.com/600/450/motorcycle,brake?lock=22',
             desc: 'Compuesto sinterizado para calle y pista.',
-            options: { name: 'Posición', values: ['Delantera', 'Trasera'] }
+            options: { name: 'Posición', values: ['Delantera', 'Trasera'] },
+            fits: STREET.concat(OFFROAD, SCOOTER)
         },
         {
-            id: 'aceite', name: 'Aceite 10W-40 4L', cat: 'Repuestos', price: 39990, stock: 18, badge: 'Más vendido',
+            id: 'bujia', name: 'Bujía de iridio', cat: 'Repuestos', sub: 'Encendido', brand: 'NGK', price: 9990, stock: 40, badge: 'Más vendido',
+            img: 'https://loremflickr.com/600/450/spark,plug?lock=31',
+            desc: 'Encendido más rápido y mayor duración que una bujía estándar.',
+            fits: STREET.concat(OFFROAD, SCOOTER)
+        },
+        {
+            id: 'aceite', name: 'Aceite 10W-40 4L', cat: 'Repuestos', sub: 'Aceites y lubricantes', brand: 'Motul', price: 39990, stock: 18, freeShip: true,
             img: 'https://loremflickr.com/600/450/motor,oil?lock=23',
-            desc: 'Aceite semisintético para motores 4T.'
+            desc: 'Aceite semisintético para motores 4T.',
+            fits: STREET.concat(['honda-xr150l', 'yamaha-xtz250', 'suzuki-dr650'], SCOOTER)
         },
         {
-            id: 'casco', name: 'Casco integral', cat: 'Equipamiento', price: 129990, compare: 159990, stock: 5,
+            id: 'lubricante-cadena', name: 'Lubricante de cadena', cat: 'Repuestos', sub: 'Aceites y lubricantes', brand: 'Motul', price: 11990, stock: 22,
+            img: 'https://loremflickr.com/600/450/motorcycle,chain?lock=32',
+            desc: 'Spray que protege la cadena del desgaste y la corrosión.',
+            fits: STREET.concat(OFFROAD)
+        },
+        {
+            id: 'retenes', name: 'Kit de retenes de horquilla', cat: 'Repuestos', sub: 'Suspensión', brand: 'All Balls', price: 21990, stock: 7,
+            img: 'https://loremflickr.com/600/450/motorcycle,suspension?lock=33',
+            desc: 'Retenes y guardapolvos para evitar fugas en la suspensión.',
+            fits: ['honda-cb190r', 'yamaha-fz25', 'kawasaki-ninja400', 'ktm-duke390'].concat(OFFROAD)
+        },
+        {
+            id: 'correa', name: 'Correa de transmisión', cat: 'Repuestos', sub: 'Transmisión', brand: 'Bando', price: 32990, stock: 5,
+            img: 'https://loremflickr.com/600/450/scooter,engine?lock=34',
+            desc: 'Correa reforzada para transmisión automática de scooter.',
+            fits: SCOOTER
+        },
+        {
+            id: 'casco', name: 'Casco integral', cat: 'Equipamiento', brand: 'LS2', price: 129990, compare: 159990, stock: 5, freeShip: true,
             img: 'https://loremflickr.com/600/450/motorcycle,helmet?lock=24',
             desc: 'Certificación DOT/ECE, visor antiempañante.',
             options: { name: 'Talla', values: ['S', 'M', 'L', 'XL'] }
         },
         {
-            id: 'chaqueta', name: 'Chaqueta con protecciones', cat: 'Equipamiento', price: 149990, stock: 4, badge: 'Nuevo',
+            id: 'chaqueta', name: 'Chaqueta con protecciones', cat: 'Equipamiento', brand: 'Alpinestars', price: 149990, stock: 4, badge: 'Nuevo', freeShip: true,
             img: 'https://loremflickr.com/600/450/motorcycle,jacket?lock=25',
             desc: 'Textil ventilada con protecciones en codos y hombros.',
             options: { name: 'Talla', values: ['S', 'M', 'L', 'XL'] }
         },
         {
-            id: 'guantes', name: 'Guantes racing', cat: 'Equipamiento', price: 29990, stock: 12,
+            id: 'guantes', name: 'Guantes racing', cat: 'Equipamiento', brand: 'Alpinestars', price: 29990, stock: 12,
             img: 'https://loremflickr.com/600/450/motorcycle,gloves?lock=26',
             desc: 'Cuero con refuerzos en nudillos y palma.',
             options: { name: 'Talla', values: ['S', 'M', 'L', 'XL'] }
         },
         {
-            id: 'candado', name: 'Candado de disco', cat: 'Accesorios', price: 24990, stock: 2,
+            id: 'candado', name: 'Candado de disco', cat: 'Accesorios', brand: 'Kovix', price: 24990, stock: 2,
             img: 'https://loremflickr.com/600/450/motorcycle,lock?lock=27',
             desc: 'Acero reforzado con alarma de 110 dB.'
         },
         {
-            id: 'escape', name: 'Escape deportivo', cat: 'Accesorios', price: 189990, stock: 0,
+            id: 'escape', name: 'Escape deportivo', cat: 'Accesorios', brand: 'Akrapovič', price: 189990, stock: 0,
             img: 'https://loremflickr.com/600/450/motorcycle,exhaust?lock=29',
-            desc: 'Silenciador de acero inoxidable, sonido racing.'
+            desc: 'Silenciador de acero inoxidable, sonido racing.',
+            fits: ['kawasaki-ninja400', 'ktm-duke390', 'yamaha-fz25']
         },
         {
-            id: 'soporte-celular', name: 'Soporte de celular', cat: 'Accesorios', price: 14990, compare: 18990, stock: 20,
+            id: 'soporte-celular', name: 'Soporte de celular', cat: 'Accesorios', brand: 'Quad Lock', price: 14990, compare: 18990, stock: 20,
             img: 'https://loremflickr.com/600/450/motorcycle,handlebar?lock=28',
             desc: 'Montaje a manubrio con amortiguación de vibraciones.'
         }
@@ -104,7 +164,13 @@
         byId[p.id] = p;
     });
 
-    var state = { cat: 'all', query: '', sort: 'featured', onlySale: false, onlyStock: false, coupon: null };
+    var vehicleById = {};
+    vehicles.forEach(function (v) { vehicleById[v.id] = v; });
+
+    var PAGE_SIZE = 9;
+    var MOTO_KEY = 'catrian-moto';
+
+    var state = { cat: 'all', sub: '', brand: '', vehicle: '', query: '', sort: 'featured', onlySale: false, onlyStock: false, coupon: null, limit: PAGE_SIZE };
     var cart = loadCart();
     var favs = loadList(FAVS_KEY);
     var recent = loadList(RECENT_KEY);
@@ -259,7 +325,10 @@
             if (state.cat !== 'all' && state.cat !== 'fav' && p.cat !== state.cat) return false;
             if (state.onlySale && !p.compare) return false;
             if (state.onlyStock && soldOut(p)) return false;
-            return !q || normalize(p.name + ' ' + p.desc + ' ' + p.cat).indexOf(q) !== -1;
+            if (state.sub && p.sub !== state.sub) return false;
+            if (state.brand && p.brand !== state.brand) return false;
+            if (state.vehicle && (p.quote || (p.fits && p.fits.indexOf(state.vehicle) === -1))) return false;
+            return !q || normalize(p.name + ' ' + p.desc + ' ' + p.cat + ' ' + (p.sub || '') + ' ' + (p.brand || '')).indexOf(q) !== -1;
         });
         var sorters = {
             featured: function (a, b) { return a.order - b.order; },
@@ -288,9 +357,11 @@
         card.appendChild(favButton(p));
 
         var body = el('div', 'card-body');
-        body.appendChild(el('span', 'product-cat', p.cat));
+        body.appendChild(el('span', 'product-cat', [p.sub || p.cat, p.brand].filter(Boolean).join(' · ')));
         body.appendChild(el('h3', '', p.name));
         body.appendChild(el('p', 'card-desc', p.desc));
+        if (state.vehicle && p.fits) body.appendChild(el('p', 'fit-ok', '✓ Compatible con tu ' + vehicleName(state.vehicle)));
+        if (p.freeShip && !soldOut(p)) body.appendChild(el('p', 'free-ship', 'Despacho gratis a todo Chile'));
         if (p.stock > 0 && p.stock <= 3) body.appendChild(el('p', 'low-stock', '¡Últimas ' + p.stock + ' unidades!'));
 
         var footer = el('div', 'card-footer');
@@ -318,8 +389,13 @@
         var grid = $('product-grid');
         var list = visibleProducts();
         grid.textContent = '';
-        list.forEach(function (p) { grid.appendChild(productCard(p)); });
-        $('shop-count').textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
+        list.slice(0, state.limit).forEach(function (p) { grid.appendChild(productCard(p)); });
+        var shown = Math.min(state.limit, list.length);
+        $('shop-count').textContent = list.length > shown
+            ? 'Mostrando ' + shown + ' de ' + list.length + ' productos'
+            : list.length + (list.length === 1 ? ' producto' : ' productos');
+        $('shop-more').hidden = list.length <= shown;
+        renderSubChips();
         var empty = $('shop-empty');
         empty.hidden = list.length > 0;
         empty.textContent = state.cat === 'fav' && !favs.length
@@ -327,7 +403,109 @@
             : 'No encontramos productos con esos filtros.';
     }
 
+    function resetPage() {
+        state.limit = PAGE_SIZE;
+    }
+
+    function renderSubChips() {
+        var wrap = $('shop-subs');
+        var subs = [];
+        products.forEach(function (p) {
+            if (p.sub && p.cat === 'Repuestos' && subs.indexOf(p.sub) === -1) subs.push(p.sub);
+        });
+        wrap.hidden = state.cat !== 'Repuestos';
+        if (wrap.hidden || wrap.childElementCount) {
+            wrap.querySelectorAll('.chip').forEach(function (c) {
+                var on = c.dataset.sub === state.sub;
+                c.classList.toggle('active', on);
+                c.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
+            return;
+        }
+        [''].concat(subs).forEach(function (sub) {
+            var c = el('button', 'chip chip-sub', sub || 'Todos los repuestos');
+            c.type = 'button';
+            c.dataset.sub = sub;
+            c.classList.toggle('active', sub === state.sub);
+            c.addEventListener('click', function () {
+                state.sub = sub;
+                resetPage();
+                renderProducts();
+            });
+            wrap.appendChild(c);
+        });
+    }
+
+    function fillBrandSelect() {
+        var select = $('shop-brand');
+        var brands = [];
+        products.forEach(function (p) {
+            if (p.brand && brands.indexOf(p.brand) === -1) brands.push(p.brand);
+        });
+        brands.sort(function (a, b) { return a.localeCompare(b, 'es'); }).forEach(function (b) {
+            var o = el('option', '', b);
+            o.value = b;
+            select.appendChild(o);
+        });
+    }
+
+    /* ===== BUSCADOR POR MOTO ===== */
+    function vehicleName(id) {
+        var v = vehicleById[id];
+        return v ? v.brand + ' ' + v.model : '';
+    }
+
+    function fillSelect(select, placeholder, values) {
+        select.textContent = '';
+        var first = el('option', '', placeholder);
+        first.value = '';
+        select.appendChild(first);
+        values.forEach(function (v) {
+            var o = el('option', '', v[1]);
+            o.value = v[0];
+            select.appendChild(o);
+        });
+        select.disabled = values.length === 0;
+    }
+
+    function uniq(list) {
+        return list.filter(function (v, i) { return list.indexOf(v) === i; });
+    }
+
+    function updateFitBrands() {
+        var type = $('fit-type').value;
+        var brands = uniq(vehicles.filter(function (v) { return v.type === type; }).map(function (v) { return v.brand; }));
+        fillSelect($('fit-brand'), 'Marca', type ? brands.map(function (b) { return [b, b]; }) : []);
+        updateFitModels();
+    }
+
+    function updateFitModels() {
+        var type = $('fit-type').value;
+        var brand = $('fit-brand').value;
+        var models = vehicles.filter(function (v) { return v.type === type && v.brand === brand; });
+        fillSelect($('fit-model'), 'Modelo', brand ? models.map(function (v) { return [v.id, v.model]; }) : []);
+        $('fit-go').disabled = true;
+    }
+
+    function setVehicle(id) {
+        state.vehicle = id;
+        try {
+            if (id) localStorage.setItem(MOTO_KEY, id);
+            else localStorage.removeItem(MOTO_KEY);
+        } catch (e) { /* sin almacenamiento */ }
+        var current = $('fit-current');
+        current.hidden = !id;
+        $('fit-current-name').textContent = vehicleName(id);
+        if (id && state.cat === 'Motos') state.cat = 'all';
+        resetPage();
+        setCat(state.cat);
+    }
+
     function setCat(cat) {
+        if (cat !== state.cat) {
+            state.sub = '';
+            resetPage();
+        }
         state.cat = cat;
         document.querySelectorAll('#shop-chips .chip').forEach(function (c) {
             var on = c.dataset.cat === cat;
@@ -394,7 +572,30 @@
             li.appendChild(el('span', '', s[1]));
             specs.appendChild(li);
         });
-        specs.hidden = !p.specs;
+        if (p.brand) {
+            var brandLi = el('li', '', 'Marca ');
+            brandLi.appendChild(el('span', '', p.brand));
+            specs.insertBefore(brandLi, specs.firstChild);
+        }
+        if (!p.quote) {
+            var fitLi = el('li', '', 'Compatibilidad ');
+            fitLi.appendChild(el('span', '', p.fits ? p.fits.length + ' modelos' : 'Universal'));
+            specs.appendChild(fitLi);
+        }
+        specs.hidden = !specs.childElementCount;
+
+        var fit = $('pm-fit');
+        fit.textContent = '';
+        if (p.fits) {
+            var details = el('details', 'fit-list');
+            details.appendChild(el('summary', '', state.vehicle && p.fits.indexOf(state.vehicle) !== -1
+                ? '✓ Compatible con tu ' + vehicleName(state.vehicle) + ' · ver todas'
+                : 'Ver motos compatibles'));
+            var ul = el('ul');
+            p.fits.forEach(function (id) { ul.appendChild(el('li', '', vehicleName(id))); });
+            details.appendChild(ul);
+            fit.appendChild(details);
+        }
 
         var options = $('pm-options');
         options.textContent = '';
@@ -464,7 +665,8 @@
             buy.lastChild.id = 'pm-error';
         }
 
-        $('pm-stock').textContent = p.quote ? 'Financiamiento y entrega a coordinar.' : (p.stock > 0 ? 'En stock · Despacho en 24–48 h hábiles' : 'Agotado por ahora');
+        $('pm-stock').textContent = p.quote ? 'Financiamiento y entrega a coordinar.'
+            : (p.stock > 0 ? 'En stock · Despacho en 24–48 h hábiles' + (p.freeShip ? ' · Despacho gratis' : '') : 'Agotado por ahora');
 
         var tools = $('pm-tools');
         tools.textContent = '';
@@ -739,22 +941,44 @@
     /* ===== EVENTOS ===== */
     $('shop-search').addEventListener('input', function (e) {
         state.query = e.target.value;
+        resetPage();
         renderProducts();
     });
     $('shop-sort').addEventListener('change', function (e) {
         state.sort = e.target.value;
         renderProducts();
     });
+    $('shop-brand').addEventListener('change', function (e) {
+        state.brand = e.target.value;
+        resetPage();
+        renderProducts();
+    });
+    $('shop-more').addEventListener('click', function () {
+        state.limit += PAGE_SIZE;
+        renderProducts();
+    });
+    $('fit-type').addEventListener('change', updateFitBrands);
+    $('fit-brand').addEventListener('change', updateFitModels);
+    $('fit-model').addEventListener('change', function (e) { $('fit-go').disabled = !e.target.value; });
+    $('fit-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!$('fit-model').value) return;
+        setVehicle($('fit-model').value);
+        $('tienda').scrollIntoView();
+    });
+    $('fit-clear').addEventListener('click', function () { setVehicle(''); });
     $('shop-chips').addEventListener('click', function (e) {
         var chip = e.target.closest('.chip');
         if (chip) setCat(chip.dataset.cat);
     });
     $('only-sale').addEventListener('change', function (e) {
         state.onlySale = e.target.checked;
+        resetPage();
         renderProducts();
     });
     $('only-stock').addEventListener('change', function (e) {
         state.onlyStock = e.target.checked;
+        resetPage();
         renderProducts();
     });
     document.querySelectorAll('[data-collection]').forEach(function (b) {
@@ -805,6 +1029,17 @@
             renderProducts();
         }
     });
+
+    fillBrandSelect();
+    fillSelect($('fit-type'), 'Tipo', uniq(vehicles.map(function (v) { return v.type; })).map(function (t) { return [t, t]; }));
+    updateFitBrands();
+    var savedMoto = '';
+    try { savedMoto = localStorage.getItem(MOTO_KEY) || ''; } catch (e) { /* sin almacenamiento */ }
+    if (vehicleById[savedMoto]) {
+        state.vehicle = savedMoto;
+        $('fit-current').hidden = false;
+        $('fit-current-name').textContent = vehicleName(savedMoto);
+    }
 
     renderProducts();
     renderCart();

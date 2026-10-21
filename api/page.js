@@ -30,7 +30,7 @@ function inject(html, meta) {
     return html;
 }
 
-function productMeta(base, p) {
+function productMeta(base, p, reviews) {
     const url = base + seo.productPath(p);
     const image = seo.imageUrl(base, p);
     const crumbs = [{ name: 'Inicio', url: base + '/' }, { name: p.cat, url: base + seo.categoryPath(p.cat) }];
@@ -42,6 +42,22 @@ function productMeta(base, p) {
     };
     if (p.sku) product.sku = p.sku;
     if (p.brand) product.brand = { '@type': 'Brand', name: p.brand };
+    if (reviews && reviews.length) {
+        const sum = reviews.reduce(function (t, r) { return t + r.rating; }, 0);
+        product.aggregateRating = {
+            '@type': 'AggregateRating', ratingValue: Math.round(sum / reviews.length * 10) / 10,
+            reviewCount: reviews.length, bestRating: 5, worstRating: 1
+        };
+        product.review = reviews.slice(0, 5).map(function (r) {
+            const item = {
+                '@type': 'Review', author: { '@type': 'Person', name: r.name }, datePublished: String(r.created_at).slice(0, 10),
+                reviewRating: { '@type': 'Rating', ratingValue: r.rating, bestRating: 5 }
+            };
+            if (r.title) item.name = r.title;
+            if (r.body) item.reviewBody = r.body;
+            return item;
+        });
+    }
     if (!p.quote) {
         product.offers = {
             '@type': 'Offer', url: url, priceCurrency: 'CLP', price: p.price,
@@ -114,7 +130,13 @@ module.exports = async function handler(req, res) {
         if (q.type === 'producto') {
             const id = decode(q.id);
             const p = products.find(function (x) { return x.id === id; });
-            if (p) meta = productMeta(base, p);
+            if (p) {
+                let reviews = [];
+                try {
+                    reviews = await seo.db('/rest/v1/reviews?select=name,rating,title,body,created_at&status=eq.publicada&order=created_at.desc&product_id=eq.' + encodeURIComponent(p.id));
+                } catch (e) { /* sin opiniones */ }
+                meta = productMeta(base, p, reviews);
+            }
         } else if (q.type === 'categoria') {
             const cat = decode(q.cat);
             const sub = decode(q.sub);

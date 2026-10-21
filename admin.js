@@ -363,6 +363,7 @@
             renderAll();
             loadPaymentConfig();
             loadEmailConfig();
+            loadReviews();
         } catch (e) {
             toast(e.message, true);
         }
@@ -439,6 +440,8 @@
             kpis.appendChild(card);
         });
 
+        renderStats();
+
         var recent = $('recent-orders');
         recent.textContent = '';
         if (!data.orders.length) recent.appendChild(el('p', 'admin-empty', 'Aún no hay pedidos. Aparecerán aquí cuando los clientes compren en la tienda.'));
@@ -453,6 +456,190 @@
             row.appendChild(el('span', 'stock-pill' + (p.stock === 0 ? ' out' : ''), p.stock === 0 ? 'Agotado' : p.stock + ' u.'));
             lowWrap.appendChild(row);
         });
+    }
+
+    /* ===== ESTADÍSTICAS ===== */
+    var statsDays = 30;
+
+    function dayKey(d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    function renderStats() {
+        var range = $('stats-range');
+        range.textContent = '';
+        [[7, '7 días'], [30, '30 días'], [90, '90 días']].forEach(function (r) {
+            range.appendChild(button(r[1], 'chip' + (statsDays === r[0] ? ' active' : ''), function () { statsDays = r[0]; renderStats(); }));
+        });
+
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+        var start = new Date(today);
+        start.setDate(start.getDate() - statsDays + 1);
+        var sold = data.orders.filter(function (o) { return SOLD.indexOf(o.status) !== -1 && new Date(o.created_at) >= start; });
+
+        // Con 90 días se agrupa por semana para que las barras se lean.
+        var step = statsDays > 30 ? 7 : 1;
+        var buckets = [];
+        for (var d = new Date(start); d <= today; d.setDate(d.getDate() + step)) {
+            var end = new Date(d);
+            end.setDate(end.getDate() + step);
+            buckets.push({ from: new Date(d), to: end, total: 0, count: 0 });
+        }
+        sold.forEach(function (o) {
+            var t = new Date(o.created_at);
+            for (var i = 0; i < buckets.length; i++) {
+                if (t >= buckets[i].from && t < buckets[i].to) { buckets[i].total += o.total; buckets[i].count++; break; }
+            }
+        });
+        var total = sold.reduce(function (sum, o) { return sum + o.total; }, 0);
+
+        var hero = $('stats-hero');
+        hero.textContent = '';
+        [[money(total), 'vendido'], [String(sold.length), sold.length === 1 ? 'pedido' : 'pedidos'],
+            [sold.length ? money(Math.round(total / sold.length)) : '—', 'ticket promedio']].forEach(function (h) {
+            var item = el('div', 'stats-num');
+            item.appendChild(el('strong', '', h[0]));
+            item.appendChild(el('span', '', h[1]));
+            hero.appendChild(item);
+        });
+
+        var label = function (b) {
+            var opts = { day: 'numeric', month: 'short' };
+            if (step === 1) return b.from.toLocaleDateString('es-CL', opts);
+            var last = new Date(b.to);
+            last.setDate(last.getDate() - 1);
+            return b.from.toLocaleDateString('es-CL', opts) + ' – ' + last.toLocaleDateString('es-CL', opts);
+        };
+        drawSalesChart(buckets, label);
+
+        var table = el('table', 'admin-table');
+        var head = el('tr');
+        [step === 1 ? 'Día' : 'Semana', 'Pedidos', 'Ventas'].forEach(function (h) { head.appendChild(el('th', '', h)); });
+        table.appendChild(head);
+        buckets.slice().reverse().forEach(function (b) {
+            var tr = el('tr');
+            tr.appendChild(el('td', '', label(b)));
+            tr.appendChild(el('td', '', String(b.count)));
+            tr.appendChild(el('td', '', money(b.total)));
+            table.appendChild(tr);
+        });
+        var tableWrap = $('sales-table');
+        tableWrap.textContent = '';
+        tableWrap.appendChild(table);
+
+        // Más vendidos por monto en el mismo periodo.
+        var byProduct = {};
+        sold.forEach(function (o) {
+            (o.items || []).forEach(function (it) {
+                var row = byProduct[it.id] = byProduct[it.id] || { name: it.name, qty: 0, total: 0 };
+                row.qty += it.qty;
+                row.total += it.price * it.qty;
+            });
+        });
+        var top = Object.keys(byProduct).map(function (k) { return byProduct[k]; })
+            .sort(function (a, b) { return b.total - a.total; }).slice(0, 6);
+        $('top-note').textContent = 'Por monto vendido en los últimos ' + statsDays + ' días.';
+        var wrap = $('top-products');
+        wrap.textContent = '';
+        if (!top.length) wrap.appendChild(el('p', 'admin-empty', 'Aún no hay ventas en este periodo.'));
+        top.forEach(function (t) {
+            var row = el('div', 'top-row');
+            var name = el('div', 'top-name');
+            name.appendChild(el('span', '', t.name));
+            name.appendChild(el('strong', '', money(t.total)));
+            row.appendChild(name);
+            var track = el('div', 'top-track');
+            var bar = el('span', 'top-bar');
+            bar.style.width = Math.max(2, t.total / top[0].total * 100) + '%';
+            track.appendChild(bar);
+            row.appendChild(track);
+            row.appendChild(el('span', 'top-qty', t.qty + (t.qty === 1 ? ' unidad' : ' unidades')));
+            wrap.appendChild(row);
+        });
+    }
+
+    function drawSalesChart(buckets, label) {
+        var box = $('sales-chart');
+        box.textContent = '';
+        var NS = 'http://www.w3.org/2000/svg';
+        var W = Math.max(280, Math.round(box.clientWidth) || 640), H = 220, padL = 56, padB = 26, padT = 10, padR = 8;
+        var max = Math.max.apply(null, buckets.map(function (b) { return b.total; }));
+        var niceMax = max > 0 ? niceCeil(max) : 100000;
+        var svg = document.createElementNS(NS, 'svg');
+        svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+        svg.setAttribute('role', 'img');
+        svg.setAttribute('aria-label', 'Ventas por ' + (buckets.length && buckets[0].to - buckets[0].from > 86400000 * 2 ? 'semana' : 'día') + '. Detalle en «Ver como tabla».');
+        function node(tag, attrs, text) {
+            var n = document.createElementNS(NS, tag);
+            Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+            if (text !== undefined) n.textContent = text;
+            svg.appendChild(n);
+            return n;
+        }
+        var plotH = H - padT - padB, plotW = W - padL - padR;
+        [0, 0.5, 1].forEach(function (f) {
+            var y = padT + plotH * (1 - f);
+            node('line', { x1: padL, x2: W - padR, y1: y, y2: y, class: f === 0 ? 'chart-base' : 'chart-grid' });
+            node('text', { x: padL - 8, y: y + 4, 'text-anchor': 'end', class: 'chart-axis' }, shortMoney(niceMax * f));
+        });
+        var slot = plotW / buckets.length;
+        var barW = Math.max(3, Math.min(28, slot - 2));
+        var labelEvery = Math.ceil(buckets.length / Math.max(3, Math.floor(plotW / 70)));
+        var tip = el('div', 'chart-tip');
+        tip.hidden = true;
+        buckets.forEach(function (b, i) {
+            var h = b.total / niceMax * plotH;
+            var x = padL + slot * i + (slot - barW) / 2;
+            var y = padT + plotH - h;
+            if (h > 0) {
+                var r = Math.min(4, barW / 2, h);
+                // Barra con esquinas superiores redondeadas y base recta sobre el eje.
+                node('path', {
+                    class: 'chart-bar',
+                    d: 'M' + x + ',' + (padT + plotH) + 'V' + (y + r) + 'Q' + x + ',' + y + ' ' + (x + r) + ',' + y +
+                        'H' + (x + barW - r) + 'Q' + (x + barW) + ',' + y + ' ' + (x + barW) + ',' + (y + r) + 'V' + (padT + plotH) + 'Z'
+                });
+            }
+            if (i % labelEvery === 0) {
+                node('text', { x: padL + slot * i + slot / 2, y: H - 8, 'text-anchor': 'middle', class: 'chart-axis' },
+                    axisLabel(b));
+            }
+            var hit = node('rect', { x: padL + slot * i, y: padT, width: slot, height: plotH, class: 'chart-hit', tabindex: '0' });
+            function showTip() {
+                tip.hidden = false;
+                tip.textContent = '';
+                tip.appendChild(el('strong', '', label(b)));
+                tip.appendChild(el('span', '', money(b.total) + ' · ' + b.count + (b.count === 1 ? ' pedido' : ' pedidos')));
+                var rect = box.getBoundingClientRect();
+                var px = (padL + slot * i + slot / 2) / W * rect.width;
+                tip.style.left = Math.min(Math.max(px, 70), rect.width - 70) + 'px';
+                hit.classList.add('on');
+            }
+            function hideTip() { tip.hidden = true; hit.classList.remove('on'); }
+            hit.addEventListener('mouseenter', showTip);
+            hit.addEventListener('focus', showTip);
+            hit.addEventListener('mouseleave', hideTip);
+            hit.addEventListener('blur', hideTip);
+        });
+        box.appendChild(svg);
+        box.appendChild(tip);
+    }
+
+    function axisLabel(b) {
+        return b.from.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' }).replace('.', '');
+    }
+
+    function niceCeil(v) {
+        var p = Math.pow(10, Math.floor(Math.log10(v)));
+        var n = v / p;
+        return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+    }
+
+    function shortMoney(v) {
+        if (v >= 1000000) return '$' + (v / 1000000).toLocaleString('es-CL', { maximumFractionDigits: 1 }) + ' M';
+        if (v >= 1000) return '$' + Math.round(v / 1000) + ' mil';
+        return '$' + Math.round(v);
     }
 
     function lowStockProducts() {
@@ -1379,6 +1566,84 @@
         } catch (err) {
             toast(err.status === 409 ? 'Ya existe un cupón con ese código.' : err.message, true);
         }
+    }
+
+    /* ===== OPINIONES ===== */
+    var reviewFilter = 'pendiente';
+    var REVIEW_STATES = [['pendiente', 'Por revisar'], ['publicada', 'Publicadas'], ['rechazada', 'Rechazadas']];
+
+    async function loadReviews() {
+        try {
+            data.reviews = await api('/rest/v1/reviews?select=*,orders(ref)&order=created_at.desc&limit=500');
+        } catch (e) {
+            data.reviews = [];
+        }
+        renderReviews();
+    }
+
+    function renderReviews() {
+        var list = data.reviews || [];
+        var pending = list.filter(function (r) { return r.status === 'pendiente'; }).length;
+        var badge = $('badge-reviews');
+        badge.hidden = !pending;
+        badge.textContent = pending;
+
+        var chips = $('reviews-filter');
+        chips.textContent = '';
+        REVIEW_STATES.forEach(function (st) {
+            var n = list.filter(function (r) { return r.status === st[0]; }).length;
+            var c = el('button', 'chip' + (reviewFilter === st[0] ? ' active' : ''), st[1] + ' (' + n + ')');
+            c.type = 'button';
+            c.addEventListener('click', function () { reviewFilter = st[0]; renderReviews(); });
+            chips.appendChild(c);
+        });
+
+        var wrap = $('reviews-list');
+        wrap.textContent = '';
+        var shown = list.filter(function (r) { return r.status === reviewFilter; });
+        if (!shown.length) wrap.appendChild(el('p', 'admin-empty', reviewFilter === 'pendiente' ? 'No hay opiniones por revisar.' : 'No hay opiniones aquí.'));
+        shown.forEach(function (r) {
+            var prod = data.products.filter(function (p) { return p.id === r.product_id; })[0];
+            var row = el('div', 'admin-row review-row');
+            var main = el('div', 'row-main static');
+            var title = el('span', 'row-title');
+            title.appendChild(el('strong', '', '★★★★★'.slice(0, r.rating) + '☆☆☆☆☆'.slice(0, 5 - r.rating) + '  ' + (prod ? prod.name : r.product_id)));
+            title.appendChild(el('span', 'row-sub', r.name + ' · pedido ' + (r.orders ? r.orders.ref : '—') + ' · ' + fmtDate(r.created_at)));
+            if (r.title) title.appendChild(el('span', 'review-title', r.title));
+            if (r.body) title.appendChild(el('span', 'review-body', r.body));
+            main.appendChild(title);
+            row.appendChild(main);
+
+            var controls = el('div', 'row-controls');
+            if (r.status !== 'publicada') controls.appendChild(button('Publicar', 'btn btn-sm btn-primary', function () { patchReview(r, { status: 'publicada' }, 'Opinión publicada'); }));
+            if (r.status !== 'rechazada') controls.appendChild(button('Rechazar', 'btn btn-sm btn-ghost', function () { patchReview(r, { status: 'rechazada' }, 'Opinión rechazada'); }));
+            controls.appendChild(button(r.reply ? 'Editar respuesta' : 'Responder', 'btn btn-sm btn-ghost', function () {
+                var text = prompt('Respuesta pública de la tienda (déjala vacía para quitarla):', r.reply || '');
+                if (text === null) return;
+                patchReview(r, { reply: text.trim().slice(0, 1000) || null }, 'Respuesta guardada');
+            }));
+            controls.appendChild(button('Eliminar', 'btn btn-sm btn-danger', async function () {
+                if (!confirm('¿Eliminar esta opinión? No se puede deshacer.')) return;
+                try {
+                    await api('/rest/v1/reviews?id=eq.' + encodeURIComponent(r.id), { method: 'DELETE' });
+                    data.reviews = data.reviews.filter(function (x) { return x.id !== r.id; });
+                    toast('Opinión eliminada');
+                    renderReviews();
+                } catch (e) { toast(e.message, true); }
+            }));
+            row.appendChild(controls);
+            if (r.reply) row.appendChild(el('p', 'review-reply-admin', 'Tu respuesta: ' + r.reply));
+            wrap.appendChild(row);
+        });
+    }
+
+    async function patchReview(r, patch, message) {
+        try {
+            await api('/rest/v1/reviews?id=eq.' + encodeURIComponent(r.id), { method: 'PATCH', body: patch });
+            Object.assign(r, patch);
+            toast(message);
+            renderReviews();
+        } catch (e) { toast(e.message, true); }
     }
 
     /* ===== CSV ===== */

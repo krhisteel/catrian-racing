@@ -440,6 +440,8 @@
         catLink.href = collectionHash(p.cat, p.sub);
         body.appendChild(catLink);
         body.appendChild(el('h3', '', p.name));
+        var rv = reviewsOf(p.id);
+        if (rv.length) body.appendChild(ratingRow(rv, 'card-rating'));
         body.appendChild(el('p', 'card-desc', p.desc));
         if (state.vehicle && p.fits) body.appendChild(el('p', 'fit-ok', '✓ Compatible con tu ' + vehicleName(state.vehicle)));
         if (p.freeShip && !soldOut(p)) body.appendChild(el('p', 'free-ship', 'Despacho gratis a todo Chile'));
@@ -999,7 +1001,7 @@
             // Se actualiza sola mientras esté abierta.
             clearInterval(trackTimer);
             trackTimer = setInterval(function () {
-                if ($('track-modal').hidden || document.hidden) return;
+                if ($('track-modal').hidden || document.hidden || $('track-result').querySelector('.review-form')) return;
                 searchTracking(null, true);
             }, 45000);
         }, function (err) {
@@ -1114,6 +1116,9 @@
 
         var updated = el('p', 'track-updated', 'Actualizado a las ' + new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) + ' · se actualiza solo mientras esta ventana esté abierta');
         result.appendChild(updated);
+
+        var phoneDigits = $('track-phone').value.replace(/\D/g, '').slice(-4);
+        if ((o.status === 'enviado' || o.status === 'entregado') && phoneDigits.length === 4) renderReviewBox(o, phoneDigits, result, updated);
 
         var savedOrder = myOrders().filter(function (m) { return m.ref === o.ref; })[0];
         var phoneForPay = (savedOrder && savedOrder.phone) || $('track-phone').value.replace(/\D/g, '').slice(-4);
@@ -1359,6 +1364,7 @@
         var tabs = [['desc', 'Descripción'], ['specs', 'Especificaciones']];
         if (!p.quote) tabs.push(['fit', 'Compatibilidad']);
         tabs.push(['ship', 'Envío y retiro']);
+        if (!p.quote) tabs.push(['reviews', 'Opiniones (' + reviewsOf(p.id).length + ')']);
 
         function show(key) {
             list.querySelectorAll('[role="tab"]').forEach(function (t) {
@@ -1384,6 +1390,8 @@
                     table.appendChild(tr);
                 });
                 panel.appendChild(table);
+            } else if (key === 'reviews') {
+                renderReviewList(p, panel);
             } else if (key === 'fit') {
                 if (!p.fits) {
                     panel.appendChild(el('p', '', 'Producto universal: sirve para cualquier moto.'));
@@ -1435,6 +1443,7 @@
             list.appendChild(b);
         });
         show('desc');
+        list.showTab = show;
     }
 
     function openModal(id) {
@@ -1463,6 +1472,21 @@
         $('pm-brand').textContent = p.brand || p.cat;
         $('pm-sku').textContent = 'Código: ' + skuOf(p);
         $('pm-title').textContent = p.name;
+        var oldRating = $('pm-rating');
+        if (oldRating) oldRating.remove();
+        var pr = reviewsOf(p.id);
+        if (pr.length && !p.quote) {
+            var rating = ratingRow(pr, 'pdp-rating');
+            rating.id = 'pm-rating';
+            var see = el('button', 'pdp-rating-link', 'Ver opiniones');
+            see.type = 'button';
+            see.addEventListener('click', function () {
+                $('pm-tablist').showTab('reviews');
+                $('pm-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            rating.appendChild(see);
+            $('pm-title').insertAdjacentElement('afterend', rating);
+        }
 
         var price = $('pm-price');
         price.textContent = '';
@@ -2248,6 +2272,182 @@
         return cart.filter(function (l) { return byId[l.id]; }).map(function (l) { return gaItem(byId[l.id], l.option, l.qty); });
     }
 
+    /* ===== OPINIONES ===== */
+    var reviewsByProduct = {};
+
+    function reviewsOf(id) {
+        return reviewsByProduct[id] || [];
+    }
+
+    function loadReviews() {
+        dbFetch('/rest/v1/reviews?select=id,product_id,name,rating,title,body,reply,created_at&status=eq.publicada&order=created_at.desc&limit=1000')
+            .then(function (rows) {
+                reviewsByProduct = {};
+                (rows || []).forEach(function (r) {
+                    (reviewsByProduct[r.product_id] = reviewsByProduct[r.product_id] || []).push(r);
+                });
+                if (rows && rows.length) renderProducts();
+            }, function () { /* sin opiniones */ });
+    }
+
+    function stars(value, label) {
+        var wrap = el('span', 'stars');
+        wrap.setAttribute('role', 'img');
+        wrap.setAttribute('aria-label', label || (String(value).replace('.', ',') + ' de 5 estrellas'));
+        var fill = el('span', 'stars-fill');
+        fill.style.width = (value / 5 * 100) + '%';
+        wrap.appendChild(fill);
+        return wrap;
+    }
+
+    function ratingRow(list, className) {
+        var avg = list.reduce(function (s, r) { return s + r.rating; }, 0) / list.length;
+        var avgText = (Math.round(avg * 10) / 10).toString().replace('.', ',');
+        var row = el('div', 'rating ' + className);
+        row.appendChild(stars(avg, avgText + ' de 5 estrellas, ' + list.length + (list.length === 1 ? ' opinión' : ' opiniones')));
+        row.appendChild(el('span', 'rating-text', avgText + ' (' + list.length + ')'));
+        return row;
+    }
+
+    function renderReviewList(p, panel) {
+        var list = reviewsOf(p.id);
+        if (!list.length) {
+            panel.appendChild(el('p', '', 'Aún no hay opiniones de este producto.'));
+            panel.appendChild(el('p', 'pdp-note', 'Si lo compraste, puedes opinar desde «Mi pedido» cuando lo recibas.'));
+            return;
+        }
+        var head = el('div', 'reviews-head');
+        head.appendChild(ratingRow(list, 'reviews-avg'));
+        var bars = el('div', 'reviews-bars');
+        [5, 4, 3, 2, 1].forEach(function (n) {
+            var count = list.filter(function (r) { return r.rating === n; }).length;
+            var line = el('div', 'reviews-bar');
+            line.appendChild(el('span', '', n + '★'));
+            var track = el('span', 'bar-track');
+            var fillBar = el('span', 'bar-fill');
+            fillBar.style.width = (count / list.length * 100) + '%';
+            track.appendChild(fillBar);
+            line.appendChild(track);
+            line.appendChild(el('span', '', String(count)));
+            bars.appendChild(line);
+        });
+        head.appendChild(bars);
+        panel.appendChild(head);
+        var ul = el('ul', 'reviews-list');
+        list.slice(0, 30).forEach(function (r) {
+            var li = el('li', 'review');
+            var top = el('div', 'review-top');
+            top.appendChild(stars(r.rating));
+            if (r.title) top.appendChild(el('strong', '', r.title));
+            li.appendChild(top);
+            if (r.body) li.appendChild(el('p', '', r.body));
+            var meta = el('p', 'review-meta', r.name + ' · ' + new Date(r.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' }));
+            meta.appendChild(el('span', 'review-verified', '✓ Compra verificada'));
+            li.appendChild(meta);
+            if (r.reply) {
+                var reply = el('div', 'review-reply');
+                reply.appendChild(el('strong', '', 'Respuesta de Catrian Racing'));
+                reply.appendChild(el('p', '', r.reply));
+                li.appendChild(reply);
+            }
+            ul.appendChild(li);
+        });
+        panel.appendChild(ul);
+    }
+
+    function renderReviewBox(o, phone, result, before) {
+        var items = (o.items || []).filter(function (it) { return it.id && byId[it.id] && !byId[it.id].quote; });
+        if (!items.length) return;
+        var box = el('div', 'track-reviews');
+        box.appendChild(el('h3', '', '¿Qué te pareció tu compra?'));
+        box.appendChild(el('p', 'track-muted', 'Tu opinión ayuda a otros motoqueros. Se publica con tu nombre y la inicial de tu apellido.'));
+        var ul = el('ul', 'review-items');
+        box.appendChild(ul);
+        result.insertBefore(box, before);
+        rpc('my_reviews', { p_ref: o.ref, p_phone: phone }).then(function (mine) { draw(mine || []); }, function () { draw([]); });
+
+        function draw(mine) {
+            ul.textContent = '';
+            var seen = {};
+            items.forEach(function (it) {
+                if (seen[it.id]) return;
+                seen[it.id] = true;
+                var done = mine.filter(function (m) { return m.product_id === it.id; })[0];
+                var li = el('li', 'review-item');
+                li.appendChild(el('span', 'review-item-name', it.name));
+                if (done) {
+                    li.appendChild(el('span', 'review-state', done.status === 'publicada' ? '✓ Opinión publicada' : (done.status === 'rechazada' ? 'Opinión no publicada' : '✓ Gracias, la revisaremos pronto')));
+                } else {
+                    var open = el('button', 'btn btn-ghost btn-sm', 'Opinar');
+                    open.type = 'button';
+                    open.addEventListener('click', function () { openForm(li, it, open); });
+                    li.appendChild(open);
+                }
+                ul.appendChild(li);
+            });
+        }
+
+        function openForm(li, it, opener) {
+            opener.remove();
+            var form = el('form', 'review-form');
+            form.noValidate = true;
+            var picked = 0;
+            var starRow = el('div', 'star-pick');
+            starRow.setAttribute('role', 'radiogroup');
+            starRow.setAttribute('aria-label', 'Calificación');
+            for (var n = 1; n <= 5; n++) {
+                (function (n) {
+                    var b = el('button', 'star-btn', '★');
+                    b.type = 'button';
+                    b.setAttribute('role', 'radio');
+                    b.setAttribute('aria-checked', 'false');
+                    b.setAttribute('aria-label', n + (n === 1 ? ' estrella' : ' estrellas'));
+                    b.addEventListener('click', function () {
+                        picked = n;
+                        starRow.querySelectorAll('.star-btn').forEach(function (x, i) {
+                            x.classList.toggle('on', i < n);
+                            x.setAttribute('aria-checked', i === n - 1 ? 'true' : 'false');
+                        });
+                    });
+                    starRow.appendChild(b);
+                })(n);
+            }
+            form.appendChild(starRow);
+            var title = el('input');
+            title.maxLength = 80;
+            title.placeholder = 'Título (opcional)';
+            title.setAttribute('aria-label', 'Título');
+            var body = el('textarea');
+            body.maxLength = 1000;
+            body.rows = 3;
+            body.placeholder = '¿Cómo te fue con el producto?';
+            body.setAttribute('aria-label', 'Tu opinión');
+            form.appendChild(title);
+            form.appendChild(body);
+            var msg = el('p', 'form-error');
+            msg.setAttribute('role', 'alert');
+            form.appendChild(msg);
+            var send = el('button', 'btn btn-primary btn-sm', 'Publicar opinión');
+            send.type = 'submit';
+            form.appendChild(send);
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (!picked) { msg.textContent = 'Elige de 1 a 5 estrellas.'; return; }
+                send.disabled = true;
+                rpc('submit_review', { p_ref: o.ref, p_phone: phone, p_product: it.id, p_rating: picked, p_title: title.value.trim(), p_body: body.value.trim() })
+                    .then(function () {
+                        form.remove();
+                        li.appendChild(el('span', 'review-state', '✓ Gracias, la revisaremos pronto'));
+                    }, function (err) {
+                        send.disabled = false;
+                        msg.textContent = err && err.message ? err.message : 'No pudimos enviar tu opinión. Intenta de nuevo.';
+                    });
+            });
+            li.appendChild(form);
+            starRow.querySelector('.star-btn').focus();
+        }
+    }
+
     function applySettings(rows) {
         rows.forEach(function (row) {
             if (row.key === 'whatsapp' && row.value) WHATSAPP = String(row.value).replace(/\D/g, '');
@@ -2274,6 +2474,7 @@
         ]).then(function (res) {
             if (!res[0] || !res[0].length) return;
             products = res[0].map(fromDbProduct);
+            loadReviews();
             if (res[1] && res[1].length) vehicles = res[1];
             indexCatalog();
             applySettings(res[2] || []);

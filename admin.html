@@ -71,6 +71,7 @@
                 <button type="button" class="admin-tab active" data-tab="resumen">Resumen</button>
                 <button type="button" class="admin-tab" data-tab="pedidos">Pedidos <span class="tab-badge" id="badge-orders" hidden></span></button>
                 <button type="button" class="admin-tab" data-tab="productos">Productos</button>
+                <button type="button" class="admin-tab" data-tab="opiniones">Opiniones <span class="tab-badge" id="badge-reviews" hidden></span></button>
                 <button type="button" class="admin-tab" data-tab="cupones">Cupones</button>
                 <button type="button" class="admin-tab" data-tab="motos">Motos</button>
                 <button type="button" class="admin-tab" data-tab="ajustes">Ajustes</button>
@@ -93,6 +94,25 @@
                     <button type="button" class="btn btn-sm btn-ghost" id="refresh">Actualizar datos</button>
                 </div>
                 <div class="kpis" id="kpis"></div>
+                <div class="admin-cols stats-cols">
+                    <div class="admin-card stats-card">
+                        <div class="stats-head">
+                            <h2>Ventas</h2>
+                            <div class="shop-chips" id="stats-range" role="group" aria-label="Periodo"></div>
+                        </div>
+                        <div class="stats-hero" id="stats-hero"></div>
+                        <div class="sales-chart" id="sales-chart"></div>
+                        <details class="stats-table">
+                            <summary>Ver como tabla</summary>
+                            <div id="sales-table"></div>
+                        </details>
+                    </div>
+                    <div class="admin-card">
+                        <h2>Más vendidos</h2>
+                        <p class="admin-help" id="top-note"></p>
+                        <div id="top-products"></div>
+                    </div>
+                </div>
                 <div class="admin-cols">
                     <div class="admin-card">
                         <h2>Últimos pedidos</h2>
@@ -150,6 +170,19 @@
                 </div>
                 <p class="admin-count" id="products-count"></p>
                 <div id="products-list" class="admin-list"></div>
+            </section>
+
+            <!-- OPINIONES -->
+            <section class="admin-panel" id="tab-opiniones" hidden>
+                <div class="panel-head">
+                    <div>
+                        <span class="section-tag">Clientes</span>
+                        <h1>Opiniones</h1>
+                    </div>
+                </div>
+                <p class="admin-help">Solo pueden opinar clientes con un pedido enviado o entregado que incluya el producto. Nada se publica hasta que lo apruebes.</p>
+                <div class="shop-chips" id="reviews-filter" role="group" aria-label="Filtrar opiniones"></div>
+                <div id="reviews-list" class="admin-list"></div>
             </section>
 
             <!-- CUPONES -->

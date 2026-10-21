@@ -366,6 +366,7 @@
             loadAutomations();
             loadReviews();
             loadBookings();
+            loadLeads();
         } catch (e) {
             toast(e.message, true);
         }
@@ -1572,6 +1573,107 @@
         }
     }
 
+    /* ===== COTIZACIONES ===== */
+    var leadFilter = 'nuevo';
+    var LEAD_STATES = [['nuevo', 'Nueva'], ['contactado', 'Contactado'], ['cerrado', 'Cerrada'], ['descartado', 'Descartada']];
+    var LEAD_LABELS = { pie: 'Pie', plazo: 'Plazo', cuota: 'Cuota aprox.', precio: 'Precio', marca: 'Marca', modelo: 'Modelo', anio: 'Año',
+        km: 'Km', estado: 'Estado', valor_esperado: 'Espera recibir', comentario: 'Comentario', rut: 'RUT', renta: 'Renta' };
+
+    async function loadLeads() {
+        try {
+            data.leads = await api('/rest/v1/leads?select=*&order=created_at.desc&limit=500');
+        } catch (e) {
+            data.leads = [];
+        }
+        renderLeads();
+    }
+
+    function renderLeads() {
+        var list = data.leads || [];
+        var fresh = list.filter(function (l) { return l.status === 'nuevo'; }).length;
+        $('badge-leads').hidden = !fresh;
+        $('badge-leads').textContent = fresh;
+        var chips = $('leads-filter');
+        chips.textContent = '';
+        [['nuevo', 'Nuevas'], ['contactado', 'Contactadas'], ['cerrado', 'Cerradas'], ['descartado', 'Descartadas'], ['todas', 'Todas']].forEach(function (st) {
+            var n = st[0] === 'todas' ? list.length : list.filter(function (l) { return l.status === st[0]; }).length;
+            chips.appendChild(button(st[1] + ' (' + n + ')',
+                'chip' + (leadFilter === st[0] ? ' active' : ''), function () { leadFilter = st[0]; renderLeads(); }));
+        });
+        var wrap = $('leads-list');
+        wrap.textContent = '';
+        var shown = list.filter(function (l) { return leadFilter === 'todas' || l.status === leadFilter; });
+        if (!shown.length) wrap.appendChild(el('p', 'admin-empty', 'No hay solicitudes aquí.'));
+        shown.forEach(function (l) {
+            var prod = data.products.filter(function (p) { return p.id === l.product_id; })[0];
+            var row = el('div', 'admin-row review-row');
+            var main = el('div', 'row-main static');
+            var title = el('span', 'row-title');
+            title.appendChild(el('strong', '', (l.kind === 'financiamiento' ? 'Financiamiento' : 'Parte de pago') + (prod ? ' · ' + prod.name : '') + ' · ' + l.ref));
+            title.appendChild(el('span', 'row-sub', l.name + ' · ' + l.phone + (l.email ? ' · ' + l.email : '') + ' · ' + fmtDate(l.created_at)));
+            var d = l.details || {};
+            var info = Object.keys(LEAD_LABELS).filter(function (k) { return d[k]; }).map(function (k) { return LEAD_LABELS[k] + ': ' + d[k]; }).join(' · ');
+            if (info) title.appendChild(el('span', 'review-body', info));
+            main.appendChild(title);
+            row.appendChild(main);
+            var controls = el('div', 'row-controls');
+            var status = select(LEAD_STATES, l.status);
+            status.className = 'admin-input status-select';
+            status.setAttribute('aria-label', 'Estado de ' + l.ref);
+            status.addEventListener('change', async function () {
+                try {
+                    await api('/rest/v1/leads?id=eq.' + encodeURIComponent(l.id), { method: 'PATCH', body: { status: status.value } });
+                    l.status = status.value;
+                    toast('Solicitud ' + l.ref + ' actualizada');
+                    renderLeads();
+                } catch (e) { toast(e.message, true); status.value = l.status; }
+            });
+            controls.appendChild(status);
+            var wa = el('a', 'btn btn-sm btn-ghost', 'WhatsApp');
+            wa.href = 'https://wa.me/' + waPhone(l.phone) + '?text=' + encodeURIComponent('Hola ' + l.name + ', te escribimos de Catrian Racing por tu solicitud ' + l.ref +
+                (l.kind === 'financiamiento' ? ' de financiamiento' + (prod ? ' para la ' + prod.name : '') : ' de parte de pago de tu ' + (d.marca || '') + ' ' + (d.modelo || '')) + '.');
+            wa.target = '_blank';
+            wa.rel = 'noopener';
+            controls.appendChild(wa);
+            controls.appendChild(button('Eliminar', 'btn btn-sm btn-danger', async function () {
+                if (!confirm('¿Eliminar la solicitud ' + l.ref + '?')) return;
+                try {
+                    await api('/rest/v1/leads?id=eq.' + encodeURIComponent(l.id), { method: 'DELETE' });
+                    data.leads = data.leads.filter(function (x) { return x.id !== l.id; });
+                    renderLeads();
+                } catch (e) { toast(e.message, true); }
+            }));
+            row.appendChild(controls);
+            wrap.appendChild(row);
+        });
+    }
+
+    function renderFinance() {
+        var f = data.settings.financing || { enabled: true, rate: 1.89, min_down: 20, terms: [12, 24, 36, 48] };
+        $('fin-enabled').checked = !!f.enabled;
+        $('fin-rate').value = f.rate;
+        $('fin-down').value = f.min_down;
+        $('fin-terms').value = (f.terms || []).join(', ');
+    }
+
+    async function onFinanceSave(e) {
+        e.preventDefault();
+        var rate = parseFloat(String($('fin-rate').value).replace(',', '.'));
+        var down = parseInt($('fin-down').value, 10);
+        var terms = $('fin-terms').value.split(',').map(function (t) { return parseInt(t, 10); })
+            .filter(function (t) { return t >= 3 && t <= 84; });
+        if (isNaN(rate) || rate < 0 || rate > 10) return toast('La tasa mensual debe estar entre 0 y 10%.', true);
+        if (isNaN(down) || down < 0 || down > 80) return toast('El pie mínimo debe estar entre 0 y 80%.', true);
+        if (!terms.length) return toast('Escribe al menos un plazo entre 3 y 84 meses.', true);
+        var value = { enabled: $('fin-enabled').checked, rate: rate, min_down: down, terms: terms.slice(0, 6) };
+        try {
+            await api('/rest/v1/settings?on_conflict=key', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates' }, body: [{ key: 'financing', value: value }] });
+            data.settings.financing = value;
+            renderFinance();
+            toast('Simulador guardado');
+        } catch (err) { toast(err.message, true); }
+    }
+
     /* ===== TALLER ===== */
     var bookingFilter = 'proximas';
     var BOOKING_STATES = [['pendiente', 'Pendiente'], ['confirmada', 'Confirmada'], ['completada', 'Completada'], ['cancelada', 'Cancelada']];
@@ -2108,6 +2210,7 @@
         $('set-whatsapp').value = data.settings.whatsapp || '';
         $('set-free').value = data.settings.free_shipping_from === undefined ? '' : data.settings.free_shipping_from;
         $('set-announce').value = (data.settings.announce || []).join('\n');
+        renderFinance();
         $('set-ga4').value = (data.settings.analytics || {}).ga4 || '';
         $('set-pixel').value = (data.settings.analytics || {}).pixel || '';
 
@@ -2270,6 +2373,7 @@
     $('mp-form').addEventListener('submit', onPaymentSave);
     $('email-form').addEventListener('submit', onEmailSave);
     $('auto-form').addEventListener('submit', onAutoSave);
+    $('finance-form').addEventListener('submit', onFinanceSave);
     $('email-test').addEventListener('click', onEmailTest);
     $('admin-form').addEventListener('submit', onAdminAdd);
     $('password-form').addEventListener('submit', onPasswordChange);

@@ -1,7 +1,7 @@
 (function () {
     var WHATSAPP = '56936621284';
     var FREE_SHIPPING_FROM = 100000;
-    var MP_ENABLED = false; // Pago con tarjeta en línea (Mercado Pago), se activa en el panel.
+    var MP_ENABLED = false; // Pago en línea (Mercado Pago o Flow), se activa en el panel.
     // Tarifas de envío por región (se administran en Ajustes del panel).
     var SHIPPING_RATES = {
         'Arica y Parinacota': 7990, 'Tarapacá': 7990, 'Antofagasta': 7990, 'Atacama': 6490, 'Coquimbo': 6490,
@@ -2364,7 +2364,7 @@
         var savedOrder = myOrders().filter(function (m) { return m.ref === o.ref; })[0];
         var phoneForPay = (savedOrder && savedOrder.phone) || $('track-phone').value.replace(/\D/g, '').slice(-4);
         if (MP_ENABLED && /tarjeta/i.test(o.payment || '') && (o.status === 'nuevo' || o.status === 'confirmado') && !o.shipping_pending && phoneForPay) {
-            var payBtn = el('button', 'btn btn-primary btn-block pay-now', 'Pagar ahora con tarjeta');
+            var payBtn = el('button', 'btn btn-primary btn-block pay-now', (PAY_PROVIDER === 'flow' ? 'Pagar ahora en línea' : 'Pagar ahora con tarjeta'));
             payBtn.type = 'button';
             payBtn.addEventListener('click', function () { startOnlinePayment(o.ref, phoneForPay, payBtn); });
             result.insertBefore(payBtn, result.querySelector('.track-steps') || null);
@@ -3213,6 +3213,9 @@
 
     // Despacho a domicilio: solo tarjeta (no transferencia ni efectivo).
     var CARD_PAYMENT = 'Tarjeta de débito o crédito (link de pago)';
+    var PAY_PROVIDER = 'mercadopago';
+    var PROVIDER_NAME = { mercadopago: 'Mercado Pago', flow: 'Flow' };
+
     function syncPayment() {
         var form = $('checkout-view');
         var shipping = form.delivery.value === 'despacho';
@@ -3225,11 +3228,13 @@
             form.querySelector('input[name="payment"][value="' + CARD_PAYMENT + '"]').checked = true;
         }
         $('pay-note').hidden = !shipping;
-        $('pay-card-text').textContent = MP_ENABLED ? 'Débito, crédito o prepago' : 'Débito o crédito';
-        $('pay-card-note').textContent = MP_ENABLED ? 'Pago en línea · Mercado Pago' : 'Link de pago';
+        var flow = PAY_PROVIDER === 'flow';
+        $('pay-card-text').textContent = MP_ENABLED ? (flow ? 'Webpay, tarjetas o transferencia' : 'Débito, crédito o prepago') : 'Débito o crédito';
+        $('pay-card-note').textContent = MP_ENABLED ? 'Pago en línea · ' + PROVIDER_NAME[PAY_PROVIDER] : 'Link de pago';
         $('pay-note').textContent = MP_ENABLED
-            ? 'El despacho a domicilio se paga solo con tarjeta: pagas en línea de forma segura con Mercado Pago.'
+            ? 'El despacho a domicilio se paga en línea: pagas de forma segura con ' + PROVIDER_NAME[PAY_PROVIDER] + '.'
             : 'El despacho a domicilio se paga solo con tarjeta de débito o crédito: te enviamos un link de pago seguro.';
+        $('co-email').required = MP_ENABLED && flow && form.payment.value === CARD_PAYMENT;
         var submit = form.querySelector('button[type="submit"]');
         if (!submit.disabled) submit.textContent = submitLabel();
     }
@@ -3240,7 +3245,7 @@
     }
 
     function submitLabel() {
-        return paysOnline() ? 'Pagar con Mercado Pago' : 'Enviar pedido por WhatsApp';
+        return paysOnline() ? 'Pagar con ' + PROVIDER_NAME[PAY_PROVIDER] : 'Enviar pedido por WhatsApp';
     }
 
     function showView(name) {
@@ -3307,6 +3312,11 @@
         if (delivery === 'despacho' && (!form.commune.value.trim() || !form.address.value.trim())) {
             error.textContent = 'Completa la comuna y dirección de despacho.';
             (form.commune.value.trim() ? form.address : form.commune).focus();
+            return;
+        }
+        if (paysOnline() && PAY_PROVIDER === 'flow' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.value.trim())) {
+            error.textContent = 'Para pagar en línea escribe tu correo: ahí te llega el comprobante.';
+            form.email.focus();
             return;
         }
         var billing = null;
@@ -3387,7 +3397,7 @@
         });
     }
 
-    // Pago en línea: el pedido ya quedó guardado; se lleva al cliente a Mercado Pago.
+    // Pago en línea: el pedido ya quedó guardado; se lleva al cliente a Mercado Pago o Flow.
     function payOnline(data, order) {
         var phone4 = data.phone.replace(/\D/g, '').slice(-4);
         rememberOrder(order.ref, phone4, 'nuevo');
@@ -3397,7 +3407,7 @@
             saveCart();
             location.href = url;
         }).catch(function () {
-            // Si Mercado Pago no responde, el pedido sigue por WhatsApp con link de pago manual.
+            // Si el pago en línea no responde, el pedido sigue por WhatsApp con link de pago manual.
             finishOrder(null, data, order);
             toast('No pudimos abrir el pago en línea. Te enviaremos el link de pago por WhatsApp.');
         });
@@ -3406,7 +3416,7 @@
     function startOnlinePayment(ref, phone4, button) {
         if (button) {
             button.disabled = true;
-            button.textContent = 'Abriendo Mercado Pago...';
+            button.textContent = 'Abriendo ' + PROVIDER_NAME[PAY_PROVIDER] + '...';
         }
         rpc('mp_create_payment', { p_ref: ref, p_phone: phone4, p_return_url: location.href.split('#')[0] }).then(function (url) {
             if (url && /^https:\/\//.test(url)) location.href = url;
@@ -3763,7 +3773,10 @@
             if (row.key === 'whatsapp' && row.value) WHATSAPP = String(row.value).replace(/\D/g, '');
             if (row.key === 'free_shipping_from' && row.value >= 0) FREE_SHIPPING_FROM = Number(row.value);
             if (row.key === 'shipping_rates' && row.value && typeof row.value === 'object') SHIPPING_RATES = row.value;
-            if (row.key === 'payments' && row.value) MP_ENABLED = !!row.value.mp_enabled;
+            if (row.key === 'payments' && row.value) {
+                MP_ENABLED = !!row.value.mp_enabled;
+                PAY_PROVIDER = row.value.provider === 'flow' ? 'flow' : 'mercadopago';
+            }
             if (row.key === 'analytics' && row.value) loadAnalytics(row.value);
             if (row.key === 'financing' && row.value && Array.isArray(row.value.terms) && row.value.terms.length) FINANCING = row.value;
             if (row.key === 'announce' && Array.isArray(row.value)) {

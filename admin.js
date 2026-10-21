@@ -895,7 +895,7 @@
         detail(client, 'Pago', o.payment);
         if (o.mp_status || o.mp_preference_id) {
             var mpText = { approved: 'Aprobado', pending: 'Pendiente', in_process: 'En revisión', rejected: 'Rechazado', cancelled: 'Cancelado', refunded: 'Devuelto' }[o.mp_status] || 'Iniciado, sin pago aún';
-            detail(client, 'Mercado Pago', mpText + (o.mp_payment_id ? ' · ID ' + o.mp_payment_id : ''));
+            detail(client, o.pay_provider === 'flow' ? 'Flow' : 'Mercado Pago', mpText + (o.mp_payment_id ? ' · ' + (o.pay_provider === 'flow' ? '' : 'ID ') + o.mp_payment_id : ''));
         }
         if (o.notes) detail(client, 'Notas del cliente', o.notes);
         body.appendChild(client);
@@ -1025,13 +1025,14 @@
             }
             if (await updateOrder(o, patch)) closeSide();
         }));
-        if (/tarjeta/i.test(o.payment || '') && data.payment && data.payment.mp_enabled) {
+        if (/tarjeta/i.test(o.payment || '') && data.payment && (data.payment.mp_enabled || data.payment.flow_enabled)) {
             actions.appendChild(button('Verificar pago', 'btn btn-sm btn-ghost', async function () {
                 try {
                     var st = await api('/rest/v1/rpc/admin_mp_check', { method: 'POST', body: { p_order_id: o.id } });
                     var rows = await api('/rest/v1/orders?id=eq.' + encodeURIComponent(o.id));
                     if (rows[0]) Object.assign(o, rows[0]);
-                    toast(st === 'approved' ? 'Pago aprobado en Mercado Pago' : (st === 'none' ? 'Aún no hay pagos para este pedido' : 'Estado en Mercado Pago: ' + st));
+                    var prov = o.pay_provider === 'flow' ? 'Flow' : 'Mercado Pago';
+                    toast(st === 'approved' ? 'Pago aprobado en ' + prov : (st === 'none' ? 'Aún no hay pagos para este pedido' : 'Estado en ' + prov + ': ' + st));
                     renderAll();
                     openOrder(o);
                 } catch (e) { toast(e.message, true); }
@@ -2544,6 +2545,39 @@
         $('mp-enabled').checked = !!c.mp_enabled;
         $('mp-token').value = '';
         $('mp-token').placeholder = c.has_token ? 'Token guardado (' + c.token_hint + '). Escribe uno nuevo para cambiarlo.' : 'APP_USR-...';
+        var provider = c.provider || 'mercadopago';
+        document.querySelectorAll('#provider-choice input').forEach(function (r) { r.checked = r.value === provider; });
+        var fs = $('flow-state');
+        fs.className = 'mp-state ' + (c.flow_enabled ? 'on' : 'off');
+        fs.textContent = c.flow_enabled
+            ? '● Activo' + (c.flow_sandbox ? ' (modo de prueba)' : '') + ' · API Key ' + (c.flow_key_hint || '') + (provider === 'flow' ? ' · en uso' : ' · no está en uso')
+            : (c.flow_has_key ? '○ Desactivado · claves guardadas ' + c.flow_key_hint : '○ Desactivado · sin claves');
+        $('flow-key').value = '';
+        $('flow-secret').value = '';
+        $('flow-key').placeholder = c.flow_has_key ? 'Guardada (' + c.flow_key_hint + '). Escribe una nueva para cambiarla.' : '';
+        $('flow-secret').placeholder = c.flow_has_key ? 'Guardada. Escribe una nueva para cambiarla.' : '';
+        $('flow-sandbox').checked = !!c.flow_sandbox;
+        $('flow-enabled').checked = !!c.flow_enabled;
+    }
+
+    async function onFlowSave(e) {
+        e.preventDefault();
+        try {
+            await api('/rest/v1/rpc/admin_set_flow_config', { method: 'POST', body: {
+                p_api_key: $('flow-key').value.trim() || null, p_secret: $('flow-secret').value.trim() || null,
+                p_sandbox: $('flow-sandbox').checked, p_enabled: $('flow-enabled').checked
+            } });
+            toast('Configuración de Flow guardada');
+            await loadPaymentConfig();
+        } catch (err) { toast(err.message, true); }
+    }
+
+    async function onProviderChange(e) {
+        try {
+            await api('/rest/v1/rpc/admin_set_payment_provider', { method: 'POST', body: { p_provider: e.target.value } });
+            toast('La tienda ahora cobra con ' + (e.target.value === 'flow' ? 'Flow' : 'Mercado Pago') + '.');
+            await loadPaymentConfig();
+        } catch (err) { toast(err.message, true); await loadPaymentConfig(); }
     }
 
     async function onPaymentSave(e) {
@@ -2552,7 +2586,7 @@
         var enabled = $('mp-enabled').checked;
         try {
             await api('/rest/v1/rpc/admin_set_payment_config', { method: 'POST', body: { p_token: token || null, p_enabled: enabled } });
-            toast(enabled ? 'Pago en línea activado. La tienda ya cobra con Mercado Pago.' : 'Configuración de pagos guardada.');
+            toast(enabled ? 'Mercado Pago activado.' : 'Configuración de pagos guardada.');
             await loadPaymentConfig();
         } catch (err) { toast(err.message, true); }
     }
@@ -2853,6 +2887,8 @@
     $('settings-form').addEventListener('submit', onSettingsSave);
     $('rates-form').addEventListener('submit', onRatesSave);
     $('mp-form').addEventListener('submit', onPaymentSave);
+    $('flow-form').addEventListener('submit', onFlowSave);
+    document.querySelectorAll('#provider-choice input').forEach(function (r) { r.addEventListener('change', onProviderChange); });
     $('email-form').addEventListener('submit', onEmailSave);
     $('auto-form').addEventListener('submit', onAutoSave);
     $('finance-form').addEventListener('submit', onFinanceSave);

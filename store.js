@@ -1646,7 +1646,9 @@
     }
 
     function shareProduct(p) {
-        var url = location.href.split('#')[0] + '#p/' + p.id;
+        var url = /^https:/.test(location.protocol)
+            ? location.origin + '/productos/' + encodeURIComponent(p.id)
+            : location.href.split('#')[0] + '#p/' + p.id;
         if (navigator.share) {
             navigator.share({ title: p.name + ' | Catrian Racing', url: url }).catch(function () {});
         } else if (navigator.clipboard) {
@@ -2275,6 +2277,15 @@
     renderFavCount();
     renderRecent();
     renderMegaMenu();
+    // Direcciones indexables (/productos/<id>, /categoria/<cat>/<sub>): la tienda sigue
+    // funcionando con su navegación interna, así que se traducen al formato con #.
+    (function pathToHash() {
+        var m = /^\/(productos|categoria)\/(.+?)\/?$/.exec(location.pathname);
+        if (!m) return;
+        var parts = m[2].split('/');
+        var hash = m[1] === 'productos' ? '#p/' + parts[0] : '#c/' + parts.slice(0, 2).join('/');
+        history.replaceState(null, '', '/' + location.search + (location.hash || hash));
+    })();
     route();
     loadRemoteCatalog();
     setTimeout(checkMyOrders, 1500);

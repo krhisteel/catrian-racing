@@ -676,6 +676,21 @@
                 <label class="radio pay-pickup"><input type="radio" name="payment" value="Efectivo al retirar"> Efectivo al retirar</label>
                 <p class="pay-note" id="pay-note" hidden>El despacho a domicilio se paga solo con tarjeta de débito o crédito: te enviamos un link de pago seguro.</p>
             </fieldset>
+            <fieldset>
+                <legend>Documento</legend>
+                <label class="radio"><input type="radio" name="doc" value="boleta" checked> Boleta</label>
+                <label class="radio"><input type="radio" name="doc" value="factura"> Factura <em>Para empresas</em></label>
+                <div class="ship-fields" id="bill-fields" hidden>
+                    <label for="co-rut">RUT de la empresa</label>
+                    <input id="co-rut" name="rut" inputmode="text" autocomplete="off" placeholder="76.123.456-7">
+                    <label for="co-razon">Razón social</label>
+                    <input id="co-razon" name="razon" autocomplete="organization">
+                    <label for="co-giro">Giro</label>
+                    <input id="co-giro" name="giro" autocomplete="off">
+                    <label for="co-bill-address">Dirección de facturación</label>
+                    <input id="co-bill-address" name="billaddress" autocomplete="off" placeholder="Calle, número, comuna">
+                </div>
+            </fieldset>
             <label for="co-notes">Notas del pedido (opcional)</label>
             <textarea id="co-notes" name="notes" rows="2"></textarea>
             <label for="coupon-input">Cupón de descuento</label>

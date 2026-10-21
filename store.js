@@ -1096,6 +1096,11 @@
         total.appendChild(el('span', '', ' · ' + o.payment));
         result.appendChild(total);
 
+        if (o.doc_url && /^https:\/\//.test(o.doc_url)) {
+            result.appendChild(externalLink('btn btn-ghost btn-sm track-doc',
+                'Descargar ' + (o.doc_type === 'factura' ? 'factura' : 'boleta') + (o.doc_number ? ' N° ' + o.doc_number : ''), o.doc_url));
+        }
+
         var updated = el('p', 'track-updated', 'Actualizado a las ' + new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) + ' · se actualiza solo mientras esta ventana esté abierta');
         result.appendChild(updated);
 
@@ -1797,6 +1802,7 @@
         var shipQuote = quoteShipping(form.region.value);
         $('ship-label').textContent = shipQuote === 0 ? 'Gratis' : (shipQuote === null ? 'A cotizar' : 'Desde ' + money(Math.min.apply(null, Object.keys(SHIPPING_RATES).map(function (k) { return SHIPPING_RATES[k]; }))));
         $('ship-fields').hidden = form.delivery.value !== 'despacho';
+        $('bill-fields').hidden = form.doc.value !== 'factura';
         syncPayment();
         $('co-subtotal').textContent = money(subtotal);
         $('co-discount-row').hidden = !discountValue;
@@ -1867,6 +1873,25 @@
         if (lastFocus) lastFocus.focus();
     }
 
+    // RUT chileno: dígito verificador con módulo 11.
+    function validRut(value) {
+        var v = String(value || '').replace(/[^0-9kK]/g, '').toUpperCase();
+        if (v.length < 8 || v.length > 9 || !/^\d+$/.test(v.slice(0, -1))) return false;
+        var sum = 0, mul = 2;
+        for (var i = v.length - 2; i >= 0; i--) {
+            sum += Number(v[i]) * mul;
+            mul = mul === 7 ? 2 : mul + 1;
+        }
+        var r = 11 - (sum % 11);
+        return v.slice(-1) === (r === 11 ? '0' : r === 10 ? 'K' : String(r));
+    }
+
+    function formatRut(value) {
+        var v = String(value || '').replace(/[^0-9kK]/g, '').toUpperCase();
+        if (v.length < 2) return v;
+        return v.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + v.slice(-1);
+    }
+
     function submitOrder(e) {
         e.preventDefault();
         var form = $('checkout-view');
@@ -1886,9 +1911,28 @@
             (form.commune.value.trim() ? form.address : form.commune).focus();
             return;
         }
+        var billing = null;
+        if (form.doc.value === 'factura') {
+            billing = {
+                rut: form.rut.value.trim(), razon_social: form.razon.value.trim(),
+                giro: form.giro.value.trim(), direccion: form.billaddress.value.trim()
+            };
+            if (!validRut(billing.rut)) {
+                error.textContent = 'Revisa el RUT de la empresa (por ejemplo 76.123.456-7).';
+                form.rut.focus();
+                return;
+            }
+            if (!billing.razon_social || !billing.giro || !billing.direccion) {
+                error.textContent = 'Completa los datos de la factura.';
+                (!billing.razon_social ? form.razon : (!billing.giro ? form.giro : form.billaddress)).focus();
+                return;
+            }
+        }
         error.textContent = '';
 
         var data = {
+            doc: form.doc.value,
+            billing: billing,
             name: name,
             phone: phone,
             email: form.email.value.trim(),
@@ -1910,7 +1954,8 @@
             p_items: cart.map(function (line) { return { id: line.id, option: line.option, qty: line.qty }; }),
             p_name: data.name, p_phone: data.phone, p_email: data.email, p_delivery: data.delivery,
             p_region: data.region, p_commune: data.commune, p_address: data.address,
-            p_payment: data.payment, p_notes: data.notes, p_coupon: state.coupon || ''
+            p_payment: data.payment, p_notes: data.notes, p_coupon: state.coupon || '',
+            p_doc_type: data.doc, p_billing: data.billing
         }).then(function (order) {
             if (online) payOnline(data, order);
             else finishOrder(win, data, order);
@@ -1995,6 +2040,10 @@
             lines.push('Dirección: ' + data.address + ', ' + data.commune + ', ' + data.region);
         }
         lines.push('Pago: ' + data.payment);
+        if (data.billing) {
+            lines.push('Factura: ' + data.billing.razon_social + ' · RUT ' + formatRut(data.billing.rut) +
+                ' · Giro ' + data.billing.giro + ' · ' + data.billing.direccion);
+        }
         if (data.notes) lines.push('Notas: ' + data.notes);
         lines.push('');
         lines.push('Seguimiento del pedido: ' + trackingLink(order.ref));

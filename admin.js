@@ -361,6 +361,7 @@
             data.orders = res[4];
             data.admins = res[5];
             renderAll();
+            loadPaymentConfig();
         } catch (e) {
             toast(e.message, true);
         }
@@ -559,6 +560,10 @@
         detail(client, 'Entrega', o.delivery === 'despacho' ? 'Despacho a domicilio' : 'Retiro en tienda');
         if (o.delivery === 'despacho') detail(client, 'Dirección', [o.address, o.commune, o.region].filter(Boolean).join(', '));
         detail(client, 'Pago', o.payment);
+        if (o.mp_status || o.mp_preference_id) {
+            var mpText = { approved: 'Aprobado', pending: 'Pendiente', in_process: 'En revisión', rejected: 'Rechazado', cancelled: 'Cancelado', refunded: 'Devuelto' }[o.mp_status] || 'Iniciado, sin pago aún';
+            detail(client, 'Mercado Pago', mpText + (o.mp_payment_id ? ' · ID ' + o.mp_payment_id : ''));
+        }
         if (o.notes) detail(client, 'Notas del cliente', o.notes);
         body.appendChild(client);
 
@@ -648,6 +653,18 @@
             }
             if (await updateOrder(o, patch)) closeSide();
         }));
+        if (/tarjeta/i.test(o.payment || '') && data.payment && data.payment.mp_enabled) {
+            actions.appendChild(button('Verificar pago', 'btn btn-sm btn-ghost', async function () {
+                try {
+                    var st = await api('/rest/v1/rpc/admin_mp_check', { method: 'POST', body: { p_order_id: o.id } });
+                    var rows = await api('/rest/v1/orders?id=eq.' + encodeURIComponent(o.id));
+                    if (rows[0]) Object.assign(o, rows[0]);
+                    toast(st === 'approved' ? 'Pago aprobado en Mercado Pago' : (st === 'none' ? 'Aún no hay pagos para este pedido' : 'Estado en Mercado Pago: ' + st));
+                    renderAll();
+                    openOrder(o);
+                } catch (e) { toast(e.message, true); }
+            }));
+        }
         var wa = el('a', 'btn btn-sm btn-ghost', 'WhatsApp al cliente');
         wa.href = 'https://wa.me/' + waPhone(o.phone) + '?text=' + encodeURIComponent('Hola ' + o.name + ', te escribimos de Catrian Racing por tu pedido ' + o.ref + '.');
         wa.target = '_blank';
@@ -1291,6 +1308,38 @@
         });
     }
 
+    async function loadPaymentConfig() {
+        try {
+            data.payment = await api('/rest/v1/rpc/admin_get_payment_config', { method: 'POST', body: {} });
+        } catch (e) {
+            data.payment = null;
+        }
+        renderPaymentConfig();
+    }
+
+    function renderPaymentConfig() {
+        var c = data.payment || {};
+        var state = $('mp-state');
+        state.className = 'mp-state ' + (c.mp_enabled ? 'on' : 'off');
+        state.textContent = c.mp_enabled
+            ? '● Activo' + (c.is_test ? ' (modo de prueba)' : '') + ' · token ' + (c.token_hint || '')
+            : (c.has_token ? '○ Desactivado · token guardado ' + c.token_hint : '○ Desactivado · sin token');
+        $('mp-enabled').checked = !!c.mp_enabled;
+        $('mp-token').value = '';
+        $('mp-token').placeholder = c.has_token ? 'Token guardado (' + c.token_hint + '). Escribe uno nuevo para cambiarlo.' : 'APP_USR-...';
+    }
+
+    async function onPaymentSave(e) {
+        e.preventDefault();
+        var token = $('mp-token').value.trim();
+        var enabled = $('mp-enabled').checked;
+        try {
+            await api('/rest/v1/rpc/admin_set_payment_config', { method: 'POST', body: { p_token: token || null, p_enabled: enabled } });
+            toast(enabled ? 'Pago en línea activado. La tienda ya cobra con Mercado Pago.' : 'Configuración de pagos guardada.');
+            await loadPaymentConfig();
+        } catch (err) { toast(err.message, true); }
+    }
+
     async function onRatesSave(e) {
         e.preventDefault();
         var rates = {};
@@ -1460,6 +1509,7 @@
     $('vehicle-form').addEventListener('submit', onVehicleCreate);
     $('settings-form').addEventListener('submit', onSettingsSave);
     $('rates-form').addEventListener('submit', onRatesSave);
+    $('mp-form').addEventListener('submit', onPaymentSave);
     $('admin-form').addEventListener('submit', onAdminAdd);
     $('password-form').addEventListener('submit', onPasswordChange);
 

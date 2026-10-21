@@ -4804,3 +4804,32 @@ a.product-cat:hover {
         text-align: center;
     }
 }
+
+/* ===== PAGO EN LÍNEA ===== */
+.pay-result {
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.pay-result.ok {
+    background: rgba(21, 128, 61, 0.1);
+    color: var(--ok, #15803d);
+}
+
+.pay-result.wait {
+    background: rgba(245, 197, 24, 0.18);
+    color: #6b4d00;
+}
+
+.pay-result.bad {
+    background: rgba(220, 38, 38, 0.08);
+    color: var(--danger, #dc2626);
+}
+
+.pay-now {
+    margin: 14px 0 4px;
+    border: none;
+    cursor: pointer;
+}

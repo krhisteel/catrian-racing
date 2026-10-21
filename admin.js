@@ -239,7 +239,7 @@
         clearInterval(pollTimer);
         $('app').hidden = true;
         $('auth-view').hidden = false;
-        ['login-form', 'activate-form', 'denied'].forEach(function (id) {
+        ['login-form', 'activate-form', 'mfa-form', 'denied'].forEach(function (id) {
             $(id).hidden = id !== formId;
         });
         var msg = $('auth-msg');
@@ -317,10 +317,12 @@
         showAuth('login-form', typeof message === 'string' ? message : 'Sesión cerrada.', true);
     }
 
+    var mfaState = null;
+
     async function enterApp() {
-        var isAdmin = false;
+        var who = null;
         try {
-            isAdmin = await api('/rest/v1/rpc/is_admin', { method: 'POST', body: {} });
+            who = await api('/rest/v1/rpc/admin_whoami', { method: 'POST', body: {} });
         } catch (e) {
             if (e.status !== 401) showAuth('login-form', e.message);
             return;
@@ -329,17 +331,154 @@
         try { me = await api('/auth/v1/user'); } catch (e) { /* sin email visible */ }
         session.email = me && me.email || session.email || '';
         saveSession(session);
-        if (!isAdmin) {
+        data.me = me;
+        if (!who.role && who.is_listed && who.has_mfa && who.aal !== 'aal2') {
+            return startMfa(me);
+        }
+        if (!who.role) {
             $('denied-email').textContent = usernameOf(session.email);
             showAuth('denied');
             return;
         }
+        data.role = who.role;
+        data.whoami = who;
+        applyRole(who.role);
         $('auth-view').hidden = true;
         $('app').hidden = false;
-        $('admin-email').textContent = usernameOf(session.email);
+        $('admin-email').textContent = usernameOf(session.email) + (data.role !== 'owner' ? ' · ' + ROLE_NAMES[data.role] : '');
         await loadAll();
         clearInterval(pollTimer);
         pollTimer = setInterval(pollOrders, 60000);
+    }
+
+    /* ===== VERIFICACIÓN EN DOS PASOS ===== */
+    function verifiedFactor(me) {
+        return ((me && me.factors) || []).filter(function (f) { return f.factor_type === 'totp' && f.status === 'verified'; })[0];
+    }
+
+    async function startMfa(me) {
+        var factor = verifiedFactor(me);
+        if (!factor) {
+            showAuth('login-form', 'No encontramos tu verificación en dos pasos. Pide ayuda a otro administrador.');
+            return;
+        }
+        try {
+            var ch = await api('/auth/v1/factors/' + factor.id + '/challenge', { method: 'POST', body: {} });
+            mfaState = { factorId: factor.id, challengeId: ch.id };
+            showAuth('mfa-form');
+        } catch (e) {
+            showAuth('login-form', e.message);
+        }
+    }
+
+    async function onMfa(e) {
+        e.preventDefault();
+        var form = e.target;
+        var code = form.code.value.replace(/\D/g, '');
+        if (code.length !== 6) return showAuth('mfa-form', 'El código tiene 6 dígitos.');
+        busy(form, true);
+        try {
+            var s = await api('/auth/v1/factors/' + mfaState.factorId + '/verify', { method: 'POST', body: { challenge_id: mfaState.challengeId, code: code } });
+            saveSession(withExpiry(s));
+            form.reset();
+            mfaState = null;
+            await enterApp();
+        } catch (err) {
+            // Cada código sirve una vez: se pide un desafío nuevo para el próximo intento.
+            try {
+                var ch = await api('/auth/v1/factors/' + mfaState.factorId + '/challenge', { method: 'POST', body: {} });
+                mfaState.challengeId = ch.id;
+            } catch (e2) { /* se informa el error original */ }
+            showAuth('mfa-form', /invalid|expired/i.test(err.message) ? 'El código no es correcto o ya venció.' : err.message);
+        }
+        busy(form, false);
+    }
+
+    function renderMfa() {
+        var box = $('mfa-box');
+        box.textContent = '';
+        var factor = verifiedFactor(data.me);
+        if (factor) {
+            box.appendChild(el('p', 'mp-state on', '● Activada'));
+            box.appendChild(button('Desactivar', 'btn btn-sm btn-ghost', async function () {
+                if (!confirm('¿Desactivar la verificación en dos pasos? Tu cuenta quedará protegida solo con la contraseña.')) return;
+                try {
+                    await api('/auth/v1/factors/' + factor.id, { method: 'DELETE' });
+                    data.me = await api('/auth/v1/user');
+                    toast('Verificación en dos pasos desactivada');
+                    renderMfa();
+                } catch (e) { toast(e.message, true); }
+            }));
+            return;
+        }
+        box.appendChild(el('p', 'mp-state off', '○ Desactivada'));
+        box.appendChild(button('Activar verificación en dos pasos', 'btn btn-sm btn-primary', async function () {
+            try {
+                var f = await api('/auth/v1/factors', { method: 'POST', body: { factor_type: 'totp', friendly_name: 'Catrian ' + new Date().toISOString().slice(0, 16) } });
+                showEnroll(f);
+            } catch (e) { toast(e.message, true); }
+        }));
+    }
+
+    function showEnroll(f) {
+        var box = $('mfa-box');
+        box.textContent = '';
+        box.appendChild(el('p', 'admin-help', '1. Abre tu app de autenticación y escanea este código QR (o escribe la clave a mano).'));
+        if (f.totp && /^data:image\/svg\+xml/.test(f.totp.qr_code || '')) {
+            var img = el('img', 'mfa-qr');
+            img.src = f.totp.qr_code;
+            img.alt = 'Código QR para la app de autenticación';
+            box.appendChild(img);
+        }
+        if (f.totp && f.totp.secret) box.appendChild(el('code', 'mfa-secret', f.totp.secret));
+        box.appendChild(el('p', 'admin-help', '2. Escribe el código de 6 dígitos que muestra la app.'));
+        var form = el('form', 'inline-form');
+        form.noValidate = true;
+        var code = input('text', '', { inputmode: 'numeric', maxlength: 6, autocomplete: 'one-time-code', placeholder: '123456' });
+        var wrap = el('div');
+        wrap.appendChild(code);
+        form.appendChild(wrap);
+        var ok = el('button', 'btn btn-sm btn-primary', 'Confirmar');
+        ok.type = 'submit';
+        form.appendChild(ok);
+        form.appendChild(button('Cancelar', 'btn btn-sm btn-ghost', function () { renderMfa(); }));
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            var c = code.value.replace(/\D/g, '');
+            if (c.length !== 6) return toast('El código tiene 6 dígitos.', true);
+            ok.disabled = true;
+            try {
+                var ch = await api('/auth/v1/factors/' + f.id + '/challenge', { method: 'POST', body: {} });
+                var s = await api('/auth/v1/factors/' + f.id + '/verify', { method: 'POST', body: { challenge_id: ch.id, code: c } });
+                saveSession(withExpiry(s));
+                data.me = await api('/auth/v1/user');
+                toast('¡Listo! Desde ahora te pediremos el código al entrar.');
+                renderMfa();
+            } catch (err) {
+                ok.disabled = false;
+                toast(/invalid|expired/i.test(err.message) ? 'El código no es correcto. Revisa la hora del celular e intenta de nuevo.' : err.message, true);
+            }
+        });
+        box.appendChild(form);
+        code.focus();
+    }
+
+    /* ===== ROLES ===== */
+    var ROLE_TABS = {
+        owner: null,
+        ventas: ['resumen', 'pedidos', 'clientes', 'cotizaciones', 'taller', 'opiniones', 'cupones', 'ajustes'],
+        catalogo: ['resumen', 'productos', 'guias', 'cupones', 'motos', 'ajustes']
+    };
+    var ROLE_NAMES = { owner: 'Dueño', ventas: 'Ventas', catalogo: 'Catálogo' };
+
+    function applyRole(role) {
+        var allowed = ROLE_TABS[role];
+        document.querySelectorAll('.admin-tab').forEach(function (b) {
+            b.hidden = !!allowed && allowed.indexOf(b.dataset.tab) === -1;
+        });
+        document.querySelectorAll('.owner-only').forEach(function (n) { n.hidden = role !== 'owner'; });
+        document.body.dataset.role = role;
+        if (allowed && allowed.indexOf(view.tab) === -1) setTab('resumen');
     }
 
     /* ===== DATOS ===== */
@@ -1478,7 +1617,52 @@
         return id;
     }
 
+    // Achica y comprime las fotos antes de subirlas (máx. 1600 px, WebP): cargan mucho más rápido en el celular.
+    var MAX_SIDE = 1600;
+
+    function loadBitmap(fileObj) {
+        if (window.createImageBitmap) {
+            return createImageBitmap(fileObj, { imageOrientation: 'from-image' }).catch(function () { return createImageBitmap(fileObj); });
+        }
+        return new Promise(function (resolve, reject) {
+            var img = new Image();
+            img.onload = function () { resolve(img); };
+            img.onerror = reject;
+            img.src = URL.createObjectURL(fileObj);
+        });
+    }
+
+    async function optimizeImage(fileObj) {
+        if (!/^image\/(jpeg|png|webp)$/.test(fileObj.type)) return fileObj;
+        var bmp;
+        try { bmp = await loadBitmap(fileObj); } catch (e) { return fileObj; }
+        var w = bmp.width, h = bmp.height;
+        var scale = Math.min(1, MAX_SIDE / Math.max(w, h));
+        if (scale === 1 && fileObj.size < 350 * 1024) return fileObj;
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+        if (bmp.close) bmp.close();
+        var blob = await new Promise(function (resolve) { canvas.toBlob(resolve, 'image/webp', 0.85); });
+        if (!blob || blob.type !== 'image/webp') blob = await new Promise(function (resolve) { canvas.toBlob(resolve, 'image/jpeg', 0.85); });
+        if (!blob || blob.size >= fileObj.size) return fileObj;
+        var ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
+        try {
+            return new File([blob], fileObj.name.replace(/\.[^.]+$/, '') + '.' + ext, { type: blob.type });
+        } catch (e) {
+            blob.name = fileObj.name.replace(/\.[^.]+$/, '') + '.' + ext;
+            return blob;
+        }
+    }
+
     async function uploadImage(fileObj, baseName) {
+        fileObj = await optimizeImage(fileObj);
+        if (fileObj.size > 5 * 1024 * 1024) throw new Error('La imagen pesa más de 5 MB incluso comprimida. Prueba con otra foto.');
         var ext = (fileObj.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
         var path = slugify(baseName || 'producto') + '-' + Date.now().toString(36) + '.' + ext;
         await api('/storage/v1/object/' + BUCKET + '/' + path, {
@@ -2496,6 +2680,7 @@
         $('set-ga4').value = (data.settings.analytics || {}).ga4 || '';
         $('set-pixel').value = (data.settings.analytics || {}).pixel || '';
 
+        renderMfa();
         var wrap = $('admins-list');
         wrap.textContent = '';
         data.admins.filter(function (a) { return a.email.slice(-USER_DOMAIN.length) === USER_DOMAIN; }).forEach(function (a) {
@@ -2503,6 +2688,19 @@
             var row = el('div', 'mini-row static' + (a.disabled_at ? ' inactive' : ''));
             row.appendChild(el('span', 'mini-row-main', name));
             var isMe = session && session.email && a.email.toLowerCase() === session.email.toLowerCase();
+            if (!a.disabled_at) {
+                var roleSel = select([['owner', 'Dueño'], ['ventas', 'Ventas'], ['catalogo', 'Catálogo']], a.role || 'owner');
+                roleSel.className = 'admin-input role-select';
+                roleSel.setAttribute('aria-label', 'Rol de ' + name);
+                roleSel.addEventListener('change', async function () {
+                    try {
+                        await api('/rest/v1/rpc/admin_set_role', { method: 'POST', body: { p_email: a.email, p_role: roleSel.value } });
+                        a.role = roleSel.value;
+                        toast(name + ': ' + ROLE_NAMES[a.role]);
+                    } catch (e) { toast(e.message, true); roleSel.value = a.role || 'owner'; }
+                });
+                row.appendChild(roleSel);
+            }
             if (isMe) {
                 row.appendChild(el('span', 'row-sub', 'Tú'));
             } else if (a.disabled_at) {
@@ -2560,7 +2758,7 @@
         if (password.length < 8) return toast('La contraseña debe tener al menos 8 caracteres.', true);
         var exists = data.admins.some(function (a) { return a.email === username + USER_DOMAIN; });
         try {
-            await api('/rest/v1/rpc/admin_save_user', { method: 'POST', body: { p_username: username, p_password: password } });
+            await api('/rest/v1/rpc/admin_save_user_role', { method: 'POST', body: { p_username: username, p_password: password, p_role: $('admin-new-role').value } });
             data.admins = await api('/rest/v1/admins?select=*&order=created_at.asc');
             e.target.reset();
             toast(exists ? 'Contraseña de «' + username + '» actualizada' : 'Usuario «' + username + '» creado');
@@ -2608,6 +2806,8 @@
     /* ===== EVENTOS ===== */
     $('login-form').addEventListener('submit', onLogin);
     $('activate-form').addEventListener('submit', onActivate);
+    $('mfa-form').addEventListener('submit', onMfa);
+    $('mfa-cancel').addEventListener('click', function () { logout('Ingresa con tu usuario.'); });
     $('denied-logout').addEventListener('click', logout);
     $('logout').addEventListener('click', logout);
     document.querySelectorAll('[data-auth]').forEach(function (b) {

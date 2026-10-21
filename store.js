@@ -1135,6 +1135,10 @@
         img.src = src;
         img.alt = index ? p.name + ' (foto ' + (index + 1) + ')' : p.name;
         img.loading = 'lazy';
+        img.decoding = 'async';
+        // Tamaño de referencia: evita que la página «salte» mientras cargan las fotos.
+        img.width = 800;
+        img.height = 800;
         if (className) img.className = className;
         img.onerror = function () { img.remove(); };
         parent.appendChild(img);

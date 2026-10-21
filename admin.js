@@ -568,6 +568,41 @@
         if (o.notes) detail(client, 'Notas del cliente', o.notes);
         body.appendChild(client);
 
+        // Boleta o factura
+        var docBox = el('div', 'detail-block');
+        docBox.appendChild(el('h3', '', o.doc_type === 'factura' ? 'Factura' : 'Boleta'));
+        if (o.doc_type === 'factura' && o.billing) {
+            detail(docBox, 'RUT', formatRut(o.billing.rut));
+            detail(docBox, 'Razón social', o.billing.razon_social);
+            detail(docBox, 'Giro', o.billing.giro);
+            detail(docBox, 'Dirección', o.billing.direccion);
+        }
+        var docNumber = input('text', o.doc_number || '', { placeholder: 'Ej: 1234', maxlength: 40 });
+        var docUrl = input('url', o.doc_url || '', { placeholder: 'https://... (o sube el PDF)' });
+        var dgrid = el('div', 'form-grid');
+        dgrid.appendChild(field('N° de ' + (o.doc_type === 'factura' ? 'factura' : 'boleta'), docNumber));
+        dgrid.appendChild(field('Enlace al PDF', docUrl));
+        docBox.appendChild(dgrid);
+        var docFile = input('file', '', { accept: 'application/pdf' });
+        docFile.hidden = true;
+        docFile.addEventListener('change', async function () {
+            var f = docFile.files[0];
+            if (!f) return;
+            if (f.type !== 'application/pdf') return toast('Sube el documento en PDF.', true);
+            if (f.size > 5 * 1024 * 1024) return toast('El PDF debe pesar menos de 5 MB.', true);
+            try {
+                var path = o.ref + '-' + (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)) + '.pdf';
+                await api('/storage/v1/object/documentos/' + path, { method: 'POST', body: f, headers: { 'Content-Type': 'application/pdf' } });
+                docUrl.value = DB.url + '/storage/v1/object/public/documentos/' + path;
+                toast('PDF subido. Guarda para que el cliente lo vea.');
+            } catch (e) { toast(e.message, true); }
+            docFile.value = '';
+        });
+        docBox.appendChild(docFile);
+        docBox.appendChild(button('Subir PDF', 'btn btn-sm btn-ghost', function () { docFile.click(); }));
+        docBox.appendChild(el('p', 'admin-help', 'Al guardar con el enlace, el cliente puede descargar el documento desde «Mi pedido» y le llega por correo si dejó su email.'));
+        body.appendChild(docBox);
+
         var items = el('div', 'detail-block');
         items.appendChild(el('h3', '', 'Productos'));
         var ul = el('ul', 'order-items');
@@ -642,6 +677,10 @@
         var actions = el('div', 'side-actions');
         actions.appendChild(button('Guardar cambios', 'btn btn-sm btn-primary', async function () {
             var patch = { admin_notes: notes.value.trim() || null };
+            var dUrl = docUrl.value.trim();
+            if (dUrl && !/^https:\/\//.test(dUrl)) return toast('El enlace del documento debe empezar con https://', true);
+            if ((o.doc_url || '') !== dUrl) patch.doc_url = dUrl || null;
+            if ((o.doc_number || '') !== docNumber.value.trim()) patch.doc_number = docNumber.value.trim() || null;
             if (status.value !== o.status) patch.status = status.value;
             if (courier) {
                 var url = trackUrl.value.trim();
@@ -753,6 +792,12 @@
             entregado: pickup ? 'retirado' : 'entregado',
             cancelado: 'cancelado'
         }[status] || status;
+    }
+
+    function formatRut(value) {
+        var v = String(value || '').replace(/[^0-9kK]/g, '').toUpperCase();
+        if (v.length < 2) return v;
+        return v.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + v.slice(-1);
     }
 
     function detail(parent, label, value) {

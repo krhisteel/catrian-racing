@@ -590,6 +590,103 @@
         if (id && state.cat === 'Motos') state.cat = 'all';
         resetPage();
         setCat(state.cat);
+        renderKit();
+    }
+
+    /* ===== KIT DE MANTENCIÓN PARA LA MOTO ELEGIDA ===== */
+    var KIT_SLOTS = [
+        { sub: 'Aceites y lubricantes', match: /aceite/i, label: 'Aceite de motor' },
+        { sub: 'Filtros', match: /aceite/i, label: 'Filtro de aceite' },
+        { sub: 'Filtros', match: /aire/i, label: 'Filtro de aire' },
+        { sub: 'Encendido', match: /buj/i, label: 'Bujía' },
+        { sub: 'Aceites y lubricantes', match: /cadena/i, label: 'Lubricante de cadena', chain: true }
+    ];
+
+    function kitFor(vehicleId) {
+        var v = vehicleById[vehicleId];
+        if (!v) return [];
+        var scooter = /scooter/i.test(v.type || '');
+        var used = {};
+        var items = [];
+        KIT_SLOTS.forEach(function (slot) {
+            if (slot.chain && scooter) return;
+            // Primero lo específico para la moto; si no hay, lo universal.
+            var options = products.filter(function (p) {
+                return p.cat === 'Repuestos' && p.sub === slot.sub && slot.match.test(p.name) && !p.quote && !used[p.id] &&
+                    maxQty(p, firstOption(p)) > 0 && (!p.fits || p.fits.indexOf(vehicleId) !== -1);
+            }).sort(function (a, b) { return (b.fits ? 1 : 0) - (a.fits ? 1 : 0) || a.price - b.price; });
+            if (options[0]) {
+                used[options[0].id] = true;
+                items.push({ label: slot.label, product: options[0], option: firstOption(options[0]) });
+            }
+        });
+        return items;
+    }
+
+    function firstOption(p) {
+        if (!p.options) return '';
+        return p.options.values.filter(function (v) { return maxQty(p, v) > 0; })[0] || p.options.values[0];
+    }
+
+    function renderKit() {
+        var box = $('kit');
+        box.textContent = '';
+        var items = state.vehicle ? kitFor(state.vehicle) : [];
+        box.hidden = items.length < 2;
+        if (box.hidden) return;
+        var head = el('div', 'kit-head');
+        var titles = el('div');
+        titles.appendChild(el('span', 'section-tag', 'Kit de mantención'));
+        titles.appendChild(el('h3', '', 'Todo para la mantención de tu ' + vehicleName(state.vehicle)));
+        head.appendChild(titles);
+        box.appendChild(head);
+        var list = el('ul', 'kit-list');
+        var checks = [];
+        items.forEach(function (it) {
+            var li = el('li', 'kit-item');
+            var label = el('label', 'kit-check');
+            var cb = el('input');
+            cb.type = 'checkbox';
+            cb.checked = true;
+            cb.addEventListener('change', updateTotal);
+            checks.push({ input: cb, item: it });
+            label.appendChild(cb);
+            var thumb = el('span', 'kit-thumb');
+            productImage(it.product, thumb);
+            label.appendChild(thumb);
+            var info = el('span', 'kit-info');
+            info.appendChild(el('small', '', it.label));
+            info.appendChild(el('strong', '', it.product.name + (it.option ? ' (' + it.option + ')' : '')));
+            label.appendChild(info);
+            label.appendChild(el('span', 'kit-price', money(it.product.price)));
+            li.appendChild(label);
+            var see = el('button', 'kit-see', 'Ver');
+            see.type = 'button';
+            see.setAttribute('aria-label', 'Ver ' + it.product.name);
+            see.addEventListener('click', function () { openModal(it.product.id); });
+            li.appendChild(see);
+            list.appendChild(li);
+        });
+        box.appendChild(list);
+        var foot = el('div', 'kit-foot');
+        var total = el('strong', 'kit-total');
+        foot.appendChild(total);
+        var add = el('button', 'btn btn-primary', 'Agregar kit al carro');
+        add.type = 'button';
+        add.addEventListener('click', function () {
+            var chosen = checks.filter(function (c) { return c.input.checked; });
+            if (!chosen.length) return toast('Elige al menos un producto del kit.');
+            chosen.forEach(function (c) { addToCart(c.item.product.id, c.item.option, 1); });
+            toast(chosen.length + (chosen.length === 1 ? ' producto agregado' : ' productos agregados') + ' al carro');
+        });
+        foot.appendChild(add);
+        box.appendChild(foot);
+        function updateTotal() {
+            var sum = checks.filter(function (c) { return c.input.checked; }).reduce(function (t, c) { return t + c.item.product.price; }, 0);
+            total.textContent = 'Total kit: ' + money(sum);
+            add.disabled = !sum;
+        }
+        updateTotal();
     }
 
     function setCat(cat) {
@@ -948,6 +1045,135 @@
         else ($('track-ref').value ? $('track-phone') : $('track-ref')).focus();
     }
 
+    /* ===== AGENDA DEL TALLER ===== */
+    var bookReturn = '';
+    var bookSlot = '';
+
+    function isoDay(d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    function openBooking() {
+        var modal = $('book-modal');
+        if (modal.hidden) {
+            bookReturn = /^#agendar/.test(location.hash) ? '' : location.hash;
+            lastFocus = document.activeElement;
+            modal.hidden = false;
+            document.body.classList.add('locked');
+        }
+        $('book-form').hidden = false;
+        $('book-done').hidden = true;
+        $('book-error').textContent = '';
+        var first = new Date();
+        first.setDate(first.getDate() + 1);
+        if (first.getDay() === 0) first.setDate(first.getDate() + 1);
+        var last = new Date();
+        last.setDate(last.getDate() + 45);
+        var day = $('book-day');
+        day.min = isoDay(first);
+        day.max = isoDay(last);
+        if (!day.value || day.value < day.min || day.value > day.max) day.value = isoDay(first);
+        if (!$('book-vehicle').value && state.vehicle) $('book-vehicle').value = vehicleName(state.vehicle);
+        loadSlots();
+        $('book-service').focus();
+    }
+
+    function closeBooking() {
+        var modal = $('book-modal');
+        if (modal.hidden) return;
+        modal.hidden = true;
+        if (!$('cart').classList.contains('open') && $('product-modal').hidden && $('track-modal').hidden) document.body.classList.remove('locked');
+        if (/^#agendar/.test(location.hash)) history.replaceState(null, '', bookReturn || location.pathname + location.search);
+        bookReturn = '';
+        if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+    }
+
+    function loadSlots() {
+        var wrap = $('book-slots');
+        var day = $('book-day').value;
+        bookSlot = '';
+        wrap.textContent = '';
+        if (!day) return;
+        if (new Date(day + 'T12:00:00').getDay() === 0) {
+            wrap.appendChild(el('p', 'track-muted', 'Los domingos el taller está cerrado. Elige otro día.'));
+            return;
+        }
+        wrap.appendChild(el('p', 'track-muted', 'Buscando horarios...'));
+        rpc('workshop_availability', { p_day: day }).then(function (rows) {
+            if ($('book-day').value !== day) return;
+            wrap.textContent = '';
+            if (!rows || !rows.length) {
+                wrap.appendChild(el('p', 'track-muted', 'No hay horarios ese día. Prueba con otro.'));
+                return;
+            }
+            rows.forEach(function (r) {
+                var b = el('button', 'slot', r.slot);
+                b.type = 'button';
+                b.setAttribute('role', 'radio');
+                b.setAttribute('aria-checked', 'false');
+                if (!r.free) {
+                    b.disabled = true;
+                    b.classList.add('full');
+                    b.setAttribute('aria-label', r.slot + ' (sin cupos)');
+                }
+                b.addEventListener('click', function () {
+                    bookSlot = r.slot;
+                    wrap.querySelectorAll('.slot').forEach(function (x) { x.setAttribute('aria-checked', x === b ? 'true' : 'false'); });
+                    $('book-error').textContent = '';
+                });
+                wrap.appendChild(b);
+            });
+            if (rows.every(function (r) { return !r.free; })) wrap.appendChild(el('p', 'track-muted', 'Ese día ya está completo. Prueba con otro.'));
+        }, function () {
+            wrap.textContent = '';
+            var p = el('p', 'track-muted', 'No pudimos cargar los horarios. ');
+            p.appendChild(externalLink('', 'Agenda por WhatsApp', waUrl('Hola Catrian Racing! Quiero agendar una hora en el taller.')));
+            wrap.appendChild(p);
+        });
+    }
+
+    function submitBooking(e) {
+        e.preventDefault();
+        var error = $('book-error');
+        var data = {
+            p_service: $('book-service').value, p_vehicle: $('book-vehicle').value.trim(), p_day: $('book-day').value,
+            p_slot: bookSlot, p_name: $('book-name').value.trim(), p_phone: $('book-phone').value.trim(),
+            p_email: $('book-email').value.trim(), p_notes: $('book-notes').value.trim()
+        };
+        if (!data.p_vehicle) { error.textContent = 'Cuéntanos qué moto traes.'; return $('book-vehicle').focus(); }
+        if (!data.p_slot) { error.textContent = 'Elige una hora.'; return; }
+        if (!data.p_name) { error.textContent = 'Escribe tu nombre.'; return $('book-name').focus(); }
+        if (data.p_phone.replace(/\D/g, '').length < 8) { error.textContent = 'Escribe un teléfono válido.'; return $('book-phone').focus(); }
+        error.textContent = '';
+        var submit = $('book-form').querySelector('button[type="submit"]');
+        submit.disabled = true;
+        submit.textContent = 'Reservando...';
+        rpc('book_workshop', data).then(function (ref) {
+            var when = new Date(data.p_day + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+            var done = $('book-done');
+            done.textContent = '';
+            done.appendChild(el('p', 'done-ref', '¡Hora reservada!'));
+            var info = el('p', '');
+            info.appendChild(document.createTextNode(data.p_service + ' · ' + when + ' a las ' + data.p_slot + '. Reserva '));
+            info.appendChild(el('strong', '', ref));
+            done.appendChild(info);
+            done.appendChild(el('p', 'track-muted', 'Te escribiremos por WhatsApp para confirmar. Si necesitas cambiarla, avísanos.'));
+            done.appendChild(externalLink('btn btn-primary', 'Confirmar por WhatsApp', waUrl('Hola Catrian Racing! Reservé una hora en el taller (' + ref + '): ' +
+                data.p_service + ' el ' + when + ' a las ' + data.p_slot + ' para mi ' + data.p_vehicle + '.')));
+            $('book-form').hidden = true;
+            done.hidden = false;
+            $('book-form').reset();
+            if (window.gtag) window.gtag('event', 'generate_lead', { method: 'agenda_taller' });
+            if (window.fbq) window.fbq('track', 'Schedule');
+        }, function (err) {
+            error.textContent = err && err.message ? err.message : 'No pudimos reservar ahora. Intenta de nuevo o escríbenos por WhatsApp.';
+            if (/llen/.test(error.textContent)) loadSlots();
+        }).then(function () {
+            submit.disabled = false;
+            submit.textContent = 'Reservar hora';
+        });
+    }
+
     function closeTracking() {
         var modal = $('track-modal');
         if (modal.hidden) return;
@@ -1134,6 +1360,12 @@
     }
 
     function route() {
+        if (/^#agendar$/.test(location.hash)) {
+            if (!$('product-modal').hidden) closeModal(true);
+            openBooking();
+            return;
+        }
+        if (!$('book-modal').hidden) closeBooking();
         var pm = /^#pago\/(.+)$/.exec(location.hash);
         if (pm) {
             var payRef = decodeURIComponent(pm[1]).toUpperCase();
@@ -2484,6 +2716,7 @@
             if (state.vehicle && !vehicleById[state.vehicle]) setVehicle('');
             setupFinder();
             renderProducts();
+            renderKit();
             renderCart();
             renderFavCount();
             renderRecent();
@@ -2605,12 +2838,19 @@
             return;
         }
         if (e.key !== 'Escape') return;
-        if (!$('track-modal').hidden) closeTracking();
+        if (!$('book-modal').hidden) closeBooking();
+        else if (!$('track-modal').hidden) closeTracking();
         else if (modalOpen) closeModal();
         else if ($('cart').classList.contains('open')) closeCart();
     });
 
     $('track-form').addEventListener('submit', searchTracking);
+    $('book-form').addEventListener('submit', submitBooking);
+    $('book-day').addEventListener('change', loadSlots);
+    $('book-close').addEventListener('click', closeBooking);
+    $('book-modal').addEventListener('click', function (e) {
+        if (e.target === this) closeBooking();
+    });
     $('track-close').addEventListener('click', closeTracking);
     $('track-modal').addEventListener('click', function (e) {
         if (e.target === this) closeTracking();
@@ -2649,6 +2889,28 @@
         updateFitBrands();
     }
 
+    /* ===== APP INSTALABLE ===== */
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('/sw.js').catch(function () { /* el sitio funciona igual */ });
+        });
+    }
+    var installEvent = null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        installEvent = e;
+        $('install-app').hidden = false;
+    });
+    $('install-app').addEventListener('click', function () {
+        if (!installEvent) return;
+        installEvent.prompt();
+        installEvent.userChoice.then(function () {
+            installEvent = null;
+            $('install-app').hidden = true;
+        });
+    });
+    window.addEventListener('appinstalled', function () { $('install-app').hidden = true; });
+
     setupFinder();
     var savedMoto = '';
     try { savedMoto = localStorage.getItem(MOTO_KEY) || ''; } catch (e) { /* sin almacenamiento */ }
@@ -2657,6 +2919,7 @@
         $('fit-current').hidden = false;
         $('fit-current-name').textContent = vehicleName(savedMoto);
     }
+    renderKit();
 
     renderProducts();
     renderCart();

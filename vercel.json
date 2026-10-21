@@ -1,13 +1,52 @@
 {
     "rewrites": [
-        { "source": "/productos/:id", "destination": "/api/page?type=producto&id=:id" },
-        { "source": "/categoria/:cat", "destination": "/api/page?type=categoria&cat=:cat" },
-        { "source": "/categoria/:cat/:sub", "destination": "/api/page?type=categoria&cat=:cat&sub=:sub" },
-        { "source": "/sitemap.xml", "destination": "/api/sitemap" },
-        { "source": "/feed.xml", "destination": "/api/feed" },
-        { "source": "/robots.txt", "destination": "/api/robots" }
+        {
+            "source": "/productos/:id",
+            "destination": "/api/page?type=producto&id=:id"
+        },
+        {
+            "source": "/categoria/:cat",
+            "destination": "/api/page?type=categoria&cat=:cat"
+        },
+        {
+            "source": "/categoria/:cat/:sub",
+            "destination": "/api/page?type=categoria&cat=:cat&sub=:sub"
+        },
+        {
+            "source": "/sitemap.xml",
+            "destination": "/api/sitemap"
+        },
+        {
+            "source": "/feed.xml",
+            "destination": "/api/feed"
+        },
+        {
+            "source": "/robots.txt",
+            "destination": "/api/robots"
+        }
     ],
     "headers": [
-        { "source": "/admin.html", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] }
+        {
+            "source": "/admin.html",
+            "headers": [
+                {
+                    "key": "X-Robots-Tag",
+                    "value": "noindex, nofollow"
+                }
+            ]
+        },
+        {
+            "source": "/sw.js",
+            "headers": [
+                {
+                    "key": "Cache-Control",
+                    "value": "no-cache"
+                },
+                {
+                    "key": "Service-Worker-Allowed",
+                    "value": "/"
+                }
+            ]
+        }
     ]
 }

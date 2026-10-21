@@ -1386,3 +1386,21 @@ button.stock-pill {
 .booking-day:first-child {
     margin-top: 0;
 }
+
+/* ===== AUTOMATIZACIONES ===== */
+.auto-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    margin: 6px 0 10px;
+}
+
+.auto-stats .admin-help {
+    flex-basis: 100%;
+    margin: 0;
+}
+
+.stock-pill.waiting {
+    background-color: rgba(21, 128, 61, 0.1);
+    color: #15803d;
+}

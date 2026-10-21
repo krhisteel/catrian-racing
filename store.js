@@ -270,6 +270,109 @@
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
         } catch (e) { /* sin almacenamiento: el carro vive solo en esta visita */ }
+        syncCart();
+    }
+
+    /* ===== CARRO GUARDADO (para recordar al cliente si no termina la compra) ===== */
+    var CONTACT_KEY = 'catrian-contact';
+    var TOKEN_KEY = 'catrian-cart-token';
+
+    function cartToken() {
+        var t = '';
+        try { t = localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { /* sin almacenamiento */ }
+        if (!/^[A-Za-z0-9_-]{16,64}$/.test(t)) {
+            var bytes = new Uint8Array(18);
+            (window.crypto || window.msCrypto).getRandomValues(bytes);
+            t = Array.prototype.map.call(bytes, function (b) { return 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-'.charAt(b % 64); }).join('');
+            try { localStorage.setItem(TOKEN_KEY, t); } catch (e) { /* sin almacenamiento */ }
+        }
+        return t;
+    }
+
+    function savedContact() {
+        try { return JSON.parse(localStorage.getItem(CONTACT_KEY)) || {}; } catch (e) { return {}; }
+    }
+
+    function rememberContact(email, name) {
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email || '')) return;
+        try { localStorage.setItem(CONTACT_KEY, JSON.stringify({ email: email, name: name || '' })); } catch (e) { /* sin almacenamiento */ }
+        syncCart(true);
+    }
+
+    var syncTimer = null;
+    function syncCart(now) {
+        var contact = savedContact();
+        if (!contact.email || typeof rpc !== 'function') return;
+        clearTimeout(syncTimer);
+        syncTimer = setTimeout(function () {
+            rpc('save_cart', {
+                p_token: cartToken(), p_email: contact.email, p_name: contact.name || '',
+                p_items: cart.map(function (l) { return { id: l.id, option: l.option, qty: l.qty }; })
+            }).catch(function () { /* se intenta en el próximo cambio */ });
+        }, now ? 0 : 1500);
+    }
+
+    function restoreCart(token) {
+        rpc('get_cart', { p_token: token }).then(function (items) {
+            var added = 0;
+            (items || []).forEach(function (it) {
+                var p = byId[it.id];
+                if (!p || p.quote || maxQty(p, it.option) <= 0) return;
+                if (cart.some(function (l) { return l.id === it.id && l.option === it.option; })) return;
+                cart.push({ id: it.id, option: it.option || '', qty: Math.min(it.qty || 1, maxQty(p, it.option)) });
+                added++;
+            });
+            saveCart();
+            renderCart();
+            if (cart.length) openCart();
+            toast(added ? 'Recuperamos tu carro' : (cart.length ? 'Tu carro ya está al día' : 'Los productos de tu carro ya no están disponibles'));
+        }, function () { toast('No pudimos recuperar tu carro ahora.'); });
+    }
+
+    /* ===== AVÍSAME CUANDO LLEGUE ===== */
+    function notifyForm(p, outOptions) {
+        var form = el('form', 'notify-form');
+        form.noValidate = true;
+        form.appendChild(el('p', 'notify-title', 'Te avisamos por correo apenas llegue'));
+        var opt = null;
+        if (outOptions.length) {
+            opt = el('select');
+            opt.setAttribute('aria-label', p.options.name);
+            outOptions.forEach(function (v) {
+                var o = el('option', '', p.options.name + ': ' + v);
+                o.value = v;
+                opt.appendChild(o);
+            });
+            form.appendChild(opt);
+        }
+        var row = el('div', 'notify-row');
+        var email = el('input');
+        email.type = 'email';
+        email.placeholder = 'tu@correo.cl';
+        email.autocomplete = 'email';
+        email.setAttribute('aria-label', 'Tu correo');
+        email.value = savedContact().email || '';
+        row.appendChild(email);
+        var send = el('button', 'btn btn-primary btn-sm', 'Avísame');
+        send.type = 'submit';
+        row.appendChild(send);
+        form.appendChild(row);
+        var msg = el('p', 'notify-msg');
+        msg.setAttribute('role', 'status');
+        form.appendChild(msg);
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var value = email.value.trim();
+            if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) { msg.textContent = 'Escribe un correo válido.'; return email.focus(); }
+            send.disabled = true;
+            rpc('subscribe_stock', { p_product: p.id, p_option: opt ? opt.value : '', p_email: value }).then(function () {
+                msg.textContent = '¡Listo! Te escribiremos a ' + value + ' cuando llegue.';
+                try { localStorage.setItem(CONTACT_KEY, JSON.stringify(Object.assign(savedContact(), { email: value }))); } catch (e2) { /* sin almacenamiento */ }
+            }, function (err) {
+                msg.textContent = err && err.message ? err.message : 'No pudimos guardar tu aviso. Intenta de nuevo.';
+            }).then(function () { send.disabled = false; });
+        });
+        return form;
     }
 
     function cartCount() {
@@ -453,7 +556,9 @@
         if (p.quote) {
             action = externalLink('btn btn-sm btn-ghost', 'Cotizar', quoteUrl(p));
         } else if (soldOut(p)) {
-            action = externalLink('btn btn-sm btn-ghost', 'Avísame', notifyUrl(p));
+            action = el('button', 'btn btn-sm btn-ghost', 'Avísame');
+            action.type = 'button';
+            action.addEventListener('click', function () { openModal(p.id); });
         } else {
             action = el('button', 'btn btn-sm btn-primary', p.options ? 'Elegir' : 'Agregar');
             action.type = 'button';
@@ -1360,6 +1465,20 @@
     }
 
     function route() {
+        var cm = /^#carro\/([A-Za-z0-9_-]{16,64})$/.exec(location.hash);
+        if (cm) {
+            history.replaceState(null, '', location.pathname + location.search);
+            restoreCart(cm[1]);
+            return;
+        }
+        var bm = /^#baja\/([0-9a-f-]{36})$/.exec(location.hash);
+        if (bm) {
+            history.replaceState(null, '', location.pathname + location.search);
+            rpc('unsubscribe', { p_id: bm[1] }).then(function () {
+                toast('Listo, no te enviaremos más estos correos.');
+            }, function () { toast('No pudimos procesar tu baja. Escríbenos y lo hacemos por ti.'); });
+            return;
+        }
         if (/^#agendar$/.test(location.hash)) {
             if (!$('product-modal').hidden) closeModal(true);
             openBooking();
@@ -1769,6 +1888,13 @@
                 group.appendChild(b);
             });
             options.appendChild(group);
+            var outValues = p.quote ? [] : p.options.values.filter(function (v) { return variantStock(p, v) === 0; });
+            if (outValues.length && !soldOut(p)) {
+                var more = el('details', 'notify-more');
+                more.appendChild(el('summary', '', '¿No está tu ' + p.options.name.toLowerCase() + '? Te avisamos cuando llegue'));
+                more.appendChild(notifyForm(p, outValues));
+                options.appendChild(more);
+            }
         }
 
         var buy = $('pm-buy');
@@ -1795,8 +1921,16 @@
             buy.appendChild(externalLink('btn btn-primary btn-block', 'Cotizar por WhatsApp', quoteUrl(p)));
             bar.appendChild(externalLink('btn btn-primary btn-sm', 'Cotizar', quoteUrl(p)));
         } else if (soldOut(p)) {
-            buy.appendChild(externalLink('btn btn-ghost btn-block', 'Avísame cuando llegue', notifyUrl(p)));
-            bar.appendChild(externalLink('btn btn-ghost btn-sm', 'Avísame', notifyUrl(p)));
+            var nf = notifyForm(p, p.options ? p.options.values : []);
+            buy.appendChild(nf);
+            buy.appendChild(externalLink('btn btn-ghost btn-sm', 'O consúltanos por WhatsApp', notifyUrl(p)));
+            var barNotify = el('button', 'btn btn-ghost btn-sm', 'Avísame');
+            barNotify.type = 'button';
+            barNotify.addEventListener('click', function () {
+                nf.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                nf.querySelector('input').focus();
+            });
+            bar.appendChild(barNotify);
         } else {
             var stepper = el('div', 'qty');
             var minus = el('button', '', '−');
@@ -2253,6 +2387,7 @@
         }
         error.textContent = '';
 
+        rememberContact(form.email.value.trim(), name);
         var data = {
             doc: form.doc.value,
             billing: billing,
@@ -2280,6 +2415,7 @@
             p_payment: data.payment, p_notes: data.notes, p_coupon: state.coupon || '',
             p_doc_type: data.doc, p_billing: data.billing
         }).then(function (order) {
+            rpc('cart_converted', { p_token: cartToken() }).catch(function () {});
             trackEvent('purchase', cartItems(), { transaction_id: order.ref, value: order.total, shipping: order.shipping || 0, coupon: order.coupon || undefined });
             if (online) payOnline(data, order);
             else finishOrder(win, data, order);
@@ -2824,6 +2960,9 @@
     });
     $('checkout-back').addEventListener('click', function () { showView('cart-view'); });
     $('checkout-view').addEventListener('change', updateTotals);
+    $('co-email').addEventListener('change', function () {
+        rememberContact(this.value.trim(), $('co-name').value.trim());
+    });
     $('checkout-view').addEventListener('submit', submitOrder);
 
     $('modal-close').addEventListener('click', closeModal);

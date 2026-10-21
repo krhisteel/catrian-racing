@@ -363,6 +363,7 @@
             renderAll();
             loadPaymentConfig();
             loadEmailConfig();
+            loadAutomations();
             loadReviews();
             loadBookings();
         } catch (e) {
@@ -1037,6 +1038,8 @@
             row.appendChild(main);
 
             var controls = el('div', 'row-controls');
+            var waiting = data.auto && data.auto.waiting ? data.auto.waiting[p.id] : 0;
+            if (waiting) controls.appendChild(el('span', 'stock-pill waiting', waiting + (waiting === 1 ? ' espera aviso' : ' esperan aviso')));
             if (p.quote) {
                 controls.appendChild(el('span', 'stock-pill', 'Cotización'));
             } else if (p.option_stock) {
@@ -1986,6 +1989,50 @@
         } catch (err) { toast(err.message, true); }
     }
 
+    async function loadAutomations() {
+        try {
+            data.auto = await api('/rest/v1/rpc/admin_get_automations', { method: 'POST', body: {} });
+        } catch (e) {
+            data.auto = null;
+            return;
+        }
+        var a = data.auto;
+        $('auto-cart').checked = a.cart_enabled;
+        $('auto-cart-hours').value = a.cart_hours;
+        $('auto-cart-coupon').value = a.cart_coupon || '';
+        $('auto-restock').checked = a.restock_enabled;
+        $('auto-maint').checked = a.maint_enabled;
+        $('auto-maint-months').value = a.maint_months;
+        var st = a.stats || {};
+        var box = $('auto-stats');
+        box.textContent = '';
+        [[st.carros_recordados, 'carros recordados'], [st.carros_recuperados, 'compraron después'],
+            [st.avisos_pendientes, 'esperan stock'], [st.mantencion_enviados, 'recordatorios de mantención']].forEach(function (x) {
+            var item = el('div', 'stats-num');
+            item.appendChild(el('strong', '', String(x[0] || 0)));
+            item.appendChild(el('span', '', x[1]));
+            box.appendChild(item);
+        });
+        box.appendChild(el('p', 'admin-help', 'Últimos 30 días.'));
+        renderProducts();
+    }
+
+    async function onAutoSave(e) {
+        e.preventDefault();
+        var hours = parseInt($('auto-cart-hours').value, 10);
+        var months = parseInt($('auto-maint-months').value, 10);
+        if (!(hours >= 1 && hours <= 72)) return toast('Las horas deben estar entre 1 y 72.', true);
+        if (!(months >= 1 && months <= 24)) return toast('Los meses deben estar entre 1 y 24.', true);
+        try {
+            await api('/rest/v1/rpc/admin_set_automations', { method: 'POST', body: {
+                p_cart_enabled: $('auto-cart').checked, p_cart_hours: hours, p_cart_coupon: $('auto-cart-coupon').value.trim(),
+                p_restock_enabled: $('auto-restock').checked, p_maint_enabled: $('auto-maint').checked, p_maint_months: months
+            } });
+            toast('Automatizaciones guardadas');
+            loadAutomations();
+        } catch (err) { toast(err.message, true); }
+    }
+
     async function loadEmailConfig() {
         try {
             data.email = await api('/rest/v1/rpc/admin_get_email_config', { method: 'POST', body: {} });
@@ -2222,6 +2269,7 @@
     $('rates-form').addEventListener('submit', onRatesSave);
     $('mp-form').addEventListener('submit', onPaymentSave);
     $('email-form').addEventListener('submit', onEmailSave);
+    $('auto-form').addEventListener('submit', onAutoSave);
     $('email-test').addEventListener('click', onEmailTest);
     $('admin-form').addEventListener('submit', onAdminAdd);
     $('password-form').addEventListener('submit', onPasswordChange);

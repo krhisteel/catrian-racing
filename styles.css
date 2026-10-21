@@ -5320,3 +5320,58 @@ a.product-cat:hover {
 .footer-install[hidden] {
     display: none;
 }
+
+/* ===== AVÍSAME CUANDO LLEGUE ===== */
+.notify-form {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    border: 1px dashed var(--accent-ink);
+    border-radius: 10px;
+    background-color: rgba(245, 197, 24, 0.08);
+}
+
+.notify-title {
+    margin: 0;
+    font-weight: 600;
+}
+
+.notify-row {
+    display: flex;
+    gap: 8px;
+}
+
+.notify-form input,
+.notify-form select {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+    font: inherit;
+    font-size: 15px;
+}
+
+.notify-msg {
+    margin: 0;
+    font-size: 13px;
+    color: var(--ok);
+}
+
+.notify-msg:empty {
+    display: none;
+}
+
+.notify-more {
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.notify-more summary {
+    cursor: pointer;
+    color: var(--accent-ink);
+    margin-bottom: 8px;
+}

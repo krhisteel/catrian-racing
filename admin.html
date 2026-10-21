@@ -301,6 +301,27 @@
                         <label class="check mp-enable"><input type="checkbox" id="mp-enabled"> Activar pago en línea en la tienda</label>
                         <button type="submit" class="btn btn-sm btn-primary">Guardar pagos</button>
                     </form>
+                    <form class="admin-card admin-form" id="auto-form" novalidate>
+                        <h2>Correos que venden solos</h2>
+                        <p class="admin-help">Se revisan cada 15 minutos y usan la configuración de correos de abajo. Cada correo trae un enlace para darse de baja.</p>
+                        <div class="auto-stats" id="auto-stats"></div>
+                        <label class="check"><input type="checkbox" id="auto-cart"> Recordar carros abandonados</label>
+                        <div class="form-grid">
+                            <div>
+                                <label for="auto-cart-hours">Enviar después de (horas)</label>
+                                <input id="auto-cart-hours" class="admin-input" type="number" min="1" max="72">
+                            </div>
+                            <div>
+                                <label for="auto-cart-coupon">Cupón de regalo (opcional)</label>
+                                <input id="auto-cart-coupon" class="admin-input" placeholder="Ej: VUELVE5" autocomplete="off">
+                            </div>
+                        </div>
+                        <label class="check"><input type="checkbox" id="auto-restock"> Avisar cuando vuelve el stock («Avísame cuando llegue»)</label>
+                        <label class="check"><input type="checkbox" id="auto-maint"> Recordatorio de mantención</label>
+                        <label for="auto-maint-months">Meses después de comprar aceite/filtros o de ir al taller</label>
+                        <input id="auto-maint-months" class="admin-input" type="number" min="1" max="24">
+                        <button type="submit" class="btn btn-sm btn-primary">Guardar automatizaciones</button>
+                    </form>
                     <form class="admin-card admin-form" id="email-form" novalidate>
                         <h2>Correos automáticos al cliente</h2>
                         <p class="admin-help">Si el cliente deja su email, le llega un correo cuando recibimos su pedido, cuando se paga, cuando se despacha (con la empresa y el número de seguimiento), cuando se entrega o si se cancela. Se envían con <strong>Resend</strong> (gratis hasta 3.000 correos al mes): crea una cuenta en resend.com, verifica tu dominio y copia aquí la API Key.</p>

@@ -221,7 +221,51 @@
     var cart = loadCart();
     var favs = loadList(FAVS_KEY);
     var recent = loadList(RECENT_KEY);
-    var lastFocus = null;
+    // Pila de foco: al cerrar una ventana, el cursor vuelve al botón desde donde se abrió,
+    // aunque haya varias ventanas abiertas una sobre otra.
+    var focusStack = [];
+
+    function rememberFocus() {
+        focusStack.push(document.activeElement);
+    }
+
+    function restoreFocus() {
+        var target = focusStack.pop();
+        if (target && document.contains(target) && target.offsetParent !== null) target.focus();
+    }
+
+    // Historial: cada ventana con dirección propia (#cuenta, #agendar...) queda en el historial,
+    // así «Atrás» la cierra. La entrada con la que se abrió la página se marca para no salir de la tienda.
+    function replaceUrl(url) {
+        history.replaceState(history.state, '', url);
+    }
+
+    var leavingBack = false;
+    function leaveHash(fallback) {
+        if (history.state && history.state.initial) {
+            replaceUrl(fallback || location.pathname + location.search);
+        } else {
+            leavingBack = true;
+            history.back();
+        }
+    }
+
+    // Cierra una ventana y, cuando el navegador terminó de volver atrás, sigue con la acción.
+    function closeThen(closeFn, next) {
+        leavingBack = false;
+        closeFn();
+        if (!leavingBack) return next();
+        var done = false;
+        function go() {
+            if (done) return;
+            done = true;
+            leavingBack = false;
+            window.removeEventListener('hashchange', go);
+            setTimeout(next, 0);
+        }
+        window.addEventListener('hashchange', go);
+        setTimeout(go, 600);
+    }
 
     function $(id) {
         return document.getElementById(id);
@@ -434,7 +478,7 @@
         var modal = $('account-modal');
         if (modal.hidden) {
             accountReturn = /^#cuenta/.test(location.hash) ? '' : location.hash;
-            lastFocus = document.activeElement;
+            rememberFocus();
             modal.hidden = false;
             document.body.classList.add('locked');
         }
@@ -450,9 +494,9 @@
         if (modal.hidden) return;
         modal.hidden = true;
         if (!$('cart').classList.contains('open') && $('product-modal').hidden && $('track-modal').hidden) document.body.classList.remove('locked');
-        if (/^#cuenta/.test(location.hash)) history.replaceState(null, '', accountReturn || location.pathname + location.search);
+        if (/^#cuenta/.test(location.hash)) leaveHash(accountReturn);
         accountReturn = '';
-        if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+        restoreFocus();
     }
 
     function renderAccount() {
@@ -511,7 +555,6 @@
             see.type = 'button';
             see.addEventListener('click', function () {
                 rememberOrder(o.ref, o.phone4, o.status);
-                closeAccount();
                 location.hash = '#seguimiento/' + o.ref;
             });
             actions.appendChild(see);
@@ -561,8 +604,7 @@
                 use.type = 'button';
                 use.addEventListener('click', function () {
                     setVehicle(g.vehicle_id);
-                    closeAccount();
-                    goToShop('Repuestos');
+                    closeThen(closeAccount, function () { goToShop('Repuestos'); });
                 });
                 actions.appendChild(use);
             }
@@ -570,7 +612,6 @@
             book.type = 'button';
             book.addEventListener('click', function () {
                 $('book-vehicle').value = g.label + (g.year ? ' ' + g.year : '');
-                closeAccount();
                 location.hash = '#agendar';
             });
             actions.appendChild(book);
@@ -685,9 +726,10 @@
                 use.type = 'button';
                 use.addEventListener('click', function () {
                     $('coupon-input').value = c.code;
-                    closeAccount();
-                    openCart();
-                    if (cart.length) { showView('checkout-view'); applyCoupon(); }
+                    closeThen(closeAccount, function () {
+                        openCart();
+                        if (cart.length) { showView('checkout-view'); applyCoupon(); }
+                    });
                 });
                 row.appendChild(use);
                 body.appendChild(row);
@@ -928,7 +970,7 @@
         var modal = $('lead-modal');
         if (modal.hidden) {
             leadReturn = /^#vende-tu-moto/.test(location.hash) ? '' : location.hash;
-            lastFocus = document.activeElement;
+            rememberFocus();
             modal.hidden = false;
             document.body.classList.add('locked');
         }
@@ -957,9 +999,9 @@
         if (modal.hidden) return;
         modal.hidden = true;
         if (!$('cart').classList.contains('open') && $('product-modal').hidden && $('track-modal').hidden) document.body.classList.remove('locked');
-        if (/^#vende-tu-moto/.test(location.hash)) history.replaceState(null, '', leadReturn || location.pathname + location.search);
+        if (/^#vende-tu-moto/.test(location.hash)) leaveHash(leadReturn);
         leadReturn = '';
-        if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+        restoreFocus();
     }
 
     function submitLead(e) {
@@ -1376,7 +1418,7 @@
         var modal = $('guide-modal');
         if (modal.hidden) {
             guideReturn = /^#guia\//.test(location.hash) ? '' : location.hash;
-            lastFocus = document.activeElement;
+            rememberFocus();
             modal.hidden = false;
             document.body.classList.add('locked');
         }
@@ -1424,7 +1466,7 @@
         modal.scrollTop = 0;
         $('guide-close').focus();
         document.title = g.title + ' | Catrian Racing';
-        if (location.hash !== '#guia/' + g.slug) history.replaceState(null, '', '#guia/' + g.slug);
+        if (location.hash !== '#guia/' + g.slug) replaceUrl('#guia/' + g.slug);
     }
 
     function closeGuide(keepHash) {
@@ -1433,9 +1475,9 @@
         modal.hidden = true;
         document.title = 'Catrian Racing | Motos, Repuestos y Taller';
         if (!$('cart').classList.contains('open') && $('product-modal').hidden) document.body.classList.remove('locked');
-        if (!keepHash && /^#guia\//.test(location.hash)) history.replaceState(null, '', guideReturn || location.pathname + location.search);
+        if (!keepHash && /^#guia\//.test(location.hash)) leaveHash(guideReturn);
         guideReturn = '';
-        if (!keepHash && lastFocus && document.contains(lastFocus)) lastFocus.focus();
+        restoreFocus();
     }
 
     /* ===== CATÁLOGO ===== */
@@ -1752,7 +1794,7 @@
 
     function goToShop(cat) {
         if (state.collection) {
-            history.replaceState(null, '', '#tienda');
+            replaceUrl('#tienda');
             exitCollection();
         }
         setCat(cat);
@@ -2077,7 +2119,7 @@
         var modal = $('track-modal');
         if (modal.hidden) {
             if (!/^#seguimiento/.test(location.hash)) trackReturn = location.hash;
-            lastFocus = document.activeElement;
+            rememberFocus();
             modal.hidden = false;
             document.body.classList.add('locked');
         }
@@ -2104,7 +2146,7 @@
         var modal = $('book-modal');
         if (modal.hidden) {
             bookReturn = /^#agendar/.test(location.hash) ? '' : location.hash;
-            lastFocus = document.activeElement;
+            rememberFocus();
             modal.hidden = false;
             document.body.classList.add('locked');
         }
@@ -2130,9 +2172,9 @@
         if (modal.hidden) return;
         modal.hidden = true;
         if (!$('cart').classList.contains('open') && $('product-modal').hidden && $('track-modal').hidden) document.body.classList.remove('locked');
-        if (/^#agendar/.test(location.hash)) history.replaceState(null, '', bookReturn || location.pathname + location.search);
+        if (/^#agendar/.test(location.hash)) leaveHash(bookReturn);
         bookReturn = '';
-        if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+        restoreFocus();
     }
 
     function loadSlots() {
@@ -2227,11 +2269,9 @@
         modal.hidden = true;
         clearInterval(trackTimer);
         if (!$('cart').classList.contains('open') && $('product-modal').hidden) document.body.classList.remove('locked');
-        if (/^#seguimiento/.test(location.hash)) {
-            history.replaceState(null, '', trackReturn || location.pathname + location.search);
-        }
+        if (/^#seguimiento/.test(location.hash)) leaveHash(trackReturn);
         trackReturn = '';
-        if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+        restoreFocus();
     }
 
     function fmtDate(iso) {
@@ -2267,7 +2307,7 @@
                 error.textContent = 'No encontramos un pedido con esos datos. Revisa el número y los dígitos del teléfono.';
                 return;
             }
-            history.replaceState(null, '', '#seguimiento/' + order.ref);
+            replaceUrl('#seguimiento/' + order.ref);
             rememberOrder(order.ref, phone.slice(-4), order.status);
             renderMyOrdersChips();
             renderTracking(order);
@@ -2409,34 +2449,38 @@
     function route() {
         // «Atrás» desde una ficha de producto: se cierra la ficha.
         if (!$('product-modal').hidden && !/^#p\//.test(location.hash)) closeModal(true);
+        // Cierra las ventanas cuya dirección ya no corresponde (p. ej. «Atrás» de agenda a cuenta).
+        var h = location.hash;
+        if (!$('guide-modal').hidden && !/^#guia\//.test(h)) closeGuide(true);
+        if (!$('account-modal').hidden && !/^#cuenta$/.test(h)) closeAccount();
+        if (!$('lead-modal').hidden && !/^#vende-tu-moto$/.test(h)) closeLead();
+        if (!$('book-modal').hidden && !/^#agendar$/.test(h)) closeBooking();
+        if (!$('track-modal').hidden && !/^#(seguimiento|pago)\b/.test(h)) closeTracking();
         var gm = /^#guia\/(.+)$/.exec(location.hash);
         if (gm) {
             if (!$('product-modal').hidden) closeModal(true);
             openGuide(decodeURIComponent(gm[1]));
             return;
         }
-        if (!$('guide-modal').hidden) closeGuide(true);
         if (/^#cuenta$/.test(location.hash)) {
             if (!$('product-modal').hidden) closeModal(true);
             openAccount();
             return;
         }
-        if (!$('account-modal').hidden) closeAccount();
         if (/^#vende-tu-moto$/.test(location.hash)) {
             if (!$('product-modal').hidden) closeModal(true);
             openLead('parte_pago', null);
             return;
         }
-        if (!$('lead-modal').hidden) closeLead();
         var cm = /^#carro\/([A-Za-z0-9_-]{16,64})$/.exec(location.hash);
         if (cm) {
-            history.replaceState(null, '', location.pathname + location.search);
+            replaceUrl(location.pathname + location.search);
             whenCatalog(function () { restoreCart(cm[1]); });
             return;
         }
         var bm = /^#baja\/([0-9a-f-]{36})$/.exec(location.hash);
         if (bm) {
-            history.replaceState(null, '', location.pathname + location.search);
+            replaceUrl(location.pathname + location.search);
             rpc('unsubscribe', { p_id: bm[1] }).then(function () {
                 toast('Listo, no te enviaremos más estos correos.');
             }, function () { toast('No pudimos procesar tu baja. Escríbenos y lo hacemos por ti.'); });
@@ -2447,12 +2491,11 @@
             openBooking();
             return;
         }
-        if (!$('book-modal').hidden) closeBooking();
         var pm = /^#pago\/(.+)$/.exec(location.hash);
         if (pm) {
             var payRef = decodeURIComponent(pm[1]).toUpperCase();
             var known = myOrders().filter(function (o) { return o.ref === payRef; })[0];
-            history.replaceState(null, '', '#seguimiento/' + payRef);
+            replaceUrl('#seguimiento/' + payRef);
             openTracking(payRef);
             if (known) {
                 rpc('mp_check_payment', { p_ref: payRef, p_phone: known.phone }).then(function (status) {
@@ -2469,7 +2512,6 @@
             openTracking(tm[1] ? decodeURIComponent(tm[1]).toUpperCase() : '');
             return;
         }
-        if (!$('track-modal').hidden) closeTracking();
         var c = parseCollection();
         if (c) {
             if (!$('product-modal').hidden) closeModal(true);
@@ -2763,6 +2805,9 @@
     function openModal(id) {
         var p = byId[id];
         var modal = $('product-modal');
+        // Otra ficha abierta encima de una ficha por un enlace: el historial tiene dos entradas #p/.
+        if (!modal.hidden && location.hash === '#p/' + id && currentProduct && currentProduct !== id) productChained = true;
+        currentProduct = id;
 
         // Ruta
         var crumbs = $('pm-crumbs');
@@ -2773,7 +2818,6 @@
             var b = el('button', 'crumb', c[0]);
             b.type = 'button';
             b.addEventListener('click', function () {
-                closeModal();
                 location.hash = c[1];
             });
             crumbs.appendChild(b);
@@ -2931,10 +2975,11 @@
             now.type = 'button';
             now.addEventListener('click', function () {
                 if (!tryAdd()) return;
-                closeModal();
-                openCart();
-                showView('checkout-view');
-                $('co-name').focus();
+                closeThen(closeModal, function () {
+                    openCart();
+                    showView('checkout-view');
+                    $('co-name').focus();
+                });
             });
             buy.appendChild(stepper);
             buy.appendChild(add);
@@ -3012,7 +3057,7 @@
         }
 
         if (modal.hidden) {
-            lastFocus = document.activeElement;
+            rememberFocus();
             modal.hidden = false;
             document.body.classList.add('locked');
         }
@@ -3024,38 +3069,31 @@
         if (!/^#p\//.test(location.hash)) returnHash = location.hash;
         if (location.hash !== '#p/' + p.id) {
             // Se agrega al historial para que «Atrás» en el celular cierre la ficha en vez de salir de la tienda.
-            if (!/^#p\//.test(location.hash)) {
-                history.pushState(null, '', '#p/' + p.id);
-                modalPushed = true;
-            } else {
-                history.replaceState(null, '', '#p/' + p.id);
-            }
+            if (!/^#p\//.test(location.hash)) history.pushState(null, '', '#p/' + p.id);
+            else replaceUrl('#p/' + p.id);
         }
     }
 
     var returnHash = '';
-    var modalPushed = false;
+    var currentProduct = '';
+    var productChained = false;
     function closeModal(keepHash) {
-        $('product-modal').hidden = true;
+        var modal = $('product-modal');
+        if (modal.hidden) return;
+        modal.hidden = true;
         if (!$('cart').classList.contains('open')) document.body.classList.remove('locked');
-        if (keepHash) modalPushed = false;
-        if (!keepHash && /^#p\//.test(location.hash) && modalPushed) {
-            modalPushed = false;
-            returnHash = '';
-            history.back();
-            if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
-            return;
-        }
-        if (!keepHash && /^#p\//.test(location.hash)) {
-            history.replaceState(null, '', returnHash || location.pathname + location.search);
-            if (/^#guia\//.test(location.hash)) {
-                returnHash = '';
-                route();
-                return;
-            }
-        }
+        var back = returnHash;
+        var chained = productChained;
         returnHash = '';
-        if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+        currentProduct = '';
+        productChained = false;
+        restoreFocus();
+        if (!keepHash && /^#p\//.test(location.hash)) {
+            if (chained) replaceUrl(back || location.pathname + location.search);
+            else leaveHash(back);
+            // Si se llegó directo a la ficha desde una guía, la guía se vuelve a mostrar.
+            if (/^#guia\//.test(location.hash)) route();
+        }
     }
 
     function shareProduct(p) {
@@ -3309,9 +3347,9 @@
     }
 
     function openCart() {
-        lastFocus = document.activeElement;
-        showView('cart-view');
         var drawer = $('cart');
+        if (!drawer.classList.contains('open')) rememberFocus();
+        showView('cart-view');
         $('overlay').hidden = false;
         drawer.classList.add('open');
         drawer.setAttribute('aria-hidden', 'false');
@@ -3321,11 +3359,12 @@
 
     function closeCart() {
         var drawer = $('cart');
+        if (!drawer.classList.contains('open')) return;
         drawer.classList.remove('open');
         drawer.setAttribute('aria-hidden', 'true');
         $('overlay').hidden = true;
         document.body.classList.remove('locked');
-        if (lastFocus) lastFocus.focus();
+        restoreFocus();
     }
 
     // RUT chileno: dígito verificador con módulo 11.
@@ -4157,22 +4196,23 @@
     (function pathToHash() {
         var gp = /^\/guias(?:\/([a-z0-9-]+))?\/?$/.exec(location.pathname);
         if (gp) {
-            history.replaceState(null, '', '/' + location.search + (location.hash || (gp[1] ? '#guia/' + gp[1] : '#guias')));
+            replaceUrl('/' + location.search + (location.hash || (gp[1] ? '#guia/' + gp[1] : '#guias')));
             return;
         }
         var m = /^\/(productos|categoria)\/(.+?)\/?$/.exec(location.pathname);
         if (!m) return;
         var parts = m[2].split('/');
         var hash = m[1] === 'productos' ? '#p/' + parts[0] : '#c/' + parts.slice(0, 2).join('/');
-        history.replaceState(null, '', '/' + location.search + (location.hash || hash));
+        replaceUrl('/' + location.search + (location.hash || hash));
     })();
     (function captureReferral() {
         var m = /[?&]ref=([A-Za-z0-9]{4,12})/.exec(location.search);
         if (!m) return;
         try { localStorage.setItem(REF_KEY, m[1].toUpperCase()); } catch (e) { /* sin almacenamiento */ }
-        history.replaceState(null, '', location.pathname + location.hash);
+        replaceUrl(location.pathname + location.hash);
         if (!sessionToken()) setTimeout(function () { toast('¡Un amigo te regaló un descuento! Crea tu cuenta en «Mi cuenta» para recibirlo.'); }, 1800);
     })();
+    if (!history.state || !history.state.initial) history.replaceState({ initial: true }, '', location.href);
     route();
     loadRemoteCatalog();
     setTimeout(checkMyOrders, 1500);

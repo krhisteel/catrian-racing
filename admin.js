@@ -1,6 +1,10 @@
 (function () {
     var DB = window.CATRIAN_SUPABASE;
     var SESSION_KEY = 'catrian-admin-session';
+    var ACTIVITY_KEY = 'catrian-admin-activity';
+    // Por seguridad la sesión no queda guardada: dura mientras el navegador esté abierto
+    // y se cierra sola tras 20 minutos sin actividad.
+    var IDLE_LIMIT = 20 * 60 * 1000;
     // Cada usuario del panel es una cuenta interna <usuario>@admin.catrianracing.cl (no recibe correos).
     var USER_DOMAIN = '@admin.catrianracing.cl';
     var USERNAME_RE = /^[a-z0-9][a-z0-9._-]{2,29}$/;
@@ -114,17 +118,47 @@
     function saveSession(s) {
         session = s;
         try {
-            if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s));
-            else localStorage.removeItem(SESSION_KEY);
+            if (s) {
+                sessionStorage.setItem(SESSION_KEY, JSON.stringify(s));
+                markActivity();
+            } else {
+                sessionStorage.removeItem(SESSION_KEY);
+                sessionStorage.removeItem(ACTIVITY_KEY);
+            }
         } catch (e) { /* sin almacenamiento: la sesión dura mientras la página esté abierta */ }
     }
 
     function loadSession() {
+        // Versiones anteriores guardaban la sesión de forma permanente: se elimina.
+        try { localStorage.removeItem(SESSION_KEY); } catch (e) { /* sin almacenamiento */ }
         try {
-            var s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-            if (s && s.access_token && s.refresh_token) session = s;
+            var s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+            var last = Number(sessionStorage.getItem(ACTIVITY_KEY) || 0);
+            if (s && s.access_token && s.refresh_token && Date.now() - last < IDLE_LIMIT) session = s;
+            else saveSession(null);
         } catch (e) { session = null; }
     }
+
+    var lastActivity = Date.now();
+    function markActivity() {
+        lastActivity = Date.now();
+        try { sessionStorage.setItem(ACTIVITY_KEY, String(lastActivity)); } catch (e) { /* sin almacenamiento */ }
+    }
+
+    var activityThrottle = 0;
+    ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(function (type) {
+        document.addEventListener(type, function () {
+            if (!session || Date.now() - activityThrottle < 15000) return;
+            activityThrottle = Date.now();
+            markActivity();
+        }, { passive: true, capture: true });
+    });
+
+    setInterval(function () {
+        if (session && Date.now() - lastActivity > IDLE_LIMIT) {
+            logout('Por seguridad cerramos tu sesión después de 20 minutos sin actividad. Ingresa nuevamente.');
+        }
+    }, 30000);
 
     function withExpiry(s) {
         if (!s.expires_at) s.expires_at = Math.floor(Date.now() / 1000) + (s.expires_in || 3600);
@@ -276,11 +310,11 @@
         busy(form, false);
     }
 
-    async function logout() {
+    async function logout(message) {
         try { await raw('/auth/v1/logout', { method: 'POST' }); } catch (e) { /* la sesión igual se cierra */ }
         saveSession(null);
         closeSide();
-        showAuth('login-form', 'Sesión cerrada.', true);
+        showAuth('login-form', typeof message === 'string' ? message : 'Sesión cerrada.', true);
     }
 
     async function enterApp() {

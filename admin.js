@@ -574,7 +574,7 @@
         items.appendChild(ul);
         totalRow(items, 'Subtotal', money(o.subtotal));
         if (o.discount) totalRow(items, 'Cupón ' + (o.coupon || ''), '−' + money(o.discount));
-        totalRow(items, 'Envío', o.delivery === 'retiro' ? 'Retiro' : (o.shipping_pending ? 'A cotizar' : 'Gratis'));
+        totalRow(items, 'Envío', o.delivery === 'retiro' ? 'Retiro' : (o.shipping_pending ? 'A cotizar' : (o.shipping ? money(o.shipping) + ' · ' + (o.region || '') : 'Gratis')));
         totalRow(items, 'Total', money(o.total) + (o.shipping_pending ? ' + envío' : ''), true);
         body.appendChild(items);
 
@@ -1277,7 +1277,43 @@
     }
 
     /* ===== AJUSTES ===== */
+    var REGIONS = ['Arica y Parinacota', 'Tarapacá', 'Antofagasta', 'Atacama', 'Coquimbo', 'Valparaíso', 'Metropolitana',
+        "O'Higgins", 'Maule', 'Ñuble', 'Biobío', 'La Araucanía', 'Los Ríos', 'Los Lagos', 'Aysén', 'Magallanes'];
+
+    function renderRates() {
+        var grid = $('rates-grid');
+        grid.textContent = '';
+        var rates = data.settings.shipping_rates || {};
+        REGIONS.forEach(function (region) {
+            var i = input('number', rates[region] === undefined ? '' : rates[region], { min: 0, step: 100, placeholder: 'A cotizar' });
+            i.dataset.region = region;
+            grid.appendChild(field(region, i));
+        });
+    }
+
+    async function onRatesSave(e) {
+        e.preventDefault();
+        var rates = {};
+        var bad = false;
+        $('rates-grid').querySelectorAll('input').forEach(function (i) {
+            if (i.value === '') return;
+            var n = parseInt(i.value, 10);
+            if (isNaN(n) || n < 0) bad = true;
+            else rates[i.dataset.region] = n;
+        });
+        if (bad) return toast('Revisa las tarifas: deben ser montos en pesos.', true);
+        try {
+            await api('/rest/v1/settings?on_conflict=key', {
+                method: 'POST', headers: { Prefer: 'resolution=merge-duplicates' },
+                body: [{ key: 'shipping_rates', value: rates }]
+            });
+            data.settings.shipping_rates = rates;
+            toast('Tarifas de envío guardadas. La tienda ya las usa.');
+        } catch (err) { toast(err.message, true); }
+    }
+
     function renderSettings() {
+        renderRates();
         $('set-whatsapp').value = data.settings.whatsapp || '';
         $('set-free').value = data.settings.free_shipping_from === undefined ? '' : data.settings.free_shipping_from;
         $('set-announce').value = (data.settings.announce || []).join('\n');
@@ -1423,6 +1459,7 @@
     $('coupon-form').addEventListener('submit', onCouponCreate);
     $('vehicle-form').addEventListener('submit', onVehicleCreate);
     $('settings-form').addEventListener('submit', onSettingsSave);
+    $('rates-form').addEventListener('submit', onRatesSave);
     $('admin-form').addEventListener('submit', onAdminAdd);
     $('password-form').addEventListener('submit', onPasswordChange);
 

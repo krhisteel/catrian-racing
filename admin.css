@@ -1076,3 +1076,18 @@ select.status-select.status-cancelado {
     margin-top: 12px;
     margin-right: 8px;
 }
+
+/* ===== TARIFAS DE ENVÍO ===== */
+.rates-card {
+    grid-column: 1 / -1;
+}
+
+.rates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 0 14px;
+}
+
+.rates-grid .form-field label {
+    margin-top: 10px;
+}

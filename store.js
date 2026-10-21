@@ -1,6 +1,12 @@
 (function () {
     var WHATSAPP = '56936621284';
     var FREE_SHIPPING_FROM = 100000;
+    // Tarifas de envío por región (se administran en Ajustes del panel).
+    var SHIPPING_RATES = {
+        'Arica y Parinacota': 7990, 'Tarapacá': 7990, 'Antofagasta': 7990, 'Atacama': 6490, 'Coquimbo': 6490,
+        'Valparaíso': 5490, 'Metropolitana': 3990, "O'Higgins": 5490, 'Maule': 5990, 'Ñuble': 5990, 'Biobío': 5990,
+        'La Araucanía': 6990, 'Los Ríos': 6990, 'Los Lagos': 6990, 'Aysén': 9990, 'Magallanes': 9990
+    };
     var STORAGE_KEY = 'catrian-cart';
     var FAVS_KEY = 'catrian-favs';
     var RECENT_KEY = 'catrian-recent';
@@ -1073,6 +1079,7 @@
         var total = el('p', 'track-total');
         total.appendChild(document.createTextNode('Total: '));
         total.appendChild(el('strong', '', money(o.total) + (o.shipping_pending ? ' + envío' : '')));
+        if (o.delivery === 'despacho' && !o.shipping_pending) total.appendChild(el('span', '', ' · envío ' + (o.shipping ? money(o.shipping) : 'gratis')));
         total.appendChild(el('span', '', ' · ' + o.payment));
         result.appendChild(total);
 
@@ -1348,7 +1355,7 @@
                 var ul2 = el('ul', 'pdp-ship');
                 [
                     'Despacho a todo Chile en 24–48 h hábiles desde que confirmamos tu pago.',
-                    p.freeShip ? 'Este producto tiene despacho gratis.' : 'Envío gratis en compras sobre ' + money(FREE_SHIPPING_FROM) + '; bajo ese monto se cotiza según tu comuna.',
+                    p.freeShip ? 'Este producto tiene despacho gratis.' : 'Envío gratis en compras sobre ' + money(FREE_SHIPPING_FROM) + '; bajo ese monto el costo depende de tu región y lo ves antes de pagar.',
                     'Retiro gratis en tienda de lunes a viernes de 9:00 a 19:00 y sábados de 10:00 a 14:00.',
                     'El despacho a domicilio se paga solo con tarjeta de débito o crédito (link de pago). Al retirar en tienda también puedes pagar con transferencia o efectivo.',
                     'Puedes seguir tu pedido en «Mi pedido» con tu número de pedido y los últimos 4 dígitos de tu teléfono.',
@@ -1700,10 +1707,17 @@
         updateTotals();
     }
 
+    // Igual que shipping_quote() en la base de datos: null = sin tarifa para esa región.
+    function quoteShipping(region) {
+        var allFree = cart.length && cart.every(function (line) { return byId[line.id] && byId[line.id].freeShip; });
+        if (allFree || cartSubtotal() >= FREE_SHIPPING_FROM) return 0;
+        var rate = SHIPPING_RATES[region];
+        return typeof rate === 'number' ? rate : null;
+    }
+
     function shippingCost() {
         var form = $('checkout-view');
-        if (form.delivery.value !== 'despacho') return 0;
-        return cartSubtotal() >= FREE_SHIPPING_FROM ? 0 : null;
+        return form.delivery.value === 'despacho' ? quoteShipping(form.region.value) : 0;
     }
 
     function couponDiscount() {
@@ -1742,15 +1756,17 @@
         var subtotal = cartSubtotal();
         var discountValue = couponDiscount();
         var shipping = shippingCost();
-        var free = subtotal >= FREE_SHIPPING_FROM;
-        $('ship-label').textContent = free ? 'Gratis' : 'A cotizar';
+        var shipQuote = quoteShipping(form.region.value);
+        $('ship-label').textContent = shipQuote === 0 ? 'Gratis' : (shipQuote === null ? 'A cotizar' : 'Desde ' + money(Math.min.apply(null, Object.keys(SHIPPING_RATES).map(function (k) { return SHIPPING_RATES[k]; }))));
         $('ship-fields').hidden = form.delivery.value !== 'despacho';
         syncPayment();
         $('co-subtotal').textContent = money(subtotal);
         $('co-discount-row').hidden = !discountValue;
         $('co-discount').textContent = '−' + money(discountValue);
-        $('co-shipping').textContent = shipping === null ? 'A cotizar' : 'Gratis';
-        $('co-total').textContent = money(subtotal - discountValue) + (shipping === null ? ' + envío' : '');
+        var shipText = form.delivery.value !== 'despacho' ? 'Retiro gratis'
+            : (shipping === null ? 'A cotizar' : (shipping === 0 ? 'Gratis' : money(shipping) + ' · ' + form.region.value));
+        $('co-shipping').textContent = shipText;
+        $('co-total').textContent = money(subtotal - discountValue + (shipping || 0)) + (shipping === null ? ' + envío' : '');
     }
 
     // Despacho a domicilio: solo tarjeta (no transferencia ni efectivo).
@@ -1861,8 +1877,9 @@
                 subtotal: subtotal,
                 discount: discountValue,
                 coupon: state.coupon,
+                shipping: shippingCost() || 0,
                 shipping_pending: shippingCost() === null,
-                total: subtotal - discountValue
+                total: subtotal - discountValue + (shippingCost() || 0)
             });
         });
     }
@@ -1880,7 +1897,7 @@
         lines.push('');
         lines.push('Subtotal: ' + money(order.subtotal));
         if (order.discount) lines.push('Cupón ' + order.coupon + ': −' + money(order.discount));
-        lines.push('Envío: ' + (data.delivery === 'retiro' ? 'Retiro en tienda' : (order.shipping_pending ? 'A cotizar' : 'Gratis')));
+        lines.push('Envío: ' + (data.delivery === 'retiro' ? 'Retiro en tienda' : (order.shipping_pending ? 'A cotizar' : (order.shipping ? money(order.shipping) : 'Gratis'))));
         lines.push('Total: ' + money(order.total) + (order.shipping_pending ? ' + envío' : ''));
         lines.push('');
         lines.push('Nombre: ' + data.name);
@@ -1964,6 +1981,7 @@
         rows.forEach(function (row) {
             if (row.key === 'whatsapp' && row.value) WHATSAPP = String(row.value).replace(/\D/g, '');
             if (row.key === 'free_shipping_from' && row.value >= 0) FREE_SHIPPING_FROM = Number(row.value);
+            if (row.key === 'shipping_rates' && row.value && typeof row.value === 'object') SHIPPING_RATES = row.value;
             if (row.key === 'announce' && Array.isArray(row.value)) {
                 var bar = document.querySelector('.announce');
                 if (bar) {

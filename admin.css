@@ -1112,3 +1112,10 @@ select.status-select.status-cancelado {
     margin-top: 14px;
     color: var(--text);
 }
+
+/* ===== CORREOS ===== */
+.inline-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}

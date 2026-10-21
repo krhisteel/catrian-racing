@@ -329,6 +329,503 @@
         }, function () { toast('No pudimos recuperar tu carro ahora.'); });
     }
 
+    /* ===== CUENTA DEL CLIENTE ===== */
+    var SESSION_KEY = 'catrian-session';
+    var REF_KEY = 'catrian-ref';
+    var customer = null;
+    var accountTab = 'pedidos';
+    var accountReturn = '';
+
+    function sessionToken() {
+        try { return localStorage.getItem(SESSION_KEY) || ''; } catch (e) { return ''; }
+    }
+
+    function setSession(token) {
+        try {
+            if (token) localStorage.setItem(SESSION_KEY, token);
+            else localStorage.removeItem(SESSION_KEY);
+        } catch (e) { /* sin almacenamiento */ }
+    }
+
+    function loadCustomer() {
+        var token = sessionToken();
+        if (!token) return Promise.resolve(null);
+        return rpc('customer_me', { p_token: token }).then(function (me) {
+            if (!me) {
+                setSession('');
+                customer = null;
+            } else {
+                customer = me;
+                applyCustomer();
+            }
+            $('account-dot').hidden = !customer;
+            return customer;
+        }, function () { return null; });
+    }
+
+    function applyCustomer() {
+        if (!customer) return;
+        var form = $('checkout-view');
+        if (!form.name.value && customer.name) form.name.value = customer.name;
+        if (!form.phone.value && customer.phone) form.phone.value = customer.phone;
+        if (!form.email.value) form.email.value = customer.email;
+        try { localStorage.setItem(CONTACT_KEY, JSON.stringify({ email: customer.email, name: customer.name || '' })); } catch (e) { /* sin almacenamiento */ }
+        if (!state.vehicle && customer.garage.length) {
+            var withId = customer.garage.filter(function (g) { return g.vehicle_id && vehicleById[g.vehicle_id]; })[0];
+            if (withId) setVehicle(withId.vehicle_id);
+        }
+        if (customer.wholesale_status === 'approved') {
+            rpc('customer_wholesale_prices', { p_token: sessionToken() }).then(applyWholesale, function () {});
+        }
+    }
+
+    // Mayoristas aprobados ven su precio especial en toda la tienda.
+    function applyWholesale(prices) {
+        var changed = false;
+        products.forEach(function (p) {
+            if (prices && prices[p.id] !== undefined && !p.wholesale) {
+                p.retailPrice = p.price;
+                p.price = prices[p.id];
+                p.compare = p.retailPrice > p.price ? p.retailPrice : p.compare;
+                p.wholesale = true;
+                changed = true;
+            }
+        });
+        document.body.classList.add('is-wholesale');
+        if (changed) {
+            renderProducts();
+            renderCart();
+            updateTotals();
+        }
+    }
+
+    function openAccount() {
+        var modal = $('account-modal');
+        if (modal.hidden) {
+            accountReturn = /^#cuenta/.test(location.hash) ? '' : location.hash;
+            lastFocus = document.activeElement;
+            modal.hidden = false;
+            document.body.classList.add('locked');
+        }
+        $('acc-error').textContent = '';
+        if (sessionToken()) {
+            loadCustomer().then(function () { renderAccount(); });
+        }
+        renderAccount();
+    }
+
+    function closeAccount() {
+        var modal = $('account-modal');
+        if (modal.hidden) return;
+        modal.hidden = true;
+        if (!$('cart').classList.contains('open') && $('product-modal').hidden && $('track-modal').hidden) document.body.classList.remove('locked');
+        if (/^#cuenta/.test(location.hash)) history.replaceState(null, '', accountReturn || location.pathname + location.search);
+        accountReturn = '';
+        if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+    }
+
+    function renderAccount() {
+        var logged = !!customer;
+        $('account-login').hidden = logged;
+        $('account-panel').hidden = !logged;
+        $('account-title').textContent = logged ? 'Mi cuenta' : 'Entra a tu cuenta';
+        if (!logged) {
+            var ref = '';
+            try { ref = localStorage.getItem(REF_KEY) || ''; } catch (e) { /* sin almacenamiento */ }
+            $('account-gift').hidden = !ref;
+            $('account-gift').textContent = ref ? 'Te recomendó un amigo: al crear tu cuenta recibes un cupón de bienvenida.' : '';
+            if (!$('acc-email').value) $('acc-email').value = savedContact().email || '';
+            return;
+        }
+        $('acc-hello').textContent = 'Hola' + (customer.name ? ', ' + customer.name.split(' ')[0] : '') + ' · ' + customer.email;
+        var tabs = $('acc-tabs');
+        tabs.textContent = '';
+        [['pedidos', 'Pedidos'], ['garaje', 'Mi garaje'], ['puntos', 'Puntos'], ['datos', 'Mis datos']].forEach(function (t) {
+            var b = el('button', 'pdp-tab', t[1]);
+            b.type = 'button';
+            b.setAttribute('role', 'tab');
+            b.setAttribute('aria-selected', accountTab === t[0] ? 'true' : 'false');
+            b.addEventListener('click', function () { accountTab = t[0]; renderAccount(); });
+            tabs.appendChild(b);
+        });
+        var body = $('acc-body');
+        body.textContent = '';
+        if (accountTab === 'pedidos') renderAccountOrders(body);
+        else if (accountTab === 'garaje') renderGarage(body);
+        else if (accountTab === 'puntos') renderPoints(body);
+        else renderAccountData(body);
+    }
+
+    function accountError(err) {
+        toast(err && err.message ? err.message : 'No pudimos completar la acción. Intenta de nuevo.');
+        if (err && /sesión/.test(err.message || '')) { setSession(''); customer = null; renderAccount(); }
+    }
+
+    function renderAccountOrders(body) {
+        if (!customer.orders.length) {
+            body.appendChild(el('p', 'track-muted', 'Aún no tienes pedidos con este correo.'));
+            return;
+        }
+        var ul = el('ul', 'acc-list');
+        customer.orders.forEach(function (o) {
+            var li = el('li', 'acc-item');
+            var top = el('div', 'acc-item-top');
+            top.appendChild(el('strong', '', o.ref));
+            top.appendChild(el('span', 'acc-status status-' + o.status, STATUS_TEXT[o.status] || o.status));
+            li.appendChild(top);
+            li.appendChild(el('p', 'track-muted', new Date(o.created_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + money(o.total)));
+            li.appendChild(el('p', 'acc-items', o.items.map(function (i) { return i.qty + ' × ' + i.name + (i.option ? ' (' + i.option + ')' : ''); }).join(', ')));
+            var actions = el('div', 'acc-actions');
+            var see = el('button', 'btn btn-ghost btn-sm', 'Ver seguimiento');
+            see.type = 'button';
+            see.addEventListener('click', function () {
+                rememberOrder(o.ref, o.phone4, o.status);
+                closeAccount();
+                location.hash = '#seguimiento/' + o.ref;
+            });
+            actions.appendChild(see);
+            var again = el('button', 'btn btn-ghost btn-sm', 'Volver a comprar');
+            again.type = 'button';
+            again.addEventListener('click', function () {
+                var added = 0;
+                o.items.forEach(function (i) {
+                    var p = byId[i.id];
+                    if (p && !p.quote && maxQty(p, i.option) > 0) { addToCart(i.id, i.option || '', i.qty); added++; }
+                });
+                toast(added ? 'Agregamos ' + added + (added === 1 ? ' producto' : ' productos') + ' al carro' : 'Esos productos no están disponibles ahora');
+            });
+            actions.appendChild(again);
+            li.appendChild(actions);
+            ul.appendChild(li);
+        });
+        body.appendChild(ul);
+        if (customer.bookings.length) {
+            body.appendChild(el('h3', 'acc-subtitle', 'Mis horas de taller'));
+            var ub = el('ul', 'acc-list');
+            customer.bookings.forEach(function (b) {
+                var li = el('li', 'acc-item');
+                var top = el('div', 'acc-item-top');
+                top.appendChild(el('strong', '', b.service));
+                top.appendChild(el('span', 'acc-status', { pendiente: 'Por confirmar', confirmada: 'Confirmada', completada: 'Completada', cancelada: 'Cancelada' }[b.status] || b.status));
+                li.appendChild(top);
+                li.appendChild(el('p', 'track-muted', new Date(b.day + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' }) + ' · ' + b.slot + ' · ' + b.vehicle + ' · ' + b.ref));
+                ub.appendChild(li);
+            });
+            body.appendChild(ub);
+        }
+    }
+
+    function renderGarage(body) {
+        var ul = el('ul', 'acc-list');
+        if (!customer.garage.length) body.appendChild(el('p', 'track-muted', 'Agrega tu moto para ver solo lo compatible, armar tu kit de mantención y agendar el taller más rápido.'));
+        customer.garage.forEach(function (g) {
+            var li = el('li', 'acc-item');
+            var top = el('div', 'acc-item-top');
+            top.appendChild(el('strong', '', g.label + (g.year ? ' ' + g.year : '')));
+            if (g.km) top.appendChild(el('span', 'track-muted', g.km.toLocaleString('es-CL') + ' km'));
+            li.appendChild(top);
+            var actions = el('div', 'acc-actions');
+            if (g.vehicle_id && vehicleById[g.vehicle_id]) {
+                var use = el('button', 'btn btn-primary btn-sm', state.vehicle === g.vehicle_id ? '✓ Usando en la tienda' : 'Ver repuestos compatibles');
+                use.type = 'button';
+                use.addEventListener('click', function () {
+                    setVehicle(g.vehicle_id);
+                    closeAccount();
+                    goToShop('Repuestos');
+                });
+                actions.appendChild(use);
+            }
+            var book = el('button', 'btn btn-ghost btn-sm', 'Agendar taller');
+            book.type = 'button';
+            book.addEventListener('click', function () {
+                $('book-vehicle').value = g.label + (g.year ? ' ' + g.year : '');
+                closeAccount();
+                location.hash = '#agendar';
+            });
+            actions.appendChild(book);
+            var rm = el('button', 'back-link', 'Quitar');
+            rm.type = 'button';
+            rm.addEventListener('click', function () {
+                rpc('customer_garage_remove', { p_token: sessionToken(), p_id: g.id }).then(function () {
+                    return loadCustomer();
+                }).then(renderAccount, accountError);
+            });
+            actions.appendChild(rm);
+            li.appendChild(actions);
+            ul.appendChild(li);
+        });
+        body.appendChild(ul);
+        var form = el('form', 'book-form garage-form');
+        form.noValidate = true;
+        form.appendChild(el('h3', 'acc-subtitle', 'Agregar moto'));
+        var sel = el('select');
+        sel.setAttribute('aria-label', 'Tu moto');
+        var first = el('option', '', 'Elige tu moto...');
+        first.value = '';
+        sel.appendChild(first);
+        vehicles.slice().sort(function (a, b) { return (a.brand + a.model).localeCompare(b.brand + b.model); }).forEach(function (v) {
+            var o = el('option', '', v.brand + ' ' + v.model);
+            o.value = v.id;
+            sel.appendChild(o);
+        });
+        var other = el('option', '', 'Otra (no está en la lista)');
+        other.value = 'otra';
+        sel.appendChild(other);
+        form.appendChild(sel);
+        var label = el('input');
+        label.placeholder = 'Marca y modelo';
+        label.maxLength = 80;
+        label.hidden = true;
+        label.setAttribute('aria-label', 'Marca y modelo');
+        form.appendChild(label);
+        sel.addEventListener('change', function () { label.hidden = sel.value !== 'otra'; });
+        var row = el('div', 'book-row');
+        var year = el('input');
+        year.type = 'number';
+        year.placeholder = 'Año';
+        year.min = 1950;
+        year.max = 2100;
+        year.setAttribute('aria-label', 'Año');
+        var km = el('input');
+        km.type = 'number';
+        km.placeholder = 'Kilometraje';
+        km.min = 0;
+        km.setAttribute('aria-label', 'Kilometraje');
+        row.appendChild(year);
+        row.appendChild(km);
+        form.appendChild(row);
+        var add = el('button', 'btn btn-primary btn-sm', 'Agregar a mi garaje');
+        add.type = 'submit';
+        form.appendChild(add);
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var vid = sel.value && sel.value !== 'otra' ? sel.value : null;
+            var name = vid ? vehicleName(vid) : label.value.trim();
+            if (!name) return toast('Elige tu moto o escribe la marca y modelo.');
+            add.disabled = true;
+            rpc('customer_garage_add', { p_token: sessionToken(), p_vehicle: vid, p_label: name,
+                p_year: parseInt(year.value, 10) || null, p_km: parseInt(km.value, 10) || null })
+                .then(function () {
+                    if (vid) setVehicle(vid);
+                    return loadCustomer();
+                }).then(renderAccount, function (err) { add.disabled = false; accountError(err); });
+        });
+        body.appendChild(form);
+    }
+
+    function renderPoints(body) {
+        var l = customer.loyalty || {};
+        var box = el('div', 'points-box');
+        box.appendChild(el('strong', 'points-num', customer.points.toLocaleString('es-CL')));
+        box.appendChild(el('span', '', 'puntos · equivalen a ' + money(customer.points) + ' de descuento'));
+        body.appendChild(box);
+        if (l.enabled) body.appendChild(el('p', 'track-muted', 'Ganas ' + String(l.earn_percent).replace('.', ',') + '% de cada compra en puntos (1 punto = $1). Puedes canjear desde 1.000 puntos.'));
+        if (l.enabled && customer.points >= 1000) {
+            var form = el('form', 'notify-row');
+            var amount = el('input');
+            amount.type = 'number';
+            amount.min = 1000;
+            amount.max = customer.points;
+            amount.step = 100;
+            amount.value = customer.points;
+            amount.setAttribute('aria-label', 'Puntos a canjear');
+            form.appendChild(amount);
+            var go = el('button', 'btn btn-primary btn-sm', 'Canjear');
+            go.type = 'submit';
+            form.appendChild(go);
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                go.disabled = true;
+                rpc('customer_redeem_points', { p_token: sessionToken(), p_points: parseInt(amount.value, 10) }).then(function (code) {
+                    toast('Tu cupón ' + code + ' está listo');
+                    return loadCustomer();
+                }).then(renderAccount, function (err) { go.disabled = false; accountError(err); });
+            });
+            body.appendChild(form);
+        }
+        if (customer.coupons.length) {
+            body.appendChild(el('h3', 'acc-subtitle', 'Tus cupones'));
+            customer.coupons.forEach(function (c) {
+                var row = el('div', 'coupon-chip');
+                row.appendChild(el('strong', '', c.code));
+                row.appendChild(el('span', '', money(c.amount) + ' de descuento' + (c.min_subtotal ? ' desde ' + money(c.min_subtotal) : '') +
+                    (c.expires_at ? ' · vence el ' + new Date(c.expires_at).toLocaleDateString('es-CL') : '')));
+                var use = el('button', 'back-link', 'Usar ahora');
+                use.type = 'button';
+                use.addEventListener('click', function () {
+                    $('coupon-input').value = c.code;
+                    closeAccount();
+                    openCart();
+                    if (cart.length) { showView('checkout-view'); applyCoupon(); }
+                });
+                row.appendChild(use);
+                body.appendChild(row);
+            });
+        }
+        if (l.enabled && l.referral_bonus) {
+            body.appendChild(el('h3', 'acc-subtitle', 'Recomienda y gana'));
+            body.appendChild(el('p', 'track-muted', 'Tu amigo recibe ' + money(l.welcome_amount) + ' de descuento' + (l.welcome_min ? ' en compras desde ' + money(l.welcome_min) : '') +
+                ' y tú ganas ' + l.referral_bonus.toLocaleString('es-CL') + ' puntos cuando haga su primera compra.'));
+            var link = (/^https:/.test(location.protocol) ? location.origin + '/' : location.href.split('#')[0]) + '?ref=' + customer.referral_code;
+            var share = el('div', 'notify-row');
+            var input = el('input');
+            input.readOnly = true;
+            input.value = link;
+            input.setAttribute('aria-label', 'Tu enlace para recomendar');
+            share.appendChild(input);
+            var copy = el('button', 'btn btn-primary btn-sm', navigator.share ? 'Compartir' : 'Copiar');
+            copy.type = 'button';
+            copy.addEventListener('click', function () {
+                var text = 'Te regalo ' + money(l.welcome_amount) + ' para tu primera compra en Catrian Racing: ' + link;
+                if (navigator.share) navigator.share({ title: 'Catrian Racing', text: text, url: link }).catch(function () {});
+                else if (navigator.clipboard) navigator.clipboard.writeText(link).then(function () { toast('Enlace copiado'); });
+                else { input.select(); }
+            });
+            share.appendChild(copy);
+            body.appendChild(share);
+            body.appendChild(externalLink('btn btn-ghost btn-sm', 'Enviar por WhatsApp',
+                'https://wa.me/?text=' + encodeURIComponent('Te regalo ' + money(l.welcome_amount) + ' para tu primera compra en Catrian Racing: ' + link)));
+        }
+        if (customer.ledger.length) {
+            body.appendChild(el('h3', 'acc-subtitle', 'Movimientos'));
+            var ul = el('ul', 'ledger');
+            customer.ledger.forEach(function (m) {
+                var li = el('li');
+                li.appendChild(el('span', '', m.reason));
+                li.appendChild(el('strong', m.delta < 0 ? 'neg' : '', m.delta ? (m.delta > 0 ? '+' : '') + m.delta.toLocaleString('es-CL') : ''));
+                ul.appendChild(li);
+            });
+            body.appendChild(ul);
+        }
+    }
+
+    function renderAccountData(body) {
+        var form = el('form', 'book-form');
+        form.noValidate = true;
+        var name = el('input');
+        name.value = customer.name || '';
+        name.autocomplete = 'name';
+        var phone = el('input');
+        phone.type = 'tel';
+        phone.value = customer.phone || '';
+        phone.autocomplete = 'tel';
+        var l1 = el('label', '', 'Nombre');
+        l1.appendChild(name);
+        var l2 = el('label', '', 'Teléfono');
+        l2.appendChild(phone);
+        form.appendChild(l1);
+        form.appendChild(l2);
+        var save = el('button', 'btn btn-primary btn-sm', 'Guardar');
+        save.type = 'submit';
+        form.appendChild(save);
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            rpc('customer_update', { p_token: sessionToken(), p_name: name.value.trim(), p_phone: phone.value.trim() })
+                .then(function () { toast('Datos guardados'); return loadCustomer(); }).then(renderAccount, accountError);
+        });
+        body.appendChild(form);
+
+        body.appendChild(el('h3', 'acc-subtitle', 'Precios para talleres y mayoristas'));
+        var st = customer.wholesale_status;
+        if (st === 'approved') {
+            body.appendChild(el('p', 'review-state', '✓ Cuenta mayorista aprobada' + (customer.company ? ' · ' + customer.company : '') + '. Ya ves tus precios especiales en la tienda.'));
+            return;
+        }
+        if (st === 'pending') {
+            body.appendChild(el('p', 'track-muted', 'Recibimos tu solicitud' + (customer.company ? ' para ' + customer.company : '') + '. Te avisaremos cuando esté aprobada.'));
+            return;
+        }
+        body.appendChild(el('p', 'track-muted', st === 'rejected'
+            ? 'Tu solicitud anterior no fue aprobada. Si tus datos cambiaron, puedes volver a enviarla o escribirnos.'
+            : 'Si tienes un taller o compras por volumen, solicita acceso a precios especiales.'));
+        var wf = el('form', 'book-form');
+        wf.noValidate = true;
+        var company = el('input');
+        company.placeholder = 'Empresa o taller';
+        company.setAttribute('aria-label', 'Empresa o taller');
+        var rut = el('input');
+        rut.placeholder = 'RUT de la empresa';
+        rut.setAttribute('aria-label', 'RUT de la empresa');
+        var giro = el('input');
+        giro.placeholder = 'Giro (opcional)';
+        giro.setAttribute('aria-label', 'Giro');
+        wf.appendChild(company);
+        wf.appendChild(rut);
+        wf.appendChild(giro);
+        var apply = el('button', 'btn btn-ghost btn-sm', 'Solicitar precios mayoristas');
+        apply.type = 'submit';
+        wf.appendChild(apply);
+        wf.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (!validRut(rut.value)) return toast('Revisa el RUT de la empresa.');
+            rpc('customer_wholesale_apply', { p_token: sessionToken(), p_company: company.value.trim(), p_rut: rut.value, p_giro: giro.value.trim() })
+                .then(function () { toast('Solicitud enviada'); return loadCustomer(); }).then(renderAccount, accountError);
+        });
+        body.appendChild(wf);
+    }
+
+    function requestCode(e) {
+        e.preventDefault();
+        var email = $('acc-email').value.trim().toLowerCase();
+        var error = $('acc-error');
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { error.textContent = 'Escribe un correo válido.'; return; }
+        error.textContent = '';
+        var btn = $('login-email-form').querySelector('button');
+        btn.disabled = true;
+        rpc('customer_request_code', { p_email: email }).then(function () {
+            $('login-email-form').hidden = true;
+            $('login-code-form').hidden = false;
+            error.textContent = '';
+            $('acc-code').value = '';
+            $('acc-code').focus();
+            toast('Te enviamos un código a ' + email);
+        }, function (err) {
+            error.textContent = err && err.message ? err.message : 'No pudimos enviar el código. Intenta de nuevo.';
+        }).then(function () { btn.disabled = false; });
+    }
+
+    function verifyCode(e) {
+        e.preventDefault();
+        var error = $('acc-error');
+        var code = $('acc-code').value.replace(/\D/g, '');
+        if (code.length !== 6) { error.textContent = 'El código tiene 6 dígitos.'; return; }
+        var ref = '';
+        try { ref = localStorage.getItem(REF_KEY) || ''; } catch (e2) { /* sin almacenamiento */ }
+        var btn = $('login-code-form').querySelector('button[type="submit"]');
+        btn.disabled = true;
+        rpc('customer_verify_code', { p_email: $('acc-email').value.trim().toLowerCase(), p_code: code, p_ref: ref || null }).then(function (res) {
+            if (!res || res.error) {
+                error.textContent = (res && res.error) || 'El código no es correcto.';
+                return;
+            }
+            setSession(res.token);
+            try { localStorage.removeItem(REF_KEY); } catch (e3) { /* sin almacenamiento */ }
+            $('login-email-form').hidden = false;
+            $('login-code-form').hidden = true;
+            accountTab = res.new ? 'garaje' : 'pedidos';
+            return loadCustomer().then(function () {
+                renderAccount();
+                toast(res.new ? '¡Bienvenido! Tu cuenta está lista' : '¡Hola de nuevo!');
+            });
+        }, function (err) {
+            error.textContent = err && err.message ? err.message : 'No pudimos verificar el código.';
+        }).then(function () { btn.disabled = false; });
+    }
+
+    function logout() {
+        var token = sessionToken();
+        setSession('');
+        customer = null;
+        $('account-dot').hidden = true;
+        rpc('customer_logout', { p_token: token }).catch(function () {});
+        if (document.body.classList.contains('is-wholesale')) {
+            location.reload();
+            return;
+        }
+        renderAccount();
+        toast('Cerraste tu sesión');
+    }
+
     /* ===== FINANCIAMIENTO Y PARTE DE PAGO (MOTOS) ===== */
     var FINANCING = { enabled: true, rate: 1.89, min_down: 20, terms: [12, 24, 36, 48] };
 
@@ -1617,6 +2114,12 @@
     }
 
     function route() {
+        if (/^#cuenta$/.test(location.hash)) {
+            if (!$('product-modal').hidden) closeModal(true);
+            openAccount();
+            return;
+        }
+        if (!$('account-modal').hidden) closeAccount();
         if (/^#vende-tu-moto$/.test(location.hash)) {
             if (!$('product-modal').hidden) closeModal(true);
             openLead('parte_pago', null);
@@ -2578,7 +3081,8 @@
             p_name: data.name, p_phone: data.phone, p_email: data.email, p_delivery: data.delivery,
             p_region: data.region, p_commune: data.commune, p_address: data.address,
             p_payment: data.payment, p_notes: data.notes, p_coupon: state.coupon || '',
-            p_doc_type: data.doc, p_billing: data.billing
+            p_doc_type: data.doc, p_billing: data.billing,
+            p_customer_token: sessionToken() || null
         }).then(function (order) {
             rpc('cart_converted', { p_token: cartToken() }).catch(function () {});
             trackEvent('purchase', cartItems(), { transaction_id: order.ref, value: order.total, shipping: order.shipping || 0, coupon: order.coupon || undefined });
@@ -3026,6 +3530,7 @@
             if (state.collection) renderCollectionHead();
             if (parseCollection()) route();
             else if ($('product-modal').hidden) openFromHash();
+            loadCustomer();
         }, function () { /* sin conexión: se mantiene el catálogo de respaldo */ });
     }
 
@@ -3143,7 +3648,8 @@
             return;
         }
         if (e.key !== 'Escape') return;
-        if (!$('lead-modal').hidden) closeLead();
+        if (!$('account-modal').hidden) closeAccount();
+        else if (!$('lead-modal').hidden) closeLead();
         else if (!$('book-modal').hidden) closeBooking();
         else if (!$('track-modal').hidden) closeTracking();
         else if (modalOpen) closeModal();
@@ -3153,6 +3659,19 @@
     $('track-form').addEventListener('submit', searchTracking);
     $('book-form').addEventListener('submit', submitBooking);
     $('lead-form').addEventListener('submit', submitLead);
+    $('login-email-form').addEventListener('submit', requestCode);
+    $('login-code-form').addEventListener('submit', verifyCode);
+    $('acc-change').addEventListener('click', function () {
+        $('login-email-form').hidden = false;
+        $('login-code-form').hidden = true;
+        $('acc-error').textContent = '';
+        $('acc-email').focus();
+    });
+    $('acc-logout').addEventListener('click', logout);
+    $('account-close').addEventListener('click', closeAccount);
+    $('account-modal').addEventListener('click', function (e) {
+        if (e.target === this) closeAccount();
+    });
     $('lead-close').addEventListener('click', closeLead);
     $('lead-modal').addEventListener('click', function (e) {
         if (e.target === this) closeLead();
@@ -3245,6 +3764,13 @@
         var parts = m[2].split('/');
         var hash = m[1] === 'productos' ? '#p/' + parts[0] : '#c/' + parts.slice(0, 2).join('/');
         history.replaceState(null, '', '/' + location.search + (location.hash || hash));
+    })();
+    (function captureReferral() {
+        var m = /[?&]ref=([A-Za-z0-9]{4,12})/.exec(location.search);
+        if (!m) return;
+        try { localStorage.setItem(REF_KEY, m[1].toUpperCase()); } catch (e) { /* sin almacenamiento */ }
+        history.replaceState(null, '', location.pathname + location.hash);
+        if (!sessionToken()) setTimeout(function () { toast('¡Un amigo te regaló un descuento! Crea tu cuenta en «Mi cuenta» para recibirlo.'); }, 1800);
     })();
     route();
     loadRemoteCatalog();

@@ -367,6 +367,8 @@
             loadReviews();
             loadBookings();
             loadLeads();
+            loadCustomers();
+            loadLoyalty();
         } catch (e) {
             toast(e.message, true);
         }
@@ -1106,6 +1108,8 @@
         f.brand = input('text', p.brand || '', { list: 'dl-brands', placeholder: 'Ej: NGK' });
         f.price = input('number', p.price, { min: 0, step: 10, required: '' });
         f.compare = input('number', p.compare || '', { min: 0, step: 10, placeholder: 'Opcional' });
+        var wsCurrent = p.id && data.wholesale ? data.wholesale[p.id] : undefined;
+        f.wholesale = input('number', wsCurrent === undefined || wsCurrent === null ? '' : wsCurrent, { min: 0, step: 10, placeholder: 'Solo mayoristas aprobados' });
         f.stock = input('number', p.stock === null || p.stock === undefined ? '' : p.stock, { min: 0, placeholder: 'Vacío = sin control de stock' });
         f.desc = input('textarea', p.desc || '', { rows: 3 });
         f.badge = input('text', p.badge || '', { list: 'dl-badges', placeholder: 'Ej: Nuevo, Más vendido' });
@@ -1217,6 +1221,7 @@
         grid.appendChild(field('Etiqueta', f.badge));
         grid.appendChild(field('Precio ($)', f.price));
         grid.appendChild(field('Precio anterior ($)', f.compare));
+        grid.appendChild(field('Precio mayorista ($)', f.wholesale));
         grid.appendChild(field('Stock', f.stock));
         grid.appendChild(field('Cilindrada (cc)', f.cc));
         grid.appendChild(field('Código (SKU)', f.sku));
@@ -1401,6 +1406,15 @@
                     Object.assign(p, updated[0]);
                     toast('Producto guardado');
                 }
+                var savedId = isNew ? row.id : p.id;
+                var ws = f.wholesale.value === '' ? null : Math.max(0, parseInt(f.wholesale.value, 10) || 0);
+                var prevWs = data.wholesale ? data.wholesale[savedId] : undefined;
+                if ((prevWs === undefined ? null : prevWs) !== ws) {
+                    await api('/rest/v1/rpc/admin_set_wholesale_price', { method: 'POST', body: { p_product: savedId, p_price: ws } });
+                    data.wholesale = data.wholesale || {};
+                    if (ws === null) delete data.wholesale[savedId];
+                    else data.wholesale[savedId] = ws;
+                }
                 data.products.sort(function (a, b) { return a.sort - b.sort || a.name.localeCompare(b.name, 'es'); });
                 closeSide();
                 renderAll();
@@ -1571,6 +1585,118 @@
         } catch (err) {
             toast(err.status === 409 ? 'Ya existe un cupón con ese código.' : err.message, true);
         }
+    }
+
+    /* ===== CLIENTES ===== */
+    var customerFilter = 'todos';
+    var WHOLESALE_TEXT = { none: '', pending: 'Pide precios mayoristas', approved: 'Mayorista', rejected: 'Mayorista rechazado' };
+
+    async function loadCustomers() {
+        try {
+            data.customers = await api('/rest/v1/rpc/admin_customers', { method: 'POST', body: {} });
+        } catch (e) {
+            data.customers = [];
+        }
+        try {
+            data.wholesale = await api('/rest/v1/rpc/admin_wholesale_prices', { method: 'POST', body: {} });
+        } catch (e) {
+            data.wholesale = {};
+        }
+        renderCustomers();
+    }
+
+    function renderCustomers() {
+        var list = data.customers || [];
+        var pending = list.filter(function (c) { return c.wholesale_status === 'pending'; }).length;
+        $('badge-customers').hidden = !pending;
+        $('badge-customers').textContent = pending;
+        var chips = $('customers-filter');
+        chips.textContent = '';
+        [['todos', 'Todos', function () { return true; }],
+            ['pending', 'Solicitudes mayoristas', function (c) { return c.wholesale_status === 'pending'; }],
+            ['approved', 'Mayoristas', function (c) { return c.wholesale_status === 'approved'; }],
+            ['puntos', 'Con puntos', function (c) { return c.points > 0; }]].forEach(function (f) {
+            chips.appendChild(button(f[1] + ' (' + list.filter(f[2]).length + ')', 'chip' + (customerFilter === f[0] ? ' active' : ''), function () {
+                customerFilter = f[0];
+                renderCustomers();
+            }));
+            if (customerFilter === f[0]) list = list.filter(f[2]);
+        });
+        var q = $('customers-search').value.trim().toLowerCase();
+        if (q) list = list.filter(function (c) { return [c.email, c.name, c.company, c.phone].join(' ').toLowerCase().indexOf(q) !== -1; });
+        var wrap = $('customers-list');
+        wrap.textContent = '';
+        if (!list.length) wrap.appendChild(el('p', 'admin-empty', (data.customers || []).length ? 'Ningún cliente coincide.' : 'Aún no hay clientes con cuenta. Se crean desde «Mi cuenta» en la tienda.'));
+        list.forEach(function (c) {
+            var row = el('div', 'admin-row review-row');
+            var main = el('div', 'row-main static');
+            var title = el('span', 'row-title');
+            title.appendChild(el('strong', '', (c.name || c.email) + (WHOLESALE_TEXT[c.wholesale_status] ? ' · ' + WHOLESALE_TEXT[c.wholesale_status] : '')));
+            title.appendChild(el('span', 'row-sub', c.email + (c.phone ? ' · ' + c.phone : '') + ' · ' + c.orders + (c.orders === 1 ? ' compra' : ' compras') + ' · ' + money(c.spent) +
+                ' · ' + c.points.toLocaleString('es-CL') + ' pts · ' + c.referrals + (c.referrals === 1 ? ' referido' : ' referidos')));
+            var extra = [];
+            if (c.motos && c.motos.length) extra.push('Garaje: ' + c.motos.join(', '));
+            if (c.company) extra.push(c.company + (c.rut ? ' · RUT ' + formatRut(c.rut) : '') + (c.giro ? ' · ' + c.giro : ''));
+            if (extra.length) title.appendChild(el('span', 'review-body', extra.join(' · ')));
+            main.appendChild(title);
+            row.appendChild(main);
+            var controls = el('div', 'row-controls');
+            if (c.wholesale_status === 'pending' || c.wholesale_status === 'rejected') {
+                controls.appendChild(button('Aprobar mayorista', 'btn btn-sm btn-primary', function () { customerUpdate(c, { p_wholesale: 'approved' }, 'Mayorista aprobado'); }));
+            }
+            if (c.wholesale_status === 'pending') {
+                controls.appendChild(button('Rechazar', 'btn btn-sm btn-ghost', function () { customerUpdate(c, { p_wholesale: 'rejected' }, 'Solicitud rechazada'); }));
+            }
+            if (c.wholesale_status === 'approved') {
+                controls.appendChild(button('Quitar mayorista', 'btn btn-sm btn-ghost', function () {
+                    if (confirm('¿Quitar los precios mayoristas a ' + c.email + '?')) customerUpdate(c, { p_wholesale: 'none' }, 'Precios mayoristas quitados');
+                }));
+            }
+            controls.appendChild(button('Puntos ±', 'btn btn-sm btn-ghost', function () {
+                var v = prompt('Puntos a sumar (usa un número negativo para restar):', '1000');
+                if (v === null) return;
+                var n = parseInt(v, 10);
+                if (!n) return toast('Escribe un número distinto de cero.', true);
+                var reason = prompt('Motivo (lo verá el cliente):', n > 0 ? 'Regalo de la tienda' : 'Ajuste de la tienda');
+                if (reason === null) return;
+                customerUpdate(c, { p_points_delta: n, p_reason: reason }, 'Puntos actualizados');
+            }));
+            row.appendChild(controls);
+            wrap.appendChild(row);
+        });
+    }
+
+    async function customerUpdate(c, args, message) {
+        try {
+            await api('/rest/v1/rpc/admin_customer_update', { method: 'POST', body: Object.assign({ p_id: c.id, p_wholesale: null, p_points_delta: 0, p_reason: null }, args) });
+            toast(message);
+            loadCustomers();
+        } catch (e) { toast(e.message, true); }
+    }
+
+    async function loadLoyalty() {
+        try {
+            var l = await api('/rest/v1/rpc/admin_get_loyalty', { method: 'POST', body: {} });
+            $('loy-enabled').checked = l.enabled;
+            $('loy-earn').value = l.earn_percent;
+            $('loy-ref').value = l.referral_bonus;
+            $('loy-welcome').value = l.welcome_amount;
+            $('loy-welcome-min').value = l.welcome_min;
+        } catch (e) { /* sin configuración */ }
+    }
+
+    async function onLoyaltySave(e) {
+        e.preventDefault();
+        var earn = parseFloat($('loy-earn').value);
+        var ref = parseInt($('loy-ref').value, 10);
+        var welcome = parseInt($('loy-welcome').value, 10);
+        var min = parseInt($('loy-welcome-min').value, 10) || 0;
+        if (isNaN(earn) || earn < 0 || earn > 20) return toast('Los puntos por compra deben estar entre 0 y 20%.', true);
+        if (isNaN(ref) || ref < 0 || isNaN(welcome) || welcome < 0 || min < 0) return toast('Revisa los montos.', true);
+        try {
+            await api('/rest/v1/rpc/admin_set_loyalty', { method: 'POST', body: { p_enabled: $('loy-enabled').checked, p_earn: earn, p_referral: ref, p_welcome: welcome, p_welcome_min: min } });
+            toast('Puntos y referidos guardados');
+        } catch (err) { toast(err.message, true); }
     }
 
     /* ===== COTIZACIONES ===== */
@@ -2374,6 +2500,8 @@
     $('email-form').addEventListener('submit', onEmailSave);
     $('auto-form').addEventListener('submit', onAutoSave);
     $('finance-form').addEventListener('submit', onFinanceSave);
+    $('loyalty-form').addEventListener('submit', onLoyaltySave);
+    $('customers-search').addEventListener('input', renderCustomers);
     $('email-test').addEventListener('click', onEmailTest);
     $('admin-form').addEventListener('submit', onAdminAdd);
     $('password-form').addEventListener('submit', onPasswordChange);

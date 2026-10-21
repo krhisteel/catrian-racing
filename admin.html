@@ -71,6 +71,7 @@
                 <button type="button" class="admin-tab active" data-tab="resumen">Resumen</button>
                 <button type="button" class="admin-tab" data-tab="pedidos">Pedidos <span class="tab-badge" id="badge-orders" hidden></span></button>
                 <button type="button" class="admin-tab" data-tab="productos">Productos</button>
+                <button type="button" class="admin-tab" data-tab="clientes">Clientes <span class="tab-badge" id="badge-customers" hidden></span></button>
                 <button type="button" class="admin-tab" data-tab="cotizaciones">Cotizaciones <span class="tab-badge" id="badge-leads" hidden></span></button>
                 <button type="button" class="admin-tab" data-tab="taller">Taller <span class="tab-badge" id="badge-bookings" hidden></span></button>
                 <button type="button" class="admin-tab" data-tab="opiniones">Opiniones <span class="tab-badge" id="badge-reviews" hidden></span></button>
@@ -172,6 +173,21 @@
                 </div>
                 <p class="admin-count" id="products-count"></p>
                 <div id="products-list" class="admin-list"></div>
+            </section>
+
+            <!-- CLIENTES -->
+            <section class="admin-panel" id="tab-clientes" hidden>
+                <div class="panel-head">
+                    <div>
+                        <span class="section-tag">Fidelización</span>
+                        <h1>Clientes con cuenta</h1>
+                    </div>
+                </div>
+                <div class="admin-toolbar">
+                    <input type="search" id="customers-search" class="admin-input" placeholder="Buscar por correo, nombre o empresa" aria-label="Buscar clientes">
+                </div>
+                <div class="shop-chips" id="customers-filter" role="group" aria-label="Filtrar clientes"></div>
+                <div id="customers-list" class="admin-list"></div>
             </section>
 
             <!-- COTIZACIONES -->
@@ -314,6 +330,30 @@
                         <input id="mp-token" class="admin-input" type="password" autocomplete="off" spellcheck="false" placeholder="APP_USR-...">
                         <label class="check mp-enable"><input type="checkbox" id="mp-enabled"> Activar pago en línea en la tienda</label>
                         <button type="submit" class="btn btn-sm btn-primary">Guardar pagos</button>
+                    </form>
+                    <form class="admin-card admin-form" id="loyalty-form" novalidate>
+                        <h2>Puntos y referidos</h2>
+                        <p class="admin-help">Los clientes con cuenta ganan puntos en cada compra pagada (1 punto = $1) y los canjean por cupones desde 1.000 puntos. Al recomendar, el amigo recibe un cupón y quien recomienda gana puntos con su primera compra.</p>
+                        <label class="check"><input type="checkbox" id="loy-enabled"> Activar puntos y referidos</label>
+                        <div class="form-grid">
+                            <div>
+                                <label for="loy-earn">Puntos por compra (% del total)</label>
+                                <input id="loy-earn" class="admin-input" type="number" min="0" max="20" step="0.5">
+                            </div>
+                            <div>
+                                <label for="loy-ref">Puntos por recomendar</label>
+                                <input id="loy-ref" class="admin-input" type="number" min="0" step="500">
+                            </div>
+                            <div>
+                                <label for="loy-welcome">Cupón para el amigo ($)</label>
+                                <input id="loy-welcome" class="admin-input" type="number" min="0" step="500">
+                            </div>
+                            <div>
+                                <label for="loy-welcome-min">Compra mínima del cupón ($)</label>
+                                <input id="loy-welcome-min" class="admin-input" type="number" min="0" step="1000">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-primary">Guardar puntos y referidos</button>
                     </form>
                     <form class="admin-card admin-form" id="finance-form" novalidate>
                         <h2>Simulador de cuotas (motos)</h2>

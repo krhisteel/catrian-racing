@@ -1,7 +1,7 @@
 // App instalable: guarda la tienda para abrir rápido y funcionar sin conexión.
 // Precios, stock y pedidos siempre se piden en línea (Supabase no pasa por aquí).
-const VERSION = 'catrian-v1';
-const CORE = ['/', '/index.html', '/styles.css', '/fx.css', '/store.js', '/fx.js', '/supabase-config.js',
+const VERSION = 'catrian-v2';
+const CORE = ['/', '/index.html', '/styles.css', '/fx.css', '/store.js', '/fx.js', '/site.js', '/supabase-config.js',
     '/img/icons/icon-192.png', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
@@ -32,8 +32,20 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Archivos (estilos, código, imágenes): se sirven al instante y se actualizan por detrás.
-    if (/\.(css|js|png|svg|jpg|jpeg|webp|webmanifest)$/.test(url.pathname)) {
+    // Código y estilos: primero la red (así una corrección llega de inmediato); sin conexión, la copia.
+    if (/\.(css|js|webmanifest)$/.test(url.pathname)) {
+        event.respondWith(fetch(req).then((res) => {
+            if (res.ok) {
+                const copy = res.clone();
+                caches.open(VERSION).then((cache) => cache.put(req, copy));
+            }
+            return res;
+        }).catch(() => caches.match(req)));
+        return;
+    }
+
+    // Imágenes: se sirven al instante desde la copia y se actualizan por detrás.
+    if (/\.(png|svg|jpg|jpeg|webp)$/.test(url.pathname)) {
         event.respondWith(caches.open(VERSION).then((cache) => cache.match(req).then((hit) => {
             const fresh = fetch(req).then((res) => {
                 if (res.ok) cache.put(req, res.clone());

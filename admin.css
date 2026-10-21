@@ -1476,3 +1476,40 @@ button.stock-pill {
 .photo-guide strong {
     color: var(--text);
 }
+
+/* ===== GALERÍA ===== */
+.gallery-admin {
+    display: grid;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.gallery-row {
+    display: grid;
+    grid-template-columns: 72px 1fr auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.gallery-row img {
+    width: 72px;
+    height: 54px;
+    object-fit: cover;
+    border-radius: 6px;
+    background: var(--bg-soft);
+}
+
+.gallery-tools {
+    display: flex;
+    gap: 6px;
+}
+
+@media (max-width: 520px) {
+    .gallery-row {
+        grid-template-columns: 60px 1fr;
+    }
+
+    .gallery-tools {
+        grid-column: 1 / -1;
+    }
+}

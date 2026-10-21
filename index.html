@@ -79,7 +79,7 @@
     </header>
 
     <section id="inicio" class="hero">
-        <img class="hero-bg" src="https://loremflickr.com/1600/900/motorcycle,racing?lock=1" alt="" onerror="this.remove()">
+        <img class="hero-bg" src="img/portada.svg" alt="" fetchpriority="high">
         <div class="hero-shade" aria-hidden="true"></div>
         <div class="hero-lines" aria-hidden="true"></div>
         <div class="hero-glow" aria-hidden="true"></div>
@@ -92,7 +92,7 @@
             <h1>Bienvenido a <span class="accent">Catrian Racing</span></h1>
             <p>Venta de motos y repuestos, mantención y preparación. Todo bajo un mismo techo.</p>
             <div class="hero-cta">
-                <a href="https://wa.me/56936621284?text=Hola%2C%20quiero%20agendar%20una%20visita%20al%20taller" target="_blank" rel="noopener" class="btn btn-primary">Agendar visita</a>
+                <a href="#agendar" class="btn btn-primary">Agendar hora en el taller</a>
                 <a href="#tienda" class="btn btn-ghost">Ir a la tienda</a>
             </div>
         </div>
@@ -140,19 +140,19 @@
     <section class="collections" aria-label="Colecciones">
         <div class="container collections-grid">
             <a href="#c/Motos" class="collection">
-                <img src="https://live.staticflickr.com/2315/1961611743_74c76f78f8.jpg" alt="" loading="lazy" onerror="this.remove()">
+                <img src="img/productos/moto-naked.svg" alt="" loading="lazy" class="col-svg">
                 <span class="collection-label">Motos <em>Cotiza la tuya →</em></span>
             </a>
             <a href="#c/Repuestos" class="collection">
-                <img src="https://live.staticflickr.com/4044/4381533356_0afbaa8402_b.jpg" alt="" loading="lazy" onerror="this.remove()">
+                <img src="img/productos/kit-arrastre.svg" alt="" loading="lazy" class="col-svg">
                 <span class="collection-label">Repuestos <em>Stock real →</em></span>
             </a>
             <a href="#c/Equipamiento" class="collection">
-                <img src="img/productos/casco.svg" alt="" loading="lazy" class="col-svg" onerror="this.remove()">
+                <img src="img/productos/casco.svg" alt="" loading="lazy" class="col-svg">
                 <span class="collection-label">Equipamiento <em>Cascos y más →</em></span>
             </a>
             <a href="#c/Accesorios" class="collection">
-                <img src="img/productos/escape.svg" alt="" loading="lazy" class="col-svg" onerror="this.remove()">
+                <img src="img/productos/escape.svg" alt="" loading="lazy" class="col-svg">
                 <span class="collection-label">Accesorios <em>Personaliza →</em></span>
             </a>
         </div>
@@ -182,7 +182,7 @@
             <div class="shop-toolbar">
                 <label class="shop-search">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-                    <input type="search" id="shop-search" placeholder="Buscar por producto, marca, medida o código..." aria-label="Buscar productos" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="search-suggest" aria-autocomplete="list">
+                    <input type="search" id="shop-search" placeholder="Busca repuesto, marca o medida" aria-label="Buscar productos" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="search-suggest" aria-autocomplete="list">
                     <div class="search-suggest" id="search-suggest" role="listbox" aria-label="Sugerencias" hidden></div>
                 </label>
                 <select id="shop-brand" class="shop-select" aria-label="Filtrar por marca">
@@ -326,27 +326,27 @@
             <div class="gallery-wrap reveal">
                 <div class="gallery" id="gallery">
                     <figure class="gallery-item">
-                        <img src="https://loremflickr.com/800/600/motorcycle?lock=5" alt="Puesta a punto en pista" loading="lazy" onerror="this.remove()">
+                        <img src="img/escenas/pista.svg" alt="Puesta a punto en pista" loading="lazy" width="800" height="600">
                         <figcaption>Puesta a punto en pista</figcaption>
                     </figure>
                     <figure class="gallery-item">
-                        <img src="https://loremflickr.com/800/600/motorcycle?lock=6" alt="Cambio de neumáticos" loading="lazy" onerror="this.remove()">
+                        <img src="img/escenas/neumaticos.svg" alt="Cambio de neumáticos" loading="lazy" width="800" height="600">
                         <figcaption>Cambio de neumáticos</figcaption>
                     </figure>
                     <figure class="gallery-item">
-                        <img src="https://loremflickr.com/800/600/motorcycle?lock=7" alt="Revisión de frenos" loading="lazy" onerror="this.remove()">
+                        <img src="img/escenas/frenos.svg" alt="Revisión de frenos" loading="lazy" width="800" height="600">
                         <figcaption>Revisión de frenos</figcaption>
                     </figure>
                     <figure class="gallery-item">
-                        <img src="https://loremflickr.com/800/600/motorcycle?lock=8" alt="Moto lista para entrega" loading="lazy" onerror="this.remove()">
+                        <img src="img/escenas/entrega.svg" alt="Moto lista para entrega" loading="lazy" width="800" height="600">
                         <figcaption>Moto lista para entrega</figcaption>
                     </figure>
                     <figure class="gallery-item">
-                        <img src="https://loremflickr.com/800/600/motorcycle?lock=9" alt="Detalle y pulido" loading="lazy" onerror="this.remove()">
+                        <img src="img/escenas/pulido.svg" alt="Detalle y pulido" loading="lazy" width="800" height="600">
                         <figcaption>Detalle y pulido</figcaption>
                     </figure>
                     <figure class="gallery-item">
-                        <img src="https://loremflickr.com/800/600/motorcycle?lock=10" alt="Preparación de motor" loading="lazy" onerror="this.remove()">
+                        <img src="img/escenas/motor.svg" alt="Preparación de motor" loading="lazy" width="800" height="600">
                         <figcaption>Preparación de motor</figcaption>
                     </figure>
                 </div>
@@ -749,6 +749,7 @@
             <p class="done-ref">Pedido <strong id="done-ref"></strong></p>
             <p class="done-track">Guarda este número: con él y los últimos 4 dígitos de tu teléfono puedes ver el estado de tu pedido.</p>
             <a href="#seguimiento" class="btn btn-primary" id="done-track">Seguir mi pedido</a>
+            <a href="#" class="btn btn-ghost" id="done-wa" target="_blank" rel="noopener">Abrir WhatsApp de nuevo</a>
             <button type="button" class="btn btn-ghost" data-close-cart>Seguir comprando</button>
         </div>
     </aside>
@@ -997,203 +998,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 15l-6-6-6 6"/></svg>
     </button>
 
+    <script src="site.js" defer></script>
     <script src="supabase-config.js" defer></script>
     <script src="store.js" defer></script>
     <script src="fx.js" defer></script>
-    <script>
-        (function () {
-            var root = document.documentElement;
-
-            if ('IntersectionObserver' in window) {
-                var revealObserver = new IntersectionObserver(function (entries) {
-                    entries.forEach(function (entry) {
-                        if (entry.isIntersecting) {
-                            entry.target.classList.add('visible');
-                            revealObserver.unobserve(entry.target);
-                        }
-                    });
-                }, { threshold: 0.15 });
-                document.querySelectorAll('.reveal').forEach(function (el) {
-                    revealObserver.observe(el);
-                });
-
-                var sections = document.querySelectorAll('section[id]');
-                var navLinks = document.querySelectorAll('.nav a');
-                var spy = new IntersectionObserver(function (entries) {
-                    entries.forEach(function (entry) {
-                        if (entry.isIntersecting) {
-                            navLinks.forEach(function (link) {
-                                link.classList.toggle('active', link.getAttribute('href') === '#' + entry.target.id);
-                            });
-                        }
-                    });
-                }, { rootMargin: '-40% 0px -55% 0px' });
-                sections.forEach(function (section) {
-                    spy.observe(section);
-                });
-
-                var statObserver = new IntersectionObserver(function (entries) {
-                    entries.forEach(function (entry) {
-                        if (!entry.isIntersecting) return;
-                        statObserver.unobserve(entry.target);
-                        var el = entry.target;
-                        var target = parseInt(el.dataset.count, 10);
-                        var suffix = el.dataset.suffix || '';
-                        var duration = 1600;
-                        var start = null;
-                        function step(now) {
-                            if (start === null) start = now;
-                            var progress = Math.min((now - start) / duration, 1);
-                            var eased = 1 - Math.pow(1 - progress, 3);
-                            el.textContent = Math.round(target * eased).toLocaleString('es-CL') + suffix;
-                            if (progress < 1) requestAnimationFrame(step);
-                        }
-                        requestAnimationFrame(step);
-                    });
-                }, { threshold: 0.4 });
-                document.querySelectorAll('.stat-num').forEach(function (el) {
-                    statObserver.observe(el);
-                });
-            } else {
-                document.querySelectorAll('.reveal').forEach(function (el) {
-                    el.classList.add('visible');
-                });
-            }
-
-            var gallery = document.getElementById('gallery');
-            var prev = document.getElementById('gallery-prev');
-            var next = document.getElementById('gallery-next');
-            if (gallery && prev && next) {
-                var autoTimer = null;
-                var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-                function galleryStep() {
-                    var item = gallery.querySelector('.gallery-item');
-                    return item ? item.offsetWidth + 18 : 340;
-                }
-
-                function move(direction) {
-                    var step = galleryStep();
-                    var maxScroll = gallery.scrollWidth - gallery.clientWidth;
-                    if (direction > 0) {
-                        if (gallery.scrollLeft >= maxScroll - 4) {
-                            gallery.scrollTo({ left: 0, behavior: 'auto' });
-                        } else {
-                            gallery.scrollBy({ left: Math.min(step, maxScroll - gallery.scrollLeft), behavior: 'smooth' });
-                        }
-                    } else if (gallery.scrollLeft <= 4) {
-                        gallery.scrollTo({ left: maxScroll, behavior: 'auto' });
-                    } else {
-                        gallery.scrollBy({ left: -step, behavior: 'smooth' });
-                    }
-                }
-
-                function startAuto() {
-                    if (!reducedMotion && autoTimer === null) {
-                        autoTimer = setInterval(function () {
-                            move(1);
-                        }, 3000);
-                    }
-                }
-
-                function stopAuto() {
-                    if (autoTimer !== null) {
-                        clearInterval(autoTimer);
-                        autoTimer = null;
-                    }
-                }
-
-                prev.addEventListener('click', function () {
-                    stopAuto();
-                    move(-1);
-                });
-                next.addEventListener('click', function () {
-                    stopAuto();
-                    move(1);
-                });
-                gallery.addEventListener('mouseenter', stopAuto);
-                gallery.addEventListener('mouseleave', startAuto);
-                startAuto();
-            }
-
-            var form = document.getElementById('quote-form');
-            if (form) {
-                form.addEventListener('submit', function (e) {
-                    e.preventDefault();
-                    var nombre = form.nombre.value.trim();
-                    var servicio = form.servicio.value;
-                    var mensaje = form.mensaje.value.trim();
-                    var texto = 'Hola Catrian Racing!';
-                    if (nombre) texto += ' Soy ' + nombre + '.';
-                    texto += ' Me interesa: ' + servicio + '.';
-                    if (mensaje) texto += ' ' + mensaje;
-                    window.open('https://wa.me/56936621284?text=' + encodeURIComponent(texto), '_blank');
-                });
-            }
-
-            // Acceso oculto al administrador: mantener presionado el logo 2 s o 5 clics seguidos.
-            var logo = document.getElementById('logo');
-            if (logo) {
-                var pressTimer = null;
-                var clicks = 0;
-                var clickTimer = null;
-                var goAdmin = function () { window.location.href = 'admin.html'; };
-                var cancelPress = function () {
-                    clearTimeout(pressTimer);
-                    pressTimer = null;
-                };
-                logo.addEventListener('pointerdown', function () {
-                    cancelPress();
-                    pressTimer = setTimeout(goAdmin, 2000);
-                });
-                ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (type) {
-                    logo.addEventListener(type, cancelPress);
-                });
-                logo.addEventListener('contextmenu', function (e) { e.preventDefault(); });
-                logo.addEventListener('click', function () {
-                    clicks += 1;
-                    clearTimeout(clickTimer);
-                    clickTimer = setTimeout(function () { clicks = 0; }, 1500);
-                    if (clicks >= 5) goAdmin();
-                });
-            }
-
-            var menuBtn = document.getElementById('menu-btn');
-            var mainNav = document.getElementById('main-nav');
-            if (menuBtn && mainNav) {
-                menuBtn.addEventListener('click', function () {
-                    var open = mainNav.classList.toggle('open');
-                    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-                });
-                mainNav.addEventListener('click', function (e) {
-                    if (e.target.closest('a')) {
-                        mainNav.classList.remove('open');
-                        menuBtn.setAttribute('aria-expanded', 'false');
-                    }
-                });
-            }
-
-            var newsletter = document.getElementById('newsletter-form');
-            if (newsletter) {
-                newsletter.addEventListener('submit', function (e) {
-                    e.preventDefault();
-                    var texto = 'Hola Catrian Racing! Soy ' + newsletter.name.value.trim() + ' y quiero recibir sus ofertas por WhatsApp.';
-                    window.open('https://wa.me/56936621284?text=' + encodeURIComponent(texto), '_blank');
-                    newsletter.reset();
-                });
-            }
-
-            var toTop = document.getElementById('to-top');
-            if (toTop) {
-                window.addEventListener('scroll', function () {
-                    toTop.classList.toggle('show', window.scrollY > 400);
-                }, { passive: true });
-                toTop.addEventListener('click', function () {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                });
-            }
-        })();
-    </script>
 
 </body>
 </html>

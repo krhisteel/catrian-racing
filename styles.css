@@ -5440,3 +5440,192 @@ a.product-cat:hover {
 .lead-trade[hidden] {
     display: none;
 }
+
+/* ===== MI CUENTA ===== */
+.account-btn {
+    position: relative;
+}
+
+.account-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 9px;
+    height: 9px;
+    border: 2px solid var(--card);
+    border-radius: 50%;
+    background-color: #15803d;
+}
+
+.account-dot[hidden] {
+    display: none;
+}
+
+.account-gift {
+    padding: 10px 12px;
+    border-radius: 8px;
+    background-color: rgba(245, 197, 24, 0.16);
+    font-weight: 600;
+}
+
+.account-gift[hidden] {
+    display: none;
+}
+
+.account-perks {
+    margin: 18px 0 0;
+    padding-left: 20px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.account-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: var(--muted);
+}
+
+.account-head p {
+    margin: 0;
+}
+
+.account-tabs {
+    margin-bottom: 14px;
+}
+
+.account-body {
+    display: grid;
+    gap: 12px;
+}
+
+.acc-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+}
+
+.acc-item {
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.acc-item p {
+    margin: 4px 0 0;
+}
+
+.acc-item-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.acc-status {
+    padding: 3px 10px;
+    border-radius: 999px;
+    background-color: var(--bg-soft);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.acc-status.status-entregado,
+.acc-status.status-enviado {
+    background-color: rgba(21, 128, 61, 0.12);
+    color: #15803d;
+}
+
+.acc-items {
+    font-size: 14px;
+}
+
+.acc-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.acc-subtitle {
+    margin: 10px 0 0;
+    font-size: 16px;
+}
+
+.garage-form select,
+.garage-form input {
+    width: 100%;
+}
+
+.points-box {
+    display: grid;
+    gap: 2px;
+    padding: 16px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #16161a, #34343c);
+    color: #fff;
+}
+
+.points-num {
+    font-family: var(--font-head);
+    font-size: 40px;
+    color: var(--yellow);
+}
+
+.coupon-chip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 10px 12px;
+    border: 1px dashed var(--accent-ink);
+    border-radius: 10px;
+}
+
+.coupon-chip strong {
+    font-family: monospace;
+    font-size: 15px;
+}
+
+.coupon-chip span {
+    flex: 1;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.ledger {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+}
+
+.ledger li {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.ledger strong {
+    color: #15803d;
+}
+
+.ledger strong.neg {
+    color: var(--danger);
+}
+
+body.is-wholesale .coupon,
+body.is-wholesale label[for="coupon-input"],
+body.is-wholesale #coupon-msg {
+    display: none;
+}

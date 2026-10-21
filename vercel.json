@@ -1,6 +1,14 @@
 {
     "rewrites": [
         {
+            "source": "/guias",
+            "destination": "/api/page?type=guias"
+        },
+        {
+            "source": "/guias/:slug",
+            "destination": "/api/page?type=guia&slug=:slug"
+        },
+        {
             "source": "/productos/:id",
             "destination": "/api/page?type=producto&id=:id"
         },

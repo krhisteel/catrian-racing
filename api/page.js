@@ -108,6 +108,42 @@ function categoryMeta(base, cat, sub, list) {
     };
 }
 
+function guideMeta(base, g) {
+    const url = base + '/guias/' + g.slug;
+    const image = g.cover ? seo.imageUrl(base, { images: [g.cover] }) : base + '/img/productos/neumatico.png';
+    return {
+        type: 'article', url: url, image: image,
+        title: g.title + ' | Guías ' + seo.STORE_NAME,
+        description: seo.clip(g.excerpt || g.body, 160),
+        jsonld: {
+            '@context': 'https://schema.org',
+            '@graph': [{
+                '@type': 'Article', headline: g.title, description: g.excerpt, image: [image], url: url,
+                datePublished: g.published_at, dateModified: g.updated_at,
+                author: { '@type': 'Organization', name: seo.STORE_NAME },
+                publisher: { '@type': 'Organization', name: seo.STORE_NAME }
+            }, breadcrumbs([{ name: 'Inicio', url: base + '/' }, { name: 'Guías', url: base + '/guias' }, { name: g.title, url: url }])]
+        }
+    };
+}
+
+function guidesMeta(base, list) {
+    return {
+        url: base + '/guias', image: base + '/img/productos/aceite.png',
+        title: 'Guías y consejos para tu moto | ' + seo.STORE_NAME,
+        description: 'Mantención, neumáticos, viajes y más: guías prácticas del taller de ' + seo.STORE_NAME + '.',
+        jsonld: {
+            '@context': 'https://schema.org',
+            '@graph': [{
+                '@type': 'CollectionPage', name: 'Guías', url: base + '/guias',
+                mainEntity: { '@type': 'ItemList', itemListElement: list.map(function (g, i) {
+                    return { '@type': 'ListItem', position: i + 1, url: base + '/guias/' + g.slug, name: g.title };
+                }) }
+            }, breadcrumbs([{ name: 'Inicio', url: base + '/' }, { name: 'Guías', url: base + '/guias' }])]
+        }
+    };
+}
+
 function decode(value) {
     try { return decodeURIComponent(String(value || '')); } catch (e) { return ''; }
 }
@@ -126,7 +162,15 @@ module.exports = async function handler(req, res) {
 
     let meta = null;
     try {
-        const products = await seo.activeProducts();
+        if (q.type === 'guia' || q.type === 'guias') {
+            const posts = await seo.db('/rest/v1/posts?select=slug,title,excerpt,body,cover,published_at,updated_at&published=is.true&order=published_at.desc');
+            if (q.type === 'guias') meta = guidesMeta(base, posts);
+            else {
+                const g = posts.find(function (x) { return x.slug === decode(q.slug); });
+                if (g) meta = guideMeta(base, g);
+            }
+        }
+        const products = meta || q.type === 'guia' ? [] : await seo.activeProducts();
         if (q.type === 'producto') {
             const id = decode(q.id);
             const p = products.find(function (x) { return x.id === id; });
@@ -153,7 +197,7 @@ module.exports = async function handler(req, res) {
         meta = {
             url: base + '/', image: base + '/img/productos/neumatico.png', robots: 'noindex',
             title: 'Página no encontrada | ' + seo.STORE_NAME,
-            description: 'Este producto ya no está disponible. Revisa el resto del catálogo de ' + seo.STORE_NAME + '.'
+            description: 'Esta página ya no está disponible. Revisa el catálogo y las guías de ' + seo.STORE_NAME + '.'
         };
         res.status(404);
     } else {

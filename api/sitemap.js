@@ -16,6 +16,12 @@ module.exports = async function handler(req, res) {
     products.forEach(function (p) {
         urls.push({ loc: base + seo.productPath(p), priority: '0.6', lastmod: p.updated_at });
     });
+    let posts = [];
+    try { posts = await seo.db('/rest/v1/posts?select=slug,updated_at&published=is.true'); } catch (e) { /* sin guías */ }
+    if (posts.length) urls.push({ loc: base + '/guias', priority: '0.6' });
+    posts.forEach(function (g) {
+        urls.push({ loc: base + '/guias/' + encodeURIComponent(g.slug), priority: '0.5', lastmod: g.updated_at });
+    });
     urls.push({ loc: base + '/politicas.html', priority: '0.2' });
 
     const body = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +

@@ -217,7 +217,7 @@
     var PAGE_SIZE = 9;
     var MOTO_KEY = 'catrian-moto';
 
-    var state = { cat: 'all', sub: '', brand: '', vehicle: '', query: '', sort: 'featured', onlySale: false, onlyStock: false, coupon: null, couponPercent: 0, limit: PAGE_SIZE, collection: null, facets: {} };
+    var state = { cat: 'all', sub: '', brand: '', vehicle: '', query: '', sort: 'featured', onlySale: false, onlyStock: false, coupon: null, couponInfo: null, limit: PAGE_SIZE, collection: null, facets: {} };
     var cart = loadCart();
     var favs = loadList(FAVS_KEY);
     var recent = loadList(RECENT_KEY);
@@ -1659,6 +1659,7 @@
         modal.querySelector('.modal-box').scrollTop = 0;
         $('modal-close').focus();
         trackRecent(p.id);
+        if (!p.quote) trackEvent('view_item', [gaItem(p)]);
         if (!/^#p\//.test(location.hash)) returnHash = location.hash;
         if (location.hash !== '#p/' + p.id) history.replaceState(null, '', '#p/' + p.id);
     }
@@ -1703,6 +1704,7 @@
         saveCart();
         renderCart();
         toast(p.name + (option ? ' (' + option + ')' : '') + ' agregado al carro');
+        trackEvent('add_to_cart', [gaItem(p, option, qty)]);
         var badge = $('cart-count');
         badge.classList.remove('bump');
         void badge.offsetWidth;
@@ -1779,7 +1781,7 @@
     // Igual que shipping_quote() en la base de datos: null = sin tarifa para esa región.
     function quoteShipping(region) {
         var allFree = cart.length && cart.every(function (line) { return byId[line.id] && byId[line.id].freeShip; });
-        if (allFree || cartSubtotal() >= FREE_SHIPPING_FROM) return 0;
+        if (allFree || cartSubtotal() >= FREE_SHIPPING_FROM || couponActive() && state.couponInfo.free_shipping) return 0;
         var rate = SHIPPING_RATES[region];
         return typeof rate === 'number' ? rate : null;
     }
@@ -1789,8 +1791,36 @@
         return form.delivery.value === 'despacho' ? quoteShipping(form.region.value) : 0;
     }
 
+    function couponActive() {
+        return !!(state.coupon && state.couponInfo && cartSubtotal() >= (state.couponInfo.min_subtotal || 0));
+    }
+
     function couponDiscount() {
-        return state.coupon ? Math.round(cartSubtotal() * state.couponPercent / 100) : 0;
+        if (!couponActive()) return 0;
+        var subtotal = cartSubtotal();
+        var info = state.couponInfo;
+        return Math.min(Math.round(subtotal * (info.percent || 0) / 100) + (info.amount || 0), subtotal);
+    }
+
+    function couponText(info) {
+        var parts = [];
+        if (info.percent) parts.push(info.percent + '% de descuento');
+        if (info.amount) parts.push(money(info.amount) + ' de descuento');
+        if (info.free_shipping) parts.push('envío gratis');
+        return parts.join(' + ');
+    }
+
+    function couponMessage() {
+        var msg = $('coupon-msg');
+        if (!state.coupon || !state.couponInfo) return;
+        var missing = (state.couponInfo.min_subtotal || 0) - cartSubtotal();
+        if (missing > 0) {
+            msg.className = 'coupon-msg';
+            msg.textContent = 'Agrega ' + money(missing) + ' más para usar el cupón ' + state.coupon + '.';
+        } else {
+            msg.className = 'coupon-msg ok';
+            msg.textContent = 'Cupón ' + state.coupon + ' aplicado: ' + couponText(state.couponInfo) + '.';
+        }
     }
 
     function applyCoupon() {
@@ -1800,21 +1830,31 @@
         if (!code) return;
         msg.className = 'coupon-msg';
         msg.textContent = 'Validando cupón...';
-        rpc('validate_coupon', { p_code: code }).then(function (percent) {
-            if (percent) {
+        rpc('check_coupon', { p_code: code, p_subtotal: cartSubtotal() }).then(function (res) {
+            if (res && (res.ok || res.min_subtotal)) {
+                // Si falta monto, el cupón queda guardado y se activa al llegar al mínimo.
                 state.coupon = code;
-                state.couponPercent = percent;
-                msg.textContent = 'Cupón ' + code + ' aplicado: ' + percent + '% de descuento.';
-                msg.className = 'coupon-msg ok';
+                state.couponInfo = res.ok ? res : null;
+                if (!res.ok) {
+                    rpc('check_coupon', { p_code: code, p_subtotal: res.min_subtotal }).then(function (full) {
+                        if (full && full.ok && state.coupon === code) {
+                            state.couponInfo = full;
+                            couponMessage();
+                            updateTotals();
+                        }
+                    });
+                    msg.textContent = res.message + '.';
+                }
+                else couponMessage();
             } else {
                 state.coupon = null;
-                state.couponPercent = 0;
-                msg.textContent = 'El cupón no es válido.';
+                state.couponInfo = null;
+                msg.textContent = (res && res.message ? res.message : 'El cupón no es válido') + '.';
             }
             updateTotals();
         }, function () {
             state.coupon = null;
-            state.couponPercent = 0;
+            state.couponInfo = null;
             msg.textContent = 'No pudimos validar el cupón ahora. Escríbelo en las notas del pedido.';
             updateTotals();
         });
@@ -1824,6 +1864,7 @@
         var form = $('checkout-view');
         var subtotal = cartSubtotal();
         var discountValue = couponDiscount();
+        couponMessage();
         var shipping = shippingCost();
         var shipQuote = quoteShipping(form.region.value);
         $('ship-label').textContent = shipQuote === 0 ? 'Gratis' : (shipQuote === null ? 'A cotizar' : 'Desde ' + money(Math.min.apply(null, Object.keys(SHIPPING_RATES).map(function (k) { return SHIPPING_RATES[k]; }))));
@@ -1983,6 +2024,7 @@
             p_payment: data.payment, p_notes: data.notes, p_coupon: state.coupon || '',
             p_doc_type: data.doc, p_billing: data.billing
         }).then(function (order) {
+            trackEvent('purchase', cartItems(), { transaction_id: order.ref, value: order.total, shipping: order.shipping || 0, coupon: order.coupon || undefined });
             if (online) payOnline(data, order);
             else finishOrder(win, data, order);
         }, function (err) {
@@ -2056,6 +2098,7 @@
         lines.push('');
         lines.push('Subtotal: ' + money(order.subtotal));
         if (order.discount) lines.push('Cupón ' + order.coupon + ': −' + money(order.discount));
+        else if (order.coupon) lines.push('Cupón ' + order.coupon + ' aplicado');
         lines.push('Envío: ' + (data.delivery === 'retiro' ? 'Retiro en tienda' : (order.shipping_pending ? 'A cotizar' : (order.shipping ? money(order.shipping) : 'Gratis'))));
         lines.push('Total: ' + money(order.total) + (order.shipping_pending ? ' + envío' : ''));
         lines.push('');
@@ -2084,7 +2127,7 @@
         renderCart();
         form.reset();
         state.coupon = null;
-        state.couponPercent = 0;
+        state.couponInfo = null;
         $('coupon-msg').textContent = '';
         resetSubmit(form.querySelector('button[type="submit"]'));
         updateTotals();
@@ -2141,12 +2184,77 @@
         return p;
     }
 
+    /* ===== ANALÍTICA (Google Analytics 4 y Meta Pixel, configurables desde el admin) ===== */
+    var analyticsLoaded = false;
+    function loadAnalytics(cfg) {
+        if (analyticsLoaded) return;
+        var ga4 = /^G-[A-Z0-9]{4,15}$/.test(cfg.ga4 || '') ? cfg.ga4 : '';
+        var pixel = /^\d{6,20}$/.test(cfg.pixel || '') ? cfg.pixel : '';
+        if (!ga4 && !pixel) return;
+        analyticsLoaded = true;
+        if (ga4) {
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = function () { window.dataLayer.push(arguments); };
+            window.gtag('js', new Date());
+            window.gtag('config', ga4);
+            addScript('https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(ga4));
+        }
+        if (pixel) {
+            var fbq = window.fbq = function () {
+                if (fbq.callMethod) fbq.callMethod.apply(fbq, arguments);
+                else fbq.queue.push(arguments);
+            };
+            fbq.push = fbq;
+            fbq.loaded = true;
+            fbq.version = '2.0';
+            fbq.queue = [];
+            window._fbq = fbq;
+            fbq('init', pixel);
+            fbq('track', 'PageView');
+            addScript('https://connect.facebook.net/en_US/fbevents.js');
+        }
+    }
+
+    function addScript(src) {
+        var sc = document.createElement('script');
+        sc.async = true;
+        sc.src = src;
+        document.head.appendChild(sc);
+    }
+
+    var META_EVENTS = { view_item: 'ViewContent', add_to_cart: 'AddToCart', begin_checkout: 'InitiateCheckout', purchase: 'Purchase' };
+    function trackEvent(name, items, extra) {
+        if (!window.gtag && !window.fbq) return;
+        var value = items.reduce(function (sum, it) { return sum + it.price * (it.quantity || 1); }, 0);
+        if (window.gtag) {
+            window.gtag('event', name, Object.assign({ currency: 'CLP', value: value, items: items }, extra || {}));
+        }
+        if (window.fbq && META_EVENTS[name]) {
+            window.fbq('track', META_EVENTS[name], {
+                currency: 'CLP', value: extra && extra.value !== undefined ? extra.value : value,
+                content_ids: items.map(function (it) { return it.item_id; }), content_type: 'product'
+            });
+        }
+    }
+
+    function gaItem(p, option, qty) {
+        var it = { item_id: p.id, item_name: p.name, price: p.price, quantity: qty || 1, item_category: p.cat };
+        if (p.brand) it.item_brand = p.brand;
+        if (option) it.item_variant = option;
+        return it;
+    }
+
+    function cartItems() {
+        return cart.filter(function (l) { return byId[l.id]; }).map(function (l) { return gaItem(byId[l.id], l.option, l.qty); });
+    }
+
     function applySettings(rows) {
         rows.forEach(function (row) {
             if (row.key === 'whatsapp' && row.value) WHATSAPP = String(row.value).replace(/\D/g, '');
             if (row.key === 'free_shipping_from' && row.value >= 0) FREE_SHIPPING_FROM = Number(row.value);
             if (row.key === 'shipping_rates' && row.value && typeof row.value === 'object') SHIPPING_RATES = row.value;
             if (row.key === 'payments' && row.value) MP_ENABLED = !!row.value.mp_enabled;
+            if (row.key === 'analytics' && row.value) loadAnalytics(row.value);
             if (row.key === 'announce' && Array.isArray(row.value)) {
                 var bar = document.querySelector('.announce');
                 if (bar) {
@@ -2276,6 +2384,7 @@
         b.addEventListener('click', closeCart);
     });
     $('checkout-start').addEventListener('click', function () {
+        trackEvent('begin_checkout', cartItems());
         showView('checkout-view');
         $('co-name').focus();
     });

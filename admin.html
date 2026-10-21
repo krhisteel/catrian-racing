@@ -50,6 +50,16 @@
                 </div>
             </form>
 
+            <form id="mfa-form" class="auth-form" novalidate hidden>
+                <p class="auth-help">Tienes activada la verificación en dos pasos. Escribe el código de 6 dígitos de tu app de autenticación.</p>
+                <label for="mfa-code">Código</label>
+                <input id="mfa-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" required>
+                <button type="submit" class="btn btn-primary btn-block">Verificar</button>
+                <div class="auth-links">
+                    <button type="button" class="link-btn" id="mfa-cancel">← Usar otra cuenta</button>
+                </div>
+            </form>
+
             <div id="denied" class="auth-form" hidden>
                 <p class="auth-help">El usuario <strong id="denied-email"></strong> no tiene permisos de administrador.</p>
                 <button type="button" class="btn btn-ghost btn-block" id="denied-logout">Salir</button>
@@ -172,6 +182,18 @@
                     </select>
                     <label class="check"><input type="checkbox" id="products-low"> Solo stock bajo</label>
                 </div>
+                <details class="admin-card photo-guide">
+                    <summary>📸 Cómo sacar buenas fotos de tus productos con el celular</summary>
+                    <ol>
+                        <li><strong>Fondo blanco liso:</strong> una cartulina blanca curvada (de la mesa hacia la pared) evita sombras y bordes. Es el estilo de las tiendas grandes.</li>
+                        <li><strong>Luz natural suave:</strong> junto a una ventana, sin sol directo. Evita el flash: crea brillos y sombras duras. Si hay sombra de un lado, refleja luz con una hoja blanca.</li>
+                        <li><strong>Celular a la altura del producto</strong> y un poco más lejos, con zoom 2x: así no se deforma. Limpia el lente antes.</li>
+                        <li><strong>Producto centrado y llenando el cuadro</strong> (que ocupe cerca del 80%). Formato cuadrado si tu cámara lo permite.</li>
+                        <li><strong>Varias fotos:</strong> frente, perfil, detalle (marca, medida, conectores) y la caja o etiqueta. La primera es la principal y la segunda aparece al pasar el mouse.</li>
+                        <li><strong>Producto limpio y sin precios</strong> ni etiquetas de otras tiendas. No uses fotos de otras páginas: pueden tener derechos de autor.</li>
+                        <li>No te preocupes por el tamaño: <strong>al subirlas, el panel las achica y comprime solo</strong> para que carguen rápido.</li>
+                    </ol>
+                </details>
                 <p class="admin-count" id="products-count"></p>
                 <div id="products-list" class="admin-list"></div>
             </section>
@@ -322,7 +344,7 @@
                     </div>
                 </div>
                 <div class="admin-cols">
-                    <form class="admin-card admin-form" id="settings-form" novalidate>
+                    <form class="admin-card admin-form owner-only" id="settings-form" novalidate>
                         <h2>Tienda</h2>
                         <label for="set-whatsapp">WhatsApp para pedidos (con código de país)</label>
                         <input id="set-whatsapp" class="admin-input" inputmode="numeric" placeholder="56912345678">
@@ -336,7 +358,7 @@
                         <input id="set-pixel" class="admin-input" inputmode="numeric" autocomplete="off" placeholder="123456789012345">
                         <button type="submit" class="btn btn-sm btn-primary">Guardar ajustes</button>
                     </form>
-                    <form class="admin-card admin-form" id="mp-form" novalidate>
+                    <form class="admin-card admin-form owner-only" id="mp-form" novalidate>
                         <h2>Pagos con tarjeta (Mercado Pago)</h2>
                         <p class="admin-help">Con esto el cliente paga con débito, crédito o prepago al finalizar la compra, y el pedido pasa solo a «Pagado». Copia tu <strong>Access Token de producción</strong> desde Mercado Pago → Tu negocio → Configuración → Credenciales (o «Tus integraciones» → Credenciales de producción).</p>
                         <p class="mp-state" id="mp-state"></p>
@@ -345,7 +367,7 @@
                         <label class="check mp-enable"><input type="checkbox" id="mp-enabled"> Activar pago en línea en la tienda</label>
                         <button type="submit" class="btn btn-sm btn-primary">Guardar pagos</button>
                     </form>
-                    <form class="admin-card admin-form" id="loyalty-form" novalidate>
+                    <form class="admin-card admin-form owner-only" id="loyalty-form" novalidate>
                         <h2>Puntos y referidos</h2>
                         <p class="admin-help">Los clientes con cuenta ganan puntos en cada compra pagada (1 punto = $1) y los canjean por cupones desde 1.000 puntos. Al recomendar, el amigo recibe un cupón y quien recomienda gana puntos con su primera compra.</p>
                         <label class="check"><input type="checkbox" id="loy-enabled"> Activar puntos y referidos</label>
@@ -369,7 +391,7 @@
                         </div>
                         <button type="submit" class="btn btn-sm btn-primary">Guardar puntos y referidos</button>
                     </form>
-                    <form class="admin-card admin-form" id="finance-form" novalidate>
+                    <form class="admin-card admin-form owner-only" id="finance-form" novalidate>
                         <h2>Simulador de cuotas (motos)</h2>
                         <p class="admin-help">Se muestra en la ficha de cada moto. Es referencial: el cliente envía una solicitud y tú le confirmas con la financiera.</p>
                         <label class="check"><input type="checkbox" id="fin-enabled"> Mostrar el simulador</label>
@@ -387,7 +409,7 @@
                         <input id="fin-terms" class="admin-input" placeholder="12, 24, 36, 48">
                         <button type="submit" class="btn btn-sm btn-primary">Guardar simulador</button>
                     </form>
-                    <form class="admin-card admin-form" id="auto-form" novalidate>
+                    <form class="admin-card admin-form owner-only" id="auto-form" novalidate>
                         <h2>Correos que venden solos</h2>
                         <p class="admin-help">Se revisan cada 15 minutos y usan la configuración de correos de abajo. Cada correo trae un enlace para darse de baja.</p>
                         <div class="auto-stats" id="auto-stats"></div>
@@ -408,7 +430,7 @@
                         <input id="auto-maint-months" class="admin-input" type="number" min="1" max="24">
                         <button type="submit" class="btn btn-sm btn-primary">Guardar automatizaciones</button>
                     </form>
-                    <form class="admin-card admin-form" id="email-form" novalidate>
+                    <form class="admin-card admin-form owner-only" id="email-form" novalidate>
                         <h2>Correos automáticos al cliente</h2>
                         <p class="admin-help">Si el cliente deja su email, le llega un correo cuando recibimos su pedido, cuando se paga, cuando se despacha (con la empresa y el número de seguimiento), cuando se entrega o si se cancela. Se envían con <strong>Resend</strong> (gratis hasta 3.000 correos al mes): crea una cuenta en resend.com, verifica tu dominio y copia aquí la API Key.</p>
                         <p class="mp-state" id="email-state"></p>
@@ -426,15 +448,29 @@
                             <button type="button" class="btn btn-sm btn-ghost" id="email-test">Enviar correo de prueba</button>
                         </div>
                     </form>
-                    <form class="admin-card admin-form rates-card" id="rates-form" novalidate>
+                    <form class="admin-card admin-form rates-card owner-only" id="rates-form" novalidate>
                         <h2>Tarifas de envío por región</h2>
                         <p class="admin-help">El cliente ve el costo exacto en el carro según su región. Deja vacía una región para que el envío quede «a cotizar». Sobre el monto de envío gratis, el despacho no se cobra.</p>
                         <div class="rates-grid" id="rates-grid"></div>
                         <button type="submit" class="btn btn-sm btn-primary">Guardar tarifas</button>
                     </form>
-                    <div class="admin-card">
+                    <div class="admin-card security-card">
+                        <h2>Mi seguridad</h2>
+                        <h3 class="mt-sm">Verificación en dos pasos</h3>
+                        <p class="admin-help">Además de tu contraseña, te pedirá un código de 6 dígitos de una app en tu celular (Google Authenticator, Microsoft Authenticator o similar). Así nadie entra aunque sepa tu contraseña.</p>
+                        <div id="mfa-box"></div>
+                        <h3 class="mt-sm">Mi contraseña</h3>
+                        <form class="inline-form" id="password-form" novalidate>
+                            <div>
+                                <label for="new-password">Nueva contraseña</label>
+                                <input id="new-password" class="admin-input" type="password" minlength="8" autocomplete="new-password" required>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-ghost">Cambiar</button>
+                        </form>
+                    </div>
+                    <div class="admin-card owner-only">
                         <h2>Administradores</h2>
-                        <p class="admin-help">Usuarios que pueden entrar a este panel. Para cambiarle la contraseña a alguien, crea el mismo usuario con una contraseña nueva.</p>
+                        <p class="admin-help">Usuarios que pueden entrar a este panel y qué pueden ver. <strong>Dueño</strong>: todo. <strong>Ventas</strong>: pedidos, clientes, cotizaciones, taller, opiniones y cupones. <strong>Catálogo</strong>: productos, guías, motos y cupones. Para cambiarle la contraseña a alguien, guarda el mismo usuario con una contraseña nueva.</p>
                         <div id="admins-list"></div>
                         <form class="inline-form user-form" id="admin-form" novalidate>
                             <div>
@@ -445,15 +481,15 @@
                                 <label for="admin-new-password">Contraseña</label>
                                 <input id="admin-new-password" class="admin-input" type="password" minlength="8" autocomplete="new-password" required>
                             </div>
-                            <button type="submit" class="btn btn-sm btn-ghost">Guardar usuario</button>
-                        </form>
-                        <h2 class="mt">Mi contraseña</h2>
-                        <form class="inline-form" id="password-form" novalidate>
                             <div>
-                                <label for="new-password">Nueva contraseña</label>
-                                <input id="new-password" class="admin-input" type="password" minlength="8" autocomplete="new-password" required>
+                                <label for="admin-new-role">Rol</label>
+                                <select id="admin-new-role" class="admin-input">
+                                    <option value="ventas">Ventas</option>
+                                    <option value="catalogo">Catálogo</option>
+                                    <option value="owner">Dueño</option>
+                                </select>
                             </div>
-                            <button type="submit" class="btn btn-sm btn-ghost">Cambiar</button>
+                            <button type="submit" class="btn btn-sm btn-ghost">Guardar usuario</button>
                         </form>
                     </div>
                 </div>

@@ -1418,3 +1418,61 @@ button.stock-pill {
 .post-products .check[hidden] {
     display: none;
 }
+
+/* ===== SEGURIDAD Y ROLES ===== */
+.owner-only[hidden],
+.admin-tab[hidden] {
+    display: none;
+}
+
+.mt-sm {
+    margin-top: 14px;
+    font-size: 15px;
+}
+
+.mfa-qr {
+    display: block;
+    width: 180px;
+    height: 180px;
+    margin: 8px 0;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+}
+
+.mfa-secret {
+    display: inline-block;
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background-color: var(--bg-soft);
+    font-size: 13px;
+    word-break: break-all;
+}
+
+.role-select {
+    width: auto;
+    padding: 4px 8px;
+    font-size: 13px;
+}
+
+.photo-guide {
+    margin-bottom: 16px;
+}
+
+.photo-guide summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.photo-guide ol {
+    margin: 12px 0 0;
+    padding-left: 20px;
+    line-height: 1.6;
+    color: var(--muted);
+}
+
+.photo-guide strong {
+    color: var(--text);
+}

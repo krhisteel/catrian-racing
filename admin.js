@@ -75,8 +75,42 @@
     function button(text, className, onClick) {
         var b = el('button', className, text);
         b.type = 'button';
-        if (onClick) b.addEventListener('click', onClick);
+        if (onClick) {
+            // Mientras se guarda, el botón queda deshabilitado (evita dobles clics).
+            b.addEventListener('click', function (e) {
+                if (b.dataset.busy) return;
+                var r = onClick.call(this, e);
+                if (r && typeof r.then === 'function') {
+                    b.dataset.busy = '1';
+                    b.disabled = true;
+                    r.then(done, done);
+                }
+                function done() {
+                    delete b.dataset.busy;
+                    b.disabled = false;
+                }
+            });
+        }
         return b;
+    }
+
+    // Lo mismo para formularios: no se envían dos veces seguidas.
+    function guarded(handler) {
+        return function (e) {
+            var form = e.target;
+            if (form.dataset.busy) { e.preventDefault(); return; }
+            var r = handler.call(this, e);
+            if (r && typeof r.then === 'function') {
+                form.dataset.busy = '1';
+                var submit = form.querySelector('button[type="submit"]');
+                if (submit) submit.disabled = true;
+                r.then(done, done);
+            }
+            function done() {
+                delete form.dataset.busy;
+                if (submit) submit.disabled = false;
+            }
+        };
     }
 
     function field(labelText, input) {
@@ -483,6 +517,7 @@
 
     /* ===== DATOS ===== */
     async function loadAll() {
+        var ok = true;
         try {
             var res = await Promise.all([
                 api('/rest/v1/products?select=*&order=sort.asc,name.asc'),
@@ -510,8 +545,10 @@
             loadPosts();
             loadLoyalty();
         } catch (e) {
+            ok = false;
             toast(e.message, true);
         }
+        return ok;
     }
 
     async function pollOrders() {
@@ -853,8 +890,11 @@
             var rows = await api('/rest/v1/orders?id=eq.' + encodeURIComponent(o.id), {
                 method: 'PATCH', body: patch, headers: { Prefer: 'return=representation' }
             });
+            // El listado puede haberse recargado mientras tanto: se actualiza el pedido vigente.
+            var current = data.orders.filter(function (x) { return x.id === o.id; })[0];
             var before = o.status;
             Object.assign(o, rows[0]);
+            if (current && current !== o) Object.assign(current, rows[0]);
             if (o.status !== before) {
                 toast(patch.tracking_number && o.status === 'enviado'
                     ? 'Pedido ' + o.ref + ' despachado. El cliente ya lo ve en «Mi pedido».'
@@ -1030,7 +1070,10 @@
                 try {
                     var st = await api('/rest/v1/rpc/admin_mp_check', { method: 'POST', body: { p_order_id: o.id } });
                     var rows = await api('/rest/v1/orders?id=eq.' + encodeURIComponent(o.id));
-                    if (rows[0]) Object.assign(o, rows[0]);
+                    if (rows[0]) {
+                        Object.assign(o, rows[0]);
+                        data.orders.forEach(function (x) { if (x.id === o.id && x !== o) Object.assign(x, rows[0]); });
+                    }
                     var prov = o.pay_provider === 'flow' ? 'Flow' : 'Mercado Pago';
                     toast(st === 'approved' ? 'Pago aprobado en ' + prov : (st === 'none' ? 'Aún no hay pagos para este pedido' : 'Estado en ' + prov + ': ' + st));
                     renderAll();
@@ -2705,8 +2748,63 @@
         } catch (err) { toast(err.message, true); }
     }
 
+    var galleryDraft = null;
+
+    function renderGalleryAdmin() {
+        if (!galleryDraft) galleryDraft = (data.settings.gallery || []).slice();
+        var wrap = $('gallery-admin');
+        wrap.textContent = '';
+        if (!galleryDraft.length) wrap.appendChild(el('p', 'admin-empty', 'Sin fotos: la portada muestra las ilustraciones.'));
+        galleryDraft.forEach(function (it, i) {
+            var row = el('div', 'gallery-row');
+            var img = el('img');
+            img.src = it.src;
+            img.alt = '';
+            row.appendChild(img);
+            var cap = input('text', it.caption || '', { maxlength: 60, placeholder: 'Descripción (ej: Cambio de neumáticos)', 'aria-label': 'Descripción de la foto ' + (i + 1) });
+            cap.addEventListener('input', function () { it.caption = cap.value; });
+            row.appendChild(cap);
+            var tools = el('div', 'gallery-tools');
+            tools.appendChild(button('↑', 'btn btn-sm btn-ghost', function () {
+                if (i === 0) return;
+                galleryDraft.splice(i - 1, 0, galleryDraft.splice(i, 1)[0]);
+                renderGalleryAdmin();
+            }));
+            tools.appendChild(button('Quitar', 'btn btn-sm btn-danger', function () {
+                galleryDraft.splice(i, 1);
+                renderGalleryAdmin();
+            }));
+            row.appendChild(tools);
+            wrap.appendChild(row);
+        });
+    }
+
+    async function onGalleryFiles() {
+        var files = Array.prototype.slice.call($('gallery-file').files, 0, 12 - galleryDraft.length);
+        $('gallery-file').value = '';
+        for (var i = 0; i < files.length; i++) {
+            try {
+                var url = await uploadImage(files[i], 'galeria');
+                galleryDraft.push({ src: url, caption: '' });
+                renderGalleryAdmin();
+            } catch (e) { toast(e.message, true); }
+        }
+        if (files.length) toast('Fotos subidas. Escribe una descripción y guarda.');
+    }
+
+    async function onGallerySave() {
+        var value = galleryDraft.map(function (it) { return { src: it.src, caption: (it.caption || '').trim().slice(0, 60) }; });
+        try {
+            await api('/rest/v1/settings?on_conflict=key', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates' }, body: [{ key: 'gallery', value: value }] });
+            data.settings.gallery = value;
+            toast(value.length ? 'Galería guardada. La portada ya muestra tus fotos.' : 'Galería vaciada: se muestran las ilustraciones.');
+        } catch (e) { toast(e.message, true); }
+    }
+
     function renderSettings() {
         renderRates();
+        galleryDraft = null;
+        renderGalleryAdmin();
         $('set-whatsapp').value = data.settings.whatsapp || '';
         $('set-free').value = data.settings.free_shipping_from === undefined ? '' : data.settings.free_shipping_from;
         $('set-announce').value = (data.settings.announce || []).join('\n');
@@ -2853,8 +2951,7 @@
         if (tab) setTab(tab.dataset.tab);
     });
     $('refresh').addEventListener('click', async function () {
-        await loadAll();
-        toast('Datos actualizados');
+        if (await loadAll()) toast('Datos actualizados');
     });
     $('orders-search').addEventListener('input', function (e) {
         view.orderQuery = e.target.value;
@@ -2873,7 +2970,7 @@
         renderProducts();
     });
     $('product-new').addEventListener('click', function () { openProduct(null); });
-    $('coupon-form').addEventListener('submit', onCouponCreate);
+    $('coupon-form').addEventListener('submit', guarded(onCouponCreate));
     $('products-export').addEventListener('click', exportProducts);
     $('orders-export').addEventListener('click', exportOrders);
     $('products-import').addEventListener('click', function () { $('products-import-file').click(); });
@@ -2883,21 +2980,27 @@
         if (f) importProducts(f);
     });
     $('coupon-kind').addEventListener('change', syncCouponKind);
-    $('vehicle-form').addEventListener('submit', onVehicleCreate);
-    $('settings-form').addEventListener('submit', onSettingsSave);
-    $('rates-form').addEventListener('submit', onRatesSave);
-    $('mp-form').addEventListener('submit', onPaymentSave);
-    $('flow-form').addEventListener('submit', onFlowSave);
+    $('vehicle-form').addEventListener('submit', guarded(onVehicleCreate));
+    $('settings-form').addEventListener('submit', guarded(onSettingsSave));
+    $('rates-form').addEventListener('submit', guarded(onRatesSave));
+    $('mp-form').addEventListener('submit', guarded(onPaymentSave));
+    $('flow-form').addEventListener('submit', guarded(onFlowSave));
+    $('gallery-add').addEventListener('click', function () {
+        if (galleryDraft && galleryDraft.length >= 12) return toast('La galería admite hasta 12 fotos.', true);
+        $('gallery-file').click();
+    });
+    $('gallery-file').addEventListener('change', onGalleryFiles);
+    $('gallery-save').addEventListener('click', onGallerySave);
     document.querySelectorAll('#provider-choice input').forEach(function (r) { r.addEventListener('change', onProviderChange); });
-    $('email-form').addEventListener('submit', onEmailSave);
-    $('auto-form').addEventListener('submit', onAutoSave);
-    $('finance-form').addEventListener('submit', onFinanceSave);
+    $('email-form').addEventListener('submit', guarded(onEmailSave));
+    $('auto-form').addEventListener('submit', guarded(onAutoSave));
+    $('finance-form').addEventListener('submit', guarded(onFinanceSave));
     $('post-new').addEventListener('click', function () { openPost(null); });
-    $('loyalty-form').addEventListener('submit', onLoyaltySave);
+    $('loyalty-form').addEventListener('submit', guarded(onLoyaltySave));
     $('customers-search').addEventListener('input', renderCustomers);
     $('email-test').addEventListener('click', onEmailTest);
-    $('admin-form').addEventListener('submit', onAdminAdd);
-    $('password-form').addEventListener('submit', onPasswordChange);
+    $('admin-form').addEventListener('submit', guarded(onAdminAdd));
+    $('password-form').addEventListener('submit', guarded(onPasswordChange));
 
     $('side-close').addEventListener('click', closeSide);
     $('overlay').addEventListener('click', closeSide);

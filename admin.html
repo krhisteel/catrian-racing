@@ -468,6 +468,16 @@
                             <button type="button" class="btn btn-sm btn-ghost" id="email-test">Enviar correo de prueba</button>
                         </div>
                     </form>
+                    <div class="admin-card owner-only gallery-card">
+                        <h2>Galería de trabajos</h2>
+                        <p class="admin-help">Fotos reales de tu taller y tus trabajos para la sección «Galería» de la portada (hasta 12). Mientras no subas ninguna, se muestran ilustraciones.</p>
+                        <div class="gallery-admin" id="gallery-admin"></div>
+                        <input type="file" id="gallery-file" accept="image/*" multiple hidden>
+                        <div class="inline-actions">
+                            <button type="button" class="btn btn-sm btn-ghost" id="gallery-add">Subir fotos</button>
+                            <button type="button" class="btn btn-sm btn-primary" id="gallery-save">Guardar galería</button>
+                        </div>
+                    </div>
                     <form class="admin-card admin-form rates-card owner-only" id="rates-form" novalidate>
                         <h2>Tarifas de envío por región</h2>
                         <p class="admin-help">El cliente ve el costo exacto en el carro según su región. Deja vacía una región para que el envío quede «a cotizar». Sobre el monto de envío gratis, el despacho no se cobra.</p>

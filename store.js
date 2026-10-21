@@ -43,19 +43,19 @@
     var products = [
         {
             id: 'pista-250', name: 'Modelo Pista 250', cat: 'Motos', price: 2490000, quote: true, cc: 250,
-            img: 'https://live.staticflickr.com/2311/2354229865_5dd534fba7.jpg',
+            img: 'img/productos/moto-pista.svg', images: ['img/productos/moto-pista.svg', 'img/productos/moto-pista-2.svg'],
             desc: 'Deportiva 250cc, ideal para ciudad y ruta.',
             specs: [['Cilindrada', '250 cc'], ['Potencia', '28 HP'], ['Año', '2025']]
         },
         {
             id: 'trail-400', name: 'Trail 400', cat: 'Motos', price: 3190000, quote: true, cc: 400,
-            img: 'https://live.staticflickr.com/2186/2269295323_8c741e70e3.jpg',
+            img: 'img/productos/moto-trail.svg', images: ['img/productos/moto-trail.svg', 'img/productos/moto-trail-2.svg'],
             desc: 'Doble propósito, lista para el barro.',
             specs: [['Cilindrada', '400 cc'], ['Potencia', '35 HP'], ['Año', '2024']]
         },
         {
             id: 'naked-500', name: 'Naked 500', cat: 'Motos', price: 4050000, quote: true, cc: 500, badge: 'Nuevo',
-            img: 'https://live.staticflickr.com/2315/1961611743_74c76f78f8.jpg',
+            img: 'img/productos/moto-naked.svg', images: ['img/productos/moto-naked.svg', 'img/productos/moto-naked-2.svg'],
             desc: 'Potencia urbana con estilo agresivo.',
             specs: [['Cilindrada', '500 cc'], ['Potencia', '47 HP'], ['Año', '2025']]
         },
@@ -242,35 +242,66 @@
         return str.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     }
 
-    function loadCart() {
+    // Mientras no llega el catálogo de la base de datos se usa el de respaldo: no hay que
+    // descartar productos que todavía no se conocen (por ejemplo, los creados en el admin).
+    var catalogReady = false;
+    var catalogWaiters = [];
+
+    function whenCatalog(fn) {
+        if (catalogReady) fn();
+        else catalogWaiters.push(fn);
+    }
+
+    function markCatalogReady() {
+        catalogReady = true;
+        var list = catalogWaiters;
+        catalogWaiters = [];
+        list.forEach(function (fn) { fn(); });
+    }
+
+    function readStored(key) {
         try {
-            var saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            return Array.isArray(saved) ? saved.filter(function (line) { return byId[line.id]; }) : [];
+            var saved = JSON.parse(localStorage.getItem(key) || '[]');
+            return Array.isArray(saved) ? saved : [];
         } catch (e) {
             return [];
         }
+    }
+
+    function loadCart() {
+        return readStored(STORAGE_KEY).filter(function (line) {
+            var p = line && byId[line.id];
+            if (!p) return false;
+            line.qty = Math.max(1, Math.min(99, parseInt(line.qty, 10) || 1));
+            // Con el catálogo real se limpian opciones que ya no existen y se ajusta al stock.
+            if (!catalogReady) return true;
+            if (p.quote) return false;
+            if (line.option && !(p.options && p.options.values.indexOf(line.option) !== -1)) return false;
+            if (!line.option && p.options) return false;
+            var limit = maxQty(p, line.option);
+            if (limit <= 0) return false;
+            line.qty = Math.min(limit, line.qty);
+            return true;
+        });
     }
 
     function loadList(key) {
-        try {
-            var saved = JSON.parse(localStorage.getItem(key) || '[]');
-            return Array.isArray(saved) ? saved.filter(function (id) { return byId[id]; }) : [];
-        } catch (e) {
-            return [];
-        }
+        return readStored(key).filter(function (id) { return byId[id]; });
     }
 
     function saveList(key, list) {
+        var keep = catalogReady ? [] : readStored(key).filter(function (id) { return !byId[id]; });
         try {
-            localStorage.setItem(key, JSON.stringify(list));
+            localStorage.setItem(key, JSON.stringify(list.concat(keep)));
         } catch (e) { /* sin almacenamiento */ }
     }
 
     function saveCart() {
+        var keep = catalogReady ? [] : readStored(STORAGE_KEY).filter(function (line) { return line && !byId[line.id]; });
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(cart.concat(keep)));
         } catch (e) { /* sin almacenamiento: el carro vive solo en esta visita */ }
-        syncCart();
+        if (catalogReady) syncCart();
     }
 
     /* ===== CARRO GUARDADO (para recordar al cliente si no termina la compra) ===== */
@@ -1123,9 +1154,9 @@
         return p.img ? [p.img] : [];
     }
 
-    // Fotos tipo estudio (producto sobre fondo blanco); las motos usan foto completa.
+    // Fotos tipo estudio (producto sobre fondo blanco); las fotos reales de motos se muestran completas.
     function isStudio(p) {
-        return p.cat !== 'Motos';
+        return p.cat !== 'Motos' || /\.svg(\?|$)/.test(productImages(p)[0] || '');
     }
 
     function productImage(p, parent, index, className) {
@@ -1295,7 +1326,8 @@
             if (m[1]) parent.appendChild(el('strong', '', m[1]));
             else {
                 var href = m[3];
-                var internal = /^\/(?!\/)/.test(href);
+                // Solo rutas propias («/algo») o https; «//sitio» o «/\\sitio» no cuentan como internas.
+                var internal = /^\/(?![\/\\])/.test(href) && !/[\\\s]/.test(href);
                 if (internal || /^https:\/\//.test(href)) {
                     var a = el('a', '', m[2]);
                     a.href = internal ? href.replace(/^\/(?=#)/, '') : href;
@@ -2375,6 +2407,8 @@
     }
 
     function route() {
+        // «Atrás» desde una ficha de producto: se cierra la ficha.
+        if (!$('product-modal').hidden && !/^#p\//.test(location.hash)) closeModal(true);
         var gm = /^#guia\/(.+)$/.exec(location.hash);
         if (gm) {
             if (!$('product-modal').hidden) closeModal(true);
@@ -2397,7 +2431,7 @@
         var cm = /^#carro\/([A-Za-z0-9_-]{16,64})$/.exec(location.hash);
         if (cm) {
             history.replaceState(null, '', location.pathname + location.search);
-            restoreCart(cm[1]);
+            whenCatalog(function () { restoreCart(cm[1]); });
             return;
         }
         var bm = /^#baja\/([0-9a-f-]{36})$/.exec(location.hash);
@@ -2812,7 +2846,8 @@
                     group.querySelectorAll('.option').forEach(function (o) {
                         o.setAttribute('aria-checked', o === b ? 'true' : 'false');
                     });
-                    $('pm-error').textContent = '';
+                    var pmError = $('pm-error');
+                    if (pmError) pmError.textContent = '';
                 });
                 group.appendChild(b);
             });
@@ -2987,13 +3022,30 @@
         trackRecent(p.id);
         if (!p.quote) trackEvent('view_item', [gaItem(p)]);
         if (!/^#p\//.test(location.hash)) returnHash = location.hash;
-        if (location.hash !== '#p/' + p.id) history.replaceState(null, '', '#p/' + p.id);
+        if (location.hash !== '#p/' + p.id) {
+            // Se agrega al historial para que «Atrás» en el celular cierre la ficha en vez de salir de la tienda.
+            if (!/^#p\//.test(location.hash)) {
+                history.pushState(null, '', '#p/' + p.id);
+                modalPushed = true;
+            } else {
+                history.replaceState(null, '', '#p/' + p.id);
+            }
+        }
     }
 
     var returnHash = '';
+    var modalPushed = false;
     function closeModal(keepHash) {
         $('product-modal').hidden = true;
         if (!$('cart').classList.contains('open')) document.body.classList.remove('locked');
+        if (keepHash) modalPushed = false;
+        if (!keepHash && /^#p\//.test(location.hash) && modalPushed) {
+            modalPushed = false;
+            returnHash = '';
+            history.back();
+            if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+            return;
+        }
         if (!keepHash && /^#p\//.test(location.hash)) {
             history.replaceState(null, '', returnHash || location.pathname + location.search);
             if (/^#guia\//.test(location.hash)) {
@@ -3068,7 +3120,7 @@
 
             var info = el('div', 'cart-info');
             info.appendChild(el('strong', '', p.name));
-            if (line.option) info.appendChild(el('span', 'cart-option', p.options.name + ': ' + line.option));
+            if (line.option) info.appendChild(el('span', 'cart-option', (p.options ? p.options.name + ': ' : '') + line.option));
             info.appendChild(el('span', 'cart-price', money(p.price * line.qty)));
 
             var row = el('div', 'cart-row');
@@ -3356,6 +3408,7 @@
         var online = paysOnline();
         // Se abre la pestaña de WhatsApp ahora (con el clic) para que el navegador no la bloquee.
         var win = online ? null : window.open('', '_blank');
+        if (win) win.opener = null;
         submit.disabled = true;
         submit.textContent = online ? 'Preparando el pago...' : 'Enviando pedido...';
 
@@ -3378,11 +3431,12 @@
                 resetSubmit(submit);
                 return;
             }
-            // Sin conexión a la base de datos: el pedido igual se envía por WhatsApp.
+            // Sin conexión a la base de datos: el pedido igual se envía por WhatsApp (sin número de seguimiento).
             var subtotal = cartSubtotal();
             var discountValue = couponDiscount();
             finishOrder(win, data, {
-                ref: 'CR-' + Date.now().toString(36).toUpperCase().slice(-6),
+                ref: '',
+                offline: true,
                 items: cart.map(function (line) {
                     var p = byId[line.id];
                     return { name: p.name, option: line.option, qty: line.qty, price: p.price };
@@ -3435,7 +3489,7 @@
     }
 
     function finishOrder(win, data, order) {
-        var lines = ['Hola Catrian Racing! Quiero hacer este pedido (' + order.ref + '):', ''];
+        var lines = ['Hola Catrian Racing! Quiero hacer este pedido' + (order.ref ? ' (' + order.ref + ')' : '') + ':', ''];
         order.items.forEach(function (item) {
             lines.push('• ' + item.qty + ' x ' + item.name + (item.option ? ' (' + item.option + ')' : '') + ' — ' + money(item.price * item.qty));
         });
@@ -3458,12 +3512,14 @@
                 ' · Giro ' + data.billing.giro + ' · ' + data.billing.direccion);
         }
         if (data.notes) lines.push('Notas: ' + data.notes);
-        lines.push('');
-        lines.push('Seguimiento del pedido: ' + trackingLink(order.ref));
+        if (order.ref) {
+            lines.push('');
+            lines.push('Seguimiento del pedido: ' + trackingLink(order.ref));
+        }
 
         var url = waUrl(lines.join('\n'));
         if (win && !win.closed) win.location.href = url;
-        else window.open(url, '_blank');
+        else window.open(url, '_blank', 'noopener');
 
         var form = $('checkout-view');
         cart = [];
@@ -3475,9 +3531,11 @@
         $('coupon-msg').textContent = '';
         resetSubmit(form.querySelector('button[type="submit"]'));
         updateTotals();
-        $('done-ref').textContent = order.ref;
+        $('done-ref').textContent = order.ref || 'por confirmar';
+        $('done-track').hidden = !order.ref;
         $('done-track').href = '#seguimiento/' + order.ref;
-        rememberOrder(order.ref, data.phone.replace(/\D/g, '').slice(-4), 'nuevo');
+        $('done-wa').href = url;
+        if (order.ref) rememberOrder(order.ref, data.phone.replace(/\D/g, '').slice(-4), 'nuevo');
         showView('done-view');
     }
 
@@ -3768,9 +3826,37 @@
         }
     }
 
+    window.catrianWhatsApp = function () { return WHATSAPP; };
+
+    // Galería editable desde el admin (si no hay fotos cargadas, quedan las ilustraciones).
+    function renderWorkGallery(items) {
+        var gallery = $('gallery');
+        if (!gallery) return;
+        var valid = items.filter(function (it) { return it && /^(https:\/\/|img\/)/.test(it.src || ''); }).slice(0, 12);
+        if (!valid.length) return;
+        gallery.textContent = '';
+        valid.forEach(function (it) {
+            var fig = el('figure', 'gallery-item');
+            var img = el('img');
+            img.src = it.src;
+            img.alt = it.caption || 'Trabajo del taller';
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            fig.appendChild(img);
+            if (it.caption) fig.appendChild(el('figcaption', '', it.caption));
+            gallery.appendChild(fig);
+        });
+    }
+
     function applySettings(rows) {
         rows.forEach(function (row) {
-            if (row.key === 'whatsapp' && row.value) WHATSAPP = String(row.value).replace(/\D/g, '');
+            if (row.key === 'whatsapp' && row.value) {
+                WHATSAPP = String(row.value).replace(/\D/g, '');
+                document.querySelectorAll('a[href^="https://wa.me/"]').forEach(function (a) {
+                    a.href = a.href.replace(/wa\.me\/\d+/, 'wa.me/' + WHATSAPP);
+                });
+            }
+            if (row.key === 'gallery' && Array.isArray(row.value) && row.value.length) renderWorkGallery(row.value);
             if (row.key === 'free_shipping_from' && row.value >= 0) FREE_SHIPPING_FROM = Number(row.value);
             if (row.key === 'shipping_rates' && row.value && typeof row.value === 'object') SHIPPING_RATES = row.value;
             if (row.key === 'payments' && row.value) {
@@ -3796,7 +3882,7 @@
             dbFetch('/rest/v1/vehicles?select=*&order=sort.asc,brand.asc'),
             dbFetch('/rest/v1/settings?select=*')
         ]).then(function (res) {
-            if (!res[0] || !res[0].length) return;
+            if (!res[0] || !res[0].length) { markCatalogReady(); return; }
             products = res[0].map(fromDbProduct);
             loadReviews();
             loadPosts();
@@ -3816,9 +3902,16 @@
             renderMegaMenu();
             if (state.collection) renderCollectionHead();
             if (parseCollection()) route();
-            else if ($('product-modal').hidden) openFromHash();
+            else openFromHash();
+            markCatalogReady();
+            cart = loadCart();
+            saveCart();
+            renderCart();
             loadCustomer();
-        }, function () { /* sin conexión: se mantiene el catálogo de respaldo */ });
+        }, function () {
+            // Sin conexión: se mantiene el catálogo de respaldo.
+            markCatalogReady();
+        });
     }
 
     var toastTimer = null;
@@ -3934,7 +4027,7 @@
     });
     $('checkout-view').addEventListener('submit', submitOrder);
 
-    $('modal-close').addEventListener('click', closeModal);
+    $('modal-close').addEventListener('click', function () { closeModal(); });
     $('product-modal').addEventListener('click', function (e) {
         if (e.target === this) closeModal();
     });

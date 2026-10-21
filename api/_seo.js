@@ -35,10 +35,12 @@ function activeProducts() {
     return db('/rest/v1/products?select=*&active=is.true&order=sort.asc,name.asc');
 }
 
-function origin(req) {
-    const host = String(req.headers['x-forwarded-host'] || req.headers.host || 'catrian-racing.vercel.app').split(',')[0].trim();
-    const proto = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
-    return proto + '://' + host;
+// Dominio oficial de la tienda: no se toma de las cabeceras de la petición (evita URLs canónicas ajenas).
+// Si conectas un dominio propio, define SITE_ORIGIN en Vercel (ej: https://catrianracing.cl).
+const SITE_ORIGIN = String(process.env.SITE_ORIGIN || 'https://catrian-racing.vercel.app').replace(/\/+$/, '');
+
+function origin() {
+    return SITE_ORIGIN;
 }
 
 function esc(value) {

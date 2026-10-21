@@ -1145,6 +1145,263 @@
         return p.sku || ('CR-' + p.id.replace(/[^a-z0-9]/gi, '').slice(0, 8).toUpperCase());
     }
 
+    /* ===== BÚSQUEDA ===== */
+    // Busca también por código, medida (specs) y opciones, sin importar tildes.
+    function searchText(p) {
+        if (p._search) return p._search;
+        var specs = (p.specs || []).map(function (s) { return s[1]; }).join(' ');
+        var opts = p.options ? p.options.values.join(' ') : '';
+        p._search = normalize([p.name, p.desc, p.cat, p.sub, p.brand, skuOf(p), specs, opts].filter(Boolean).join(' '));
+        return p._search;
+    }
+
+    var suggestIndex = -1;
+    var suggestItems = [];
+
+    function renderSuggest() {
+        var input = $('shop-search');
+        var box = $('search-suggest');
+        var q = normalize(input.value.trim());
+        box.textContent = '';
+        suggestItems = [];
+        suggestIndex = -1;
+        if (q.length < 2) return hideSuggest();
+        var words = q.split(/\s+/);
+        var scored = products.map(function (p) {
+            var text = searchText(p);
+            if (!words.every(function (w) { return text.indexOf(w) !== -1; })) return null;
+            var name = normalize(p.name);
+            var score = (name.indexOf(q) === 0 ? 0 : name.indexOf(q) !== -1 ? 1 : 2) + (soldOut(p) ? 3 : 0);
+            return { p: p, score: score };
+        }).filter(Boolean).sort(function (a, b) { return a.score - b.score || a.p.order - b.p.order; }).slice(0, 6);
+        scored.forEach(function (x) {
+            suggestItems.push({ kind: 'product', p: x.p, label: x.p.name, go: function () { openModal(x.p.id); } });
+        });
+        CATEGORY_LIST.forEach(function (cat) {
+            if (normalize(cat).indexOf(q) !== -1) suggestItems.push({ kind: 'cat', label: cat, go: function () { location.hash = collectionHash(cat); } });
+            subsOf(cat).forEach(function (sub) {
+                if (normalize(sub).indexOf(q) !== -1) suggestItems.push({ kind: 'cat', label: sub + ' · ' + cat, go: function () { location.hash = collectionHash(cat, sub); } });
+            });
+        });
+        posts.filter(function (g) { return normalize(g.title + ' ' + (g.tags || []).join(' ')).indexOf(q) !== -1; }).slice(0, 2).forEach(function (g) {
+            suggestItems.push({ kind: 'guide', label: g.title, go: function () { location.hash = '#guia/' + g.slug; } });
+        });
+        if (!suggestItems.length) {
+            box.appendChild(el('p', 'suggest-empty', 'Sin resultados para «' + input.value.trim() + '». Prueba con otra palabra o escríbenos por WhatsApp.'));
+        }
+        suggestItems.forEach(function (item, i) {
+            var row = el('button', 'suggest-row');
+            row.type = 'button';
+            row.id = 'suggest-' + i;
+            row.setAttribute('role', 'option');
+            row.tabIndex = -1;
+            if (item.kind === 'product') {
+                var thumb = el('span', 'suggest-thumb');
+                productImage(item.p, thumb);
+                row.appendChild(thumb);
+                var info = el('span', 'suggest-info');
+                info.appendChild(el('strong', '', item.label));
+                info.appendChild(el('small', '', [item.p.brand, item.p.sub || item.p.cat].filter(Boolean).join(' · ') + (soldOut(item.p) ? ' · Agotado' : '')));
+                row.appendChild(info);
+                row.appendChild(el('span', 'suggest-price', item.p.quote ? 'Cotizar' : money(item.p.price)));
+            } else {
+                row.appendChild(el('span', 'suggest-kind', item.kind === 'cat' ? 'Categoría' : 'Guía'));
+                row.appendChild(el('span', 'suggest-info', item.label));
+            }
+            row.addEventListener('mousedown', function (e) { e.preventDefault(); });
+            row.addEventListener('click', function () { pickSuggest(i); });
+            box.appendChild(row);
+        });
+        box.hidden = false;
+        input.setAttribute('aria-expanded', 'true');
+    }
+
+    function hideSuggest() {
+        $('search-suggest').hidden = true;
+        $('shop-search').setAttribute('aria-expanded', 'false');
+        $('shop-search').removeAttribute('aria-activedescendant');
+        suggestIndex = -1;
+    }
+
+    function pickSuggest(i) {
+        var item = suggestItems[i];
+        if (!item) return;
+        hideSuggest();
+        item.go();
+    }
+
+    function moveSuggest(delta) {
+        if (!suggestItems.length) return;
+        suggestIndex = (suggestIndex + delta + suggestItems.length) % suggestItems.length;
+        $('search-suggest').querySelectorAll('.suggest-row').forEach(function (r, i) {
+            r.classList.toggle('active', i === suggestIndex);
+            r.setAttribute('aria-selected', i === suggestIndex ? 'true' : 'false');
+        });
+        $('shop-search').setAttribute('aria-activedescendant', 'suggest-' + suggestIndex);
+        var active = $('suggest-' + suggestIndex);
+        if (active) active.scrollIntoView({ block: 'nearest' });
+    }
+
+    /* ===== GUÍAS ===== */
+    var posts = [];
+
+    function loadPosts() {
+        dbFetch('/rest/v1/posts?select=slug,title,excerpt,body,cover,tags,product_ids,published_at&published=is.true&order=published_at.desc&limit=50')
+            .then(function (rows) {
+                posts = rows || [];
+                renderGuides();
+                var m = /^#guia\/(.+)$/.exec(location.hash);
+                if (m) openGuide(decodeURIComponent(m[1]));
+            }, function () { /* sin guías */ });
+    }
+
+    function renderGuides() {
+        var section = $('guias');
+        var grid = $('guides-grid');
+        grid.textContent = '';
+        section.hidden = !posts.length;
+        posts.slice(0, 6).forEach(function (g) {
+            var card = el('a', 'guide-card reveal visible');
+            card.href = '#guia/' + g.slug;
+            var media = el('span', 'guide-cover');
+            if (g.cover) {
+                var img = el('img');
+                img.src = g.cover;
+                img.alt = '';
+                img.loading = 'lazy';
+                media.appendChild(img);
+            }
+            card.appendChild(media);
+            var body = el('span', 'guide-card-body');
+            if (g.tags && g.tags.length) body.appendChild(el('small', 'guide-tag', g.tags[0]));
+            body.appendChild(el('strong', '', g.title));
+            body.appendChild(el('span', '', g.excerpt));
+            body.appendChild(el('span', 'guide-read', 'Leer guía →'));
+            card.appendChild(body);
+            grid.appendChild(card);
+        });
+    }
+
+    // Formato simple y seguro: ## títulos, - listas, **negrita** y [enlaces](url). Nunca HTML.
+    function inlineText(parent, text) {
+        var re = /\*\*([^*]+)\*\*|\[([^\]]+)\]\(([^)\s]+)\)/g;
+        var last = 0, m;
+        while ((m = re.exec(text))) {
+            if (m.index > last) parent.appendChild(document.createTextNode(text.slice(last, m.index)));
+            if (m[1]) parent.appendChild(el('strong', '', m[1]));
+            else {
+                var href = m[3];
+                var internal = /^\/(?!\/)/.test(href);
+                if (internal || /^https:\/\//.test(href)) {
+                    var a = el('a', '', m[2]);
+                    a.href = internal ? href.replace(/^\/(?=#)/, '') : href;
+                    if (!internal) { a.target = '_blank'; a.rel = 'noopener'; }
+                    parent.appendChild(a);
+                } else parent.appendChild(document.createTextNode(m[2]));
+            }
+            last = re.lastIndex;
+        }
+        if (last < text.length) parent.appendChild(document.createTextNode(text.slice(last)));
+    }
+
+    function renderRichText(text, container) {
+        var list = null;
+        text.replace(/\r/g, '').split('\n').forEach(function (raw) {
+            var line = raw.trim();
+            if (!line) { list = null; return; }
+            var h = /^(#{2,3})\s+(.*)$/.exec(line);
+            if (h) {
+                list = null;
+                container.appendChild(el(h[1].length === 2 ? 'h3' : 'h4', '', h[2]));
+                return;
+            }
+            var li = /^[-*]\s+(.*)$/.exec(line);
+            if (li) {
+                if (!list) { list = el('ul'); container.appendChild(list); }
+                var item = el('li');
+                inlineText(item, li[1]);
+                list.appendChild(item);
+                return;
+            }
+            list = null;
+            var p = el('p');
+            inlineText(p, line);
+            container.appendChild(p);
+        });
+    }
+
+    var guideReturn = '';
+    function openGuide(slug) {
+        var g = posts.filter(function (x) { return x.slug === slug; })[0];
+        if (!g) {
+            if (posts.length) toast('Esa guía ya no está disponible');
+            return;
+        }
+        var modal = $('guide-modal');
+        if (modal.hidden) {
+            guideReturn = /^#guia\//.test(location.hash) ? '' : location.hash;
+            lastFocus = document.activeElement;
+            modal.hidden = false;
+            document.body.classList.add('locked');
+        }
+        $('guide-title').textContent = g.title;
+        var words = (g.body || '').split(/\s+/).length;
+        $('guide-meta').textContent = (g.published_at ? new Date(g.published_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' : '') +
+            Math.max(1, Math.round(words / 200)) + ' min de lectura';
+        var body = $('guide-body');
+        body.textContent = '';
+        if (g.excerpt) body.appendChild(el('p', 'guide-lead', g.excerpt));
+        renderRichText(g.body || '', body);
+        var related = $('guide-products');
+        related.textContent = '';
+        var items = (g.product_ids || []).map(function (id) { return byId[id]; }).filter(Boolean);
+        if (items.length) {
+            related.appendChild(el('h3', '', 'Productos de esta guía'));
+            var row = el('div', 'mini-row-list');
+            items.forEach(function (p) {
+                var card = miniCard(p);
+                card.addEventListener('click', function () { closeGuide(true); }, true);
+                row.appendChild(card);
+            });
+            related.appendChild(row);
+        }
+        var more = $('guide-more');
+        more.textContent = '';
+        var others = posts.filter(function (x) { return x.slug !== g.slug; }).slice(0, 3);
+        if (others.length) {
+            more.appendChild(el('h3', '', 'Más guías'));
+            others.forEach(function (o) {
+                var a = el('a', 'guide-link', o.title + ' →');
+                a.href = '#guia/' + o.slug;
+                more.appendChild(a);
+            });
+        }
+        var share = el('button', 'btn btn-ghost btn-sm', 'Compartir guía');
+        share.type = 'button';
+        share.addEventListener('click', function () {
+            var url = (/^https:/.test(location.protocol) ? location.origin + '/guias/' + g.slug : location.href);
+            if (navigator.share) navigator.share({ title: g.title, url: url }).catch(function () {});
+            else if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { toast('Enlace copiado'); });
+        });
+        more.appendChild(share);
+        modal.querySelector('.guide-box').scrollTop = 0;
+        modal.scrollTop = 0;
+        $('guide-close').focus();
+        document.title = g.title + ' | Catrian Racing';
+        if (location.hash !== '#guia/' + g.slug) history.replaceState(null, '', '#guia/' + g.slug);
+    }
+
+    function closeGuide(keepHash) {
+        var modal = $('guide-modal');
+        if (modal.hidden) return;
+        modal.hidden = true;
+        document.title = 'Catrian Racing | Motos, Repuestos y Taller';
+        if (!$('cart').classList.contains('open') && $('product-modal').hidden) document.body.classList.remove('locked');
+        if (!keepHash && /^#guia\//.test(location.hash)) history.replaceState(null, '', guideReturn || location.pathname + location.search);
+        guideReturn = '';
+        if (!keepHash && lastFocus && document.contains(lastFocus)) lastFocus.focus();
+    }
+
     /* ===== CATÁLOGO ===== */
     function visibleProducts() {
         var q = normalize(state.query.trim());
@@ -1157,7 +1414,7 @@
             if (!matchesFacets(p)) return false;
             if (state.brand && p.brand !== state.brand) return false;
             if (state.vehicle && (p.quote || (p.fits && p.fits.indexOf(state.vehicle) === -1))) return false;
-            return !q || normalize(p.name + ' ' + p.desc + ' ' + p.cat + ' ' + (p.sub || '') + ' ' + (p.brand || '')).indexOf(q) !== -1;
+            return !q || searchText(p).indexOf(q) !== -1;
         });
         var sorters = {
             featured: function (a, b) { return a.order - b.order; },
@@ -2114,6 +2371,13 @@
     }
 
     function route() {
+        var gm = /^#guia\/(.+)$/.exec(location.hash);
+        if (gm) {
+            if (!$('product-modal').hidden) closeModal(true);
+            openGuide(decodeURIComponent(gm[1]));
+            return;
+        }
+        if (!$('guide-modal').hidden) closeGuide(true);
         if (/^#cuenta$/.test(location.hash)) {
             if (!$('product-modal').hidden) closeModal(true);
             openAccount();
@@ -2728,6 +2992,11 @@
         if (!$('cart').classList.contains('open')) document.body.classList.remove('locked');
         if (!keepHash && /^#p\//.test(location.hash)) {
             history.replaceState(null, '', returnHash || location.pathname + location.search);
+            if (/^#guia\//.test(location.hash)) {
+                returnHash = '';
+                route();
+                return;
+            }
         }
         returnHash = '';
         if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
@@ -3513,6 +3782,7 @@
             if (!res[0] || !res[0].length) return;
             products = res[0].map(fromDbProduct);
             loadReviews();
+            loadPosts();
             if (res[1] && res[1].length) vehicles = res[1];
             indexCatalog();
             applySettings(res[2] || []);
@@ -3548,7 +3818,18 @@
         state.query = e.target.value;
         resetPage();
         renderProducts();
+        renderSuggest();
     });
+    $('shop-search').addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowDown') { e.preventDefault(); if ($('search-suggest').hidden) renderSuggest(); else moveSuggest(1); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); moveSuggest(-1); }
+        else if (e.key === 'Enter') {
+            if (suggestIndex >= 0) { e.preventDefault(); pickSuggest(suggestIndex); }
+            else { hideSuggest(); $('product-grid').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+        } else if (e.key === 'Escape') { e.stopPropagation(); hideSuggest(); }
+    });
+    $('shop-search').addEventListener('focus', function () { if (this.value.trim().length >= 2) renderSuggest(); });
+    $('shop-search').addEventListener('blur', function () { setTimeout(hideSuggest, 120); });
     $('shop-sort').addEventListener('change', function (e) {
         withTransition(function () {
             state.sort = e.target.value;
@@ -3649,6 +3930,7 @@
         }
         if (e.key !== 'Escape') return;
         if (!$('account-modal').hidden) closeAccount();
+        else if (!$('guide-modal').hidden && $('product-modal').hidden) closeGuide();
         else if (!$('lead-modal').hidden) closeLead();
         else if (!$('book-modal').hidden) closeBooking();
         else if (!$('track-modal').hidden) closeTracking();
@@ -3659,6 +3941,10 @@
     $('track-form').addEventListener('submit', searchTracking);
     $('book-form').addEventListener('submit', submitBooking);
     $('lead-form').addEventListener('submit', submitLead);
+    $('guide-close').addEventListener('click', function () { closeGuide(); });
+    $('guide-modal').addEventListener('click', function (e) {
+        if (e.target === this) closeGuide();
+    });
     $('login-email-form').addEventListener('submit', requestCode);
     $('login-code-form').addEventListener('submit', verifyCode);
     $('acc-change').addEventListener('click', function () {
@@ -3759,6 +4045,11 @@
     // Direcciones indexables (/productos/<id>, /categoria/<cat>/<sub>): la tienda sigue
     // funcionando con su navegación interna, así que se traducen al formato con #.
     (function pathToHash() {
+        var gp = /^\/guias(?:\/([a-z0-9-]+))?\/?$/.exec(location.pathname);
+        if (gp) {
+            history.replaceState(null, '', '/' + location.search + (location.hash || (gp[1] ? '#guia/' + gp[1] : '#guias')));
+            return;
+        }
         var m = /^\/(productos|categoria)\/(.+?)\/?$/.exec(location.pathname);
         if (!m) return;
         var parts = m[2].split('/');

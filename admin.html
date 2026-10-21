@@ -76,6 +76,7 @@
                 <button type="button" class="admin-tab" data-tab="taller">Taller <span class="tab-badge" id="badge-bookings" hidden></span></button>
                 <button type="button" class="admin-tab" data-tab="opiniones">Opiniones <span class="tab-badge" id="badge-reviews" hidden></span></button>
                 <button type="button" class="admin-tab" data-tab="cupones">Cupones</button>
+                <button type="button" class="admin-tab" data-tab="guias">Guías</button>
                 <button type="button" class="admin-tab" data-tab="motos">Motos</button>
                 <button type="button" class="admin-tab" data-tab="ajustes">Ajustes</button>
             </nav>
@@ -227,6 +228,19 @@
                 <p class="admin-help">Solo pueden opinar clientes con un pedido enviado o entregado que incluya el producto. Nada se publica hasta que lo apruebes.</p>
                 <div class="shop-chips" id="reviews-filter" role="group" aria-label="Filtrar opiniones"></div>
                 <div id="reviews-list" class="admin-list"></div>
+            </section>
+
+            <!-- GUÍAS -->
+            <section class="admin-panel" id="tab-guias" hidden>
+                <div class="panel-head">
+                    <div>
+                        <span class="section-tag">Contenido</span>
+                        <h1>Guías y consejos</h1>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" id="post-new">+ Nueva guía</button>
+                </div>
+                <p class="admin-help">Las guías aparecen en la portada, tienen su propia página para Google (/guias/...) y pueden recomendar productos. Escribir 1 o 2 al mes ayuda mucho a que te encuentren.</p>
+                <div id="posts-list" class="admin-list"></div>
             </section>
 
             <!-- CUPONES -->

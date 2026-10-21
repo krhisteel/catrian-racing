@@ -1404,3 +1404,17 @@ button.stock-pill {
     background-color: rgba(21, 128, 61, 0.1);
     color: #15803d;
 }
+
+/* ===== GUÍAS ===== */
+.post-products {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 4px 12px;
+    max-height: 220px;
+    overflow-y: auto;
+    margin-top: 10px;
+}
+
+.post-products .check[hidden] {
+    display: none;
+}

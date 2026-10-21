@@ -182,7 +182,8 @@
             <div class="shop-toolbar">
                 <label class="shop-search">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-                    <input type="search" id="shop-search" placeholder="Buscar productos..." aria-label="Buscar productos">
+                    <input type="search" id="shop-search" placeholder="Buscar por producto, marca, medida o código..." aria-label="Buscar productos" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="search-suggest" aria-autocomplete="list">
+                    <div class="search-suggest" id="search-suggest" role="listbox" aria-label="Sugerencias" hidden></div>
                 </label>
                 <select id="shop-brand" class="shop-select" aria-label="Filtrar por marca">
                     <option value="">Todas las marcas</option>
@@ -356,6 +357,16 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
                 </button>
             </div>
+        </div>
+    </section>
+
+    <section id="guias" class="section" hidden>
+        <div class="container">
+            <div class="section-head reveal">
+                <span class="section-tag">Aprende con el taller</span>
+                <h2>Guías y consejos</h2>
+            </div>
+            <div class="guides-grid" id="guides-grid"></div>
         </div>
     </section>
 
@@ -608,6 +619,7 @@
                 <a href="#como-comprar">Cómo comprar</a>
                 <a href="#seguimiento">Seguir mi pedido</a>
                 <a href="#ayuda">Preguntas frecuentes</a>
+                <a href="#guias">Guías y consejos</a>
                 <a href="#mayoristas">Venta por mayor</a>
                 <a href="politicas.html#envios">Envíos y entregas</a>
                 <a href="politicas.html#cambios">Cambios y devoluciones</a>
@@ -956,6 +968,20 @@
                 <div class="account-body" id="acc-body"></div>
             </div>
         </div>
+    </div>
+
+    <div class="modal guide-modal" id="guide-modal" role="dialog" aria-modal="true" aria-labelledby="guide-title" hidden>
+        <article class="modal-box guide-box">
+            <button type="button" class="icon-btn modal-close" id="guide-close" aria-label="Cerrar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+            <span class="section-tag">Guías</span>
+            <h2 id="guide-title"></h2>
+            <p class="guide-meta" id="guide-meta"></p>
+            <div class="guide-body" id="guide-body"></div>
+            <div class="guide-products" id="guide-products"></div>
+            <div class="guide-more" id="guide-more"></div>
+        </article>
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>

@@ -368,6 +368,7 @@
             loadBookings();
             loadLeads();
             loadCustomers();
+            loadPosts();
             loadLoyalty();
         } catch (e) {
             toast(e.message, true);
@@ -1587,6 +1588,161 @@
         }
     }
 
+    /* ===== GUÍAS ===== */
+    async function loadPosts() {
+        try {
+            data.posts = await api('/rest/v1/posts?select=*&order=created_at.desc');
+        } catch (e) {
+            data.posts = [];
+        }
+        renderPosts();
+    }
+
+    function storeUrl(path) {
+        return location.href.replace(/admin\.html.*$/, '') + path;
+    }
+
+    function renderPosts() {
+        var wrap = $('posts-list');
+        wrap.textContent = '';
+        var list = data.posts || [];
+        if (!list.length) wrap.appendChild(el('p', 'admin-empty', 'Aún no hay guías. Crea la primera.'));
+        list.forEach(function (g) {
+            var row = el('div', 'admin-row' + (g.published ? '' : ' inactive'));
+            var main = button('', 'row-main', function () { openPost(g); });
+            var title = el('span', 'row-title');
+            title.appendChild(el('strong', '', g.title));
+            title.appendChild(el('span', 'row-sub', (g.published ? 'Publicada el ' + fmtDate(g.published_at) : 'Borrador') + ' · /guias/' + g.slug));
+            main.appendChild(title);
+            row.appendChild(main);
+            var controls = el('div', 'row-controls');
+            if (g.published) {
+                var see = el('a', 'btn btn-sm btn-ghost', 'Ver');
+                see.href = storeUrl('index.html#guia/' + g.slug);
+                see.target = '_blank';
+                see.rel = 'noopener';
+                controls.appendChild(see);
+            }
+            controls.appendChild(button('Editar', 'btn btn-sm btn-ghost', function () { openPost(g); }));
+            row.appendChild(controls);
+            wrap.appendChild(row);
+        });
+    }
+
+    function openPost(g) {
+        var isNew = !g;
+        g = g || { title: '', slug: '', excerpt: '', body: '', cover: '', tags: [], product_ids: [], published: false };
+        var body = openSide(isNew ? 'Nueva guía' : 'Editar guía');
+        var form = el('form', 'admin-form product-form');
+        form.noValidate = true;
+        var title = input('text', g.title, { maxlength: 120, required: '' });
+        var slug = input('text', g.slug, { maxlength: 80, placeholder: 'se-crea-solo-desde-el-titulo' });
+        var slugTouched = !isNew;
+        slug.addEventListener('input', function () { slugTouched = true; });
+        title.addEventListener('input', function () { if (!slugTouched) slug.value = slugify(title.value).slice(0, 80); });
+        var excerpt = input('textarea', g.excerpt, { rows: 2, maxlength: 300, placeholder: 'Resumen de 1 o 2 frases. Es lo que Google muestra bajo el título.' });
+        var cover = input('url', g.cover || '', { placeholder: 'https://... o sube una imagen' });
+        var tags = input('text', (g.tags || []).join(', '), { placeholder: 'Ej: mantención, neumáticos' });
+        var text = input('textarea', g.body, { rows: 16, maxlength: 30000 });
+        form.appendChild(field('Título', title));
+        form.appendChild(field('Dirección (/guias/...)', slug));
+        form.appendChild(field('Resumen', excerpt));
+        var coverFile = input('file', '', { accept: 'image/*' });
+        coverFile.hidden = true;
+        coverFile.addEventListener('change', async function () {
+            var f = coverFile.files[0];
+            if (!f) return;
+            try {
+                cover.value = await uploadImage(f, 'guia-' + (slug.value || 'portada'));
+                toast('Imagen subida');
+            } catch (e) { toast(e.message, true); }
+            coverFile.value = '';
+        });
+        var coverRow = el('div', 'form-grid');
+        coverRow.appendChild(field('Imagen de portada', cover));
+        var upWrap = el('div');
+        upWrap.appendChild(coverFile);
+        upWrap.appendChild(button('Subir imagen', 'btn btn-sm btn-ghost', function () { coverFile.click(); }));
+        coverRow.appendChild(upWrap);
+        form.appendChild(coverRow);
+        form.appendChild(field('Etiquetas', tags));
+        form.appendChild(field('Texto de la guía', text));
+        form.appendChild(el('p', 'admin-help', 'Formato: «## Título» para subtítulos, «- » al inicio para listas, **negrita** y [texto del enlace](/#agendar) para enlaces. Deja una línea en blanco entre párrafos.'));
+
+        var prodBox = el('fieldset', 'fits-box');
+        prodBox.appendChild(el('legend', '', 'Productos recomendados'));
+        var prodSearch = input('search', '', { placeholder: 'Buscar producto...' });
+        prodBox.appendChild(prodSearch);
+        var prodList = el('div', 'post-products');
+        var checks = [];
+        data.products.filter(function (p) { return !p.quote; }).forEach(function (p) {
+            var c = checkbox(p.name, (g.product_ids || []).indexOf(p.id) !== -1);
+            c.input.value = p.id;
+            c.wrap.dataset.name = normalize(p.name + ' ' + (p.brand || ''));
+            checks.push(c);
+            prodList.appendChild(c.wrap);
+        });
+        prodSearch.addEventListener('input', function () {
+            var q = normalize(prodSearch.value);
+            checks.forEach(function (c) { c.wrap.hidden = !!q && c.wrap.dataset.name.indexOf(q) === -1 && !c.input.checked; });
+        });
+        prodBox.appendChild(prodList);
+        form.appendChild(prodBox);
+
+        var publish = checkbox('Publicada (visible en la tienda y en Google)', g.published);
+        form.appendChild(publish.wrap);
+        var error = el('p', 'form-error');
+        form.appendChild(error);
+        var actions = el('div', 'side-actions');
+        var save = el('button', 'btn btn-sm btn-primary', 'Guardar guía');
+        save.type = 'submit';
+        actions.appendChild(save);
+        if (!isNew) {
+            actions.appendChild(button('Eliminar', 'btn btn-sm btn-danger', async function () {
+                if (!confirm('¿Eliminar la guía «' + g.title + '»?')) return;
+                try {
+                    await api('/rest/v1/posts?slug=eq.' + encodeURIComponent(g.slug), { method: 'DELETE' });
+                    data.posts = data.posts.filter(function (x) { return x.slug !== g.slug; });
+                    closeSide();
+                    renderPosts();
+                    toast('Guía eliminada');
+                } catch (e) { toast(e.message, true); }
+            }));
+        }
+        form.appendChild(actions);
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            var row = {
+                title: title.value.trim(),
+                slug: slugify(slug.value || title.value).slice(0, 80),
+                excerpt: excerpt.value.trim(),
+                body: text.value.replace(/\r/g, '').trim(),
+                cover: cover.value.trim() || null,
+                tags: tags.value.split(',').map(function (t) { return t.trim(); }).filter(Boolean).slice(0, 8),
+                product_ids: checks.filter(function (c) { return c.input.checked; }).map(function (c) { return c.input.value; }).slice(0, 12),
+                published: publish.input.checked
+            };
+            if (row.title.length < 3) { error.textContent = 'Escribe un título.'; return title.focus(); }
+            if (row.cover && !/^https:\/\//.test(row.cover) && !/^img\//.test(row.cover)) { error.textContent = 'La imagen debe ser un enlace https:// o una imagen subida.'; return; }
+            if (row.published && row.body.length < 200) { error.textContent = 'Para publicar, escribe al menos unos párrafos (200 caracteres).'; return text.focus(); }
+            save.disabled = true;
+            try {
+                if (isNew) {
+                    await api('/rest/v1/posts', { method: 'POST', body: row, headers: { Prefer: 'return=representation' } });
+                } else {
+                    await api('/rest/v1/posts?slug=eq.' + encodeURIComponent(g.slug), { method: 'PATCH', body: row, headers: { Prefer: 'return=representation' } });
+                }
+                await loadPosts();
+                closeSide();
+                toast(row.published ? 'Guía publicada' : 'Borrador guardado');
+            } catch (err) {
+                save.disabled = false;
+                error.textContent = err.status === 409 ? 'Ya existe una guía con esa dirección. Cámbiala.' : err.message;
+            }
+        });
+        body.appendChild(form);
+    }
+
     /* ===== CLIENTES ===== */
     var customerFilter = 'todos';
     var WHOLESALE_TEXT = { none: '', pending: 'Pide precios mayoristas', approved: 'Mayorista', rejected: 'Mayorista rechazado' };
@@ -2500,6 +2656,7 @@
     $('email-form').addEventListener('submit', onEmailSave);
     $('auto-form').addEventListener('submit', onAutoSave);
     $('finance-form').addEventListener('submit', onFinanceSave);
+    $('post-new').addEventListener('click', function () { openPost(null); });
     $('loyalty-form').addEventListener('submit', onLoyaltySave);
     $('customers-search').addEventListener('input', renderCustomers);
     $('email-test').addEventListener('click', onEmailTest);

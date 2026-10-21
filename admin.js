@@ -362,6 +362,7 @@
             data.admins = res[5];
             renderAll();
             loadPaymentConfig();
+            loadEmailConfig();
         } catch (e) {
             toast(e.message, true);
         }
@@ -681,6 +682,25 @@
             } catch (e) { toast(e.message, true); }
         }));
         body.appendChild(actions);
+        if (o.email) renderOrderEmails(o, body);
+    }
+
+    var EMAIL_KINDS = { recibido: 'Pedido recibido', confirmado: 'Pedido confirmado', pagado: 'Pago recibido', entregado: 'Pedido entregado', cancelado: 'Pedido cancelado' };
+
+    async function renderOrderEmails(o, body) {
+        var rows;
+        try {
+            rows = await api('/rest/v1/rpc/admin_order_emails', { method: 'POST', body: { p_order: o.id } });
+        } catch (e) { return; }
+        if (!rows || !rows.length || !document.contains(body)) return;
+        var box = el('div', 'detail-block');
+        box.appendChild(el('h3', '', 'Correos al cliente'));
+        rows.forEach(function (r) {
+            var name = /^enviado/.test(r.kind) ? 'Pedido despachado' + (r.kind.length > 8 ? ' (N° ' + r.kind.slice(8) + ')' : '') : (EMAIL_KINDS[r.kind] || r.kind);
+            var state = r.status == null ? 'en cola' : (r.status < 300 ? 'enviado' : 'error ' + r.status);
+            detail(box, fmtDate(r.created_at), name + ' · ' + state);
+        });
+        body.appendChild(box);
     }
 
     var COURIERS = ['Starken', 'Chilexpress', 'Blue Express', 'Correos de Chile', '99minutos', 'Despacho propio'];
@@ -1340,6 +1360,55 @@
         } catch (err) { toast(err.message, true); }
     }
 
+    async function loadEmailConfig() {
+        try {
+            data.email = await api('/rest/v1/rpc/admin_get_email_config', { method: 'POST', body: {} });
+        } catch (e) {
+            data.email = null;
+        }
+        var c = data.email || {};
+        var state = $('email-state');
+        state.className = 'mp-state ' + (c.enabled ? 'on' : 'off');
+        state.textContent = c.enabled ? '● Activos · enviando desde ' + c.from_address
+            : (c.has_key ? '○ Desactivados · clave guardada ' + c.key_hint : '○ Desactivados · sin clave');
+        $('email-key').value = '';
+        $('email-key').placeholder = c.has_key ? 'Clave guardada (' + c.key_hint + '). Escribe una nueva para cambiarla.' : 're_...';
+        $('email-from').value = c.from_address || '';
+        $('email-reply').value = c.reply_to || '';
+        $('email-url').value = c.store_url || '';
+        $('email-enabled').checked = !!c.enabled;
+    }
+
+    async function saveEmailConfig() {
+        await api('/rest/v1/rpc/admin_set_email_config', { method: 'POST', body: {
+            p_key: $('email-key').value.trim() || null,
+            p_from: $('email-from').value.trim(),
+            p_reply_to: $('email-reply').value.trim(),
+            p_store_url: $('email-url').value.trim(),
+            p_enabled: $('email-enabled').checked
+        } });
+    }
+
+    async function onEmailSave(e) {
+        e.preventDefault();
+        try {
+            await saveEmailConfig();
+            toast($('email-enabled').checked ? 'Correos automáticos activados.' : 'Configuración de correos guardada.');
+            await loadEmailConfig();
+        } catch (err) { toast(err.message, true); }
+    }
+
+    async function onEmailTest() {
+        var to = prompt('¿A qué correo enviamos la prueba?', '');
+        if (!to) return;
+        try {
+            await saveEmailConfig();
+            await api('/rest/v1/rpc/admin_test_email', { method: 'POST', body: { p_to: to.trim() } });
+            toast('Correo de prueba enviado a ' + to.trim());
+            await loadEmailConfig();
+        } catch (err) { toast(err.message, true); }
+    }
+
     async function onRatesSave(e) {
         e.preventDefault();
         var rates = {};
@@ -1510,6 +1579,8 @@
     $('settings-form').addEventListener('submit', onSettingsSave);
     $('rates-form').addEventListener('submit', onRatesSave);
     $('mp-form').addEventListener('submit', onPaymentSave);
+    $('email-form').addEventListener('submit', onEmailSave);
+    $('email-test').addEventListener('click', onEmailTest);
     $('admin-form').addEventListener('submit', onAdminAdd);
     $('password-form').addEventListener('submit', onPasswordChange);
 

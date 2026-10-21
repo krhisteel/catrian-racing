@@ -222,6 +222,24 @@
                         <label class="check mp-enable"><input type="checkbox" id="mp-enabled"> Activar pago en línea en la tienda</label>
                         <button type="submit" class="btn btn-sm btn-primary">Guardar pagos</button>
                     </form>
+                    <form class="admin-card admin-form" id="email-form" novalidate>
+                        <h2>Correos automáticos al cliente</h2>
+                        <p class="admin-help">Si el cliente deja su email, le llega un correo cuando recibimos su pedido, cuando se paga, cuando se despacha (con la empresa y el número de seguimiento), cuando se entrega o si se cancela. Se envían con <strong>Resend</strong> (gratis hasta 3.000 correos al mes): crea una cuenta en resend.com, verifica tu dominio y copia aquí la API Key.</p>
+                        <p class="mp-state" id="email-state"></p>
+                        <label for="email-key">API Key de Resend</label>
+                        <input id="email-key" class="admin-input" type="password" autocomplete="off" spellcheck="false" placeholder="re_...">
+                        <label for="email-from">Remitente</label>
+                        <input id="email-from" class="admin-input" autocomplete="off" spellcheck="false" placeholder="Catrian Racing &lt;pedidos@tudominio.cl&gt;">
+                        <label for="email-reply">Responder a (opcional)</label>
+                        <input id="email-reply" class="admin-input" type="email" autocomplete="off" spellcheck="false" placeholder="contacto@tudominio.cl">
+                        <label for="email-url">Dirección de la tienda (para el botón «Ver estado del pedido»)</label>
+                        <input id="email-url" class="admin-input" type="url" autocomplete="off" spellcheck="false" placeholder="https://catrian-racing.vercel.app">
+                        <label class="check mp-enable"><input type="checkbox" id="email-enabled"> Enviar correos automáticos</label>
+                        <div class="inline-actions">
+                            <button type="submit" class="btn btn-sm btn-primary">Guardar correos</button>
+                            <button type="button" class="btn btn-sm btn-ghost" id="email-test">Enviar correo de prueba</button>
+                        </div>
+                    </form>
                     <form class="admin-card admin-form rates-card" id="rates-form" novalidate>
                         <h2>Tarifas de envío por región</h2>
                         <p class="admin-help">El cliente ve el costo exacto en el carro según su región. Deja vacía una región para que el envío quede «a cotizar». Sobre el monto de envío gratis, el despacho no se cobra.</p>

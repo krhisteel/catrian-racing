@@ -168,7 +168,7 @@
             id: 'casco', name: 'Casco integral', cat: 'Equipamiento', sub: 'Cascos', brand: 'LS2', price: 129990, compare: 159990, stock: 5, freeShip: true,
             img: 'img/productos/casco.svg', images: ['img/productos/casco.svg', 'img/productos/casco-2.svg'],
             desc: 'Certificación DOT/ECE, visor antiempañante.',
-            options: { name: 'Talla', values: ['S', 'M', 'L', 'XL'] }
+            options: { name: 'Talla', values: ['S', 'M', 'L', 'XL'] }, optionStock: { S: 1, M: 2, L: 2, XL: 0 }
         },
         {
             id: 'chaqueta', name: 'Chaqueta con protecciones', cat: 'Equipamiento', sub: 'Chaquetas', brand: 'Alpinestars', price: 149990, stock: 4, badge: 'Nuevo', freeShip: true,
@@ -290,6 +290,17 @@
 
     function notifyUrl(p) {
         return waUrl('Hola Catrian Racing! Avísenme cuando vuelva a haber stock de: ' + p.name + '.');
+    }
+
+    // Stock de una opción (talla, medida...) si se controla por opción; si no, el del producto.
+    function variantStock(p, option) {
+        if (p.optionStock && option && p.optionStock[option] !== undefined) return p.optionStock[option];
+        return p.stock;
+    }
+
+    function maxQty(p, option) {
+        var s = variantStock(p, option);
+        return s === undefined || s === null ? 99 : s;
     }
 
     function soldOut(p) {
@@ -1475,12 +1486,25 @@
             group.setAttribute('role', 'radiogroup');
             group.setAttribute('aria-label', p.options.name);
             p.options.values.forEach(function (value) {
-                var b = el('button', 'option', value);
+                var left = variantStock(p, value);
+                var out = !p.quote && left === 0;
+                var b = el('button', 'option' + (out ? ' out' : ''), value);
                 b.type = 'button';
                 b.setAttribute('role', 'radio');
                 b.setAttribute('aria-checked', 'false');
+                if (out) {
+                    b.disabled = true;
+                    b.title = 'Agotado';
+                    b.setAttribute('aria-label', value + ' (agotado)');
+                }
                 b.addEventListener('click', function () {
                     selected = value;
+                    if (p.optionStock && left !== undefined) {
+                        stockEl.className = 'pdp-stock ' + (left <= 3 ? 'low' : 'ok');
+                        stockEl.textContent = left <= 3
+                            ? '¡Últimas ' + left + ' en ' + value + '! En stock para envío o retiro'
+                            : 'En stock en ' + value + ' (' + left + ' disponibles)';
+                    }
                     group.querySelectorAll('.option').forEach(function (o) {
                         o.setAttribute('aria-checked', o === b ? 'true' : 'false');
                     });
@@ -1530,7 +1554,7 @@
                 count.textContent = qty;
             });
             plus.addEventListener('click', function () {
-                qty = Math.min(p.stock || 99, qty + 1);
+                qty = Math.min(maxQty(p, selected), qty + 1);
                 count.textContent = qty;
             });
             stepper.appendChild(minus);
@@ -1672,8 +1696,10 @@
     function addToCart(id, option, qty) {
         var p = byId[id];
         var line = cart.filter(function (l) { return l.id === id && l.option === option; })[0];
-        if (line) line.qty = Math.min(p.stock || 99, line.qty + qty);
-        else cart.push({ id: id, option: option, qty: Math.min(p.stock || 99, qty) });
+        var limit = maxQty(p, option);
+        if (limit <= 0) return toast('Sin stock' + (option ? ' en ' + option : ''));
+        if (line) line.qty = Math.min(limit, line.qty + qty);
+        else cart.push({ id: id, option: option, qty: Math.min(limit, qty) });
         saveCart();
         renderCart();
         toast(p.name + (option ? ' (' + option + ')' : '') + ' agregado al carro');
@@ -1686,7 +1712,7 @@
     function setQty(index, qty) {
         var line = cart[index];
         if (qty <= 0) cart.splice(index, 1);
-        else line.qty = Math.min(byId[line.id].stock || 99, qty);
+        else line.qty = Math.max(1, Math.min(maxQty(byId[line.id], line.option), qty));
         saveCart();
         renderCart();
     }
@@ -2103,6 +2129,7 @@
         if (row.stock !== null && row.stock !== undefined) p.stock = row.stock;
         if (row.specs && row.specs.length) p.specs = row.specs;
         if (row.options && row.options.values && row.options.values.length) p.options = row.options;
+        if (p.options && row.option_stock) p.optionStock = row.option_stock;
         if (row.fits && row.fits.length) p.fits = row.fits;
         if (row.badge) p.badge = row.badge;
         if (row.quote) p.quote = true;

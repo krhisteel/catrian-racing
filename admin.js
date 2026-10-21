@@ -851,6 +851,12 @@
             var controls = el('div', 'row-controls');
             if (p.quote) {
                 controls.appendChild(el('span', 'stock-pill', 'Cotización'));
+            } else if (p.option_stock) {
+                var pill = el('button', 'stock-pill', 'Stock ' + (p.stock || 0) + ' · por opción');
+                pill.type = 'button';
+                pill.title = Object.keys(p.option_stock).map(function (k) { return k + ': ' + p.option_stock[k]; }).join(' · ');
+                pill.addEventListener('click', function () { openProduct(p); });
+                controls.appendChild(pill);
             } else {
                 var stock = input('number', p.stock === null ? '' : p.stock, { min: 0, placeholder: '∞', 'aria-label': 'Stock de ' + p.name });
                 stock.className = 'admin-input stock-input';
@@ -1037,6 +1043,46 @@
         optGrid.appendChild(field('Variante (opcional)', f.optName));
         optGrid.appendChild(field('Opciones, separadas por coma', f.optValues));
         form.appendChild(optGrid);
+
+        // Stock por opción: cada talla/medida con su propio stock; el total se calcula solo.
+        var optStock = Object.assign({}, p.option_stock || {});
+        var varBox = el('fieldset', 'variant-stock');
+        varBox.appendChild(el('legend', '', 'Stock por opción'));
+        f.byOption = checkbox('Controlar el stock de cada opción por separado', !!p.option_stock);
+        varBox.appendChild(f.byOption.wrap);
+        var varGrid = el('div', 'variant-grid');
+        varBox.appendChild(varGrid);
+        form.appendChild(varBox);
+        function currentOptions() {
+            return f.optValues.value.split(',').map(function (v) { return v.trim(); }).filter(Boolean);
+        }
+        function renderVariantStock() {
+            varGrid.querySelectorAll('input').forEach(function (i) { optStock[i.dataset.option] = i.value; });
+            varGrid.textContent = '';
+            var values = currentOptions();
+            varBox.hidden = !values.length;
+            var on = f.byOption.input.checked && values.length > 0;
+            f.stock.disabled = on;
+            if (on) f.stock.placeholder = 'Se suma desde cada opción';
+            else f.stock.placeholder = 'Vacío = sin control de stock';
+            if (!on) return;
+            var total = 0;
+            values.forEach(function (v) {
+                var i = input('number', optStock[v] === undefined ? '' : optStock[v], { min: 0, step: 1, placeholder: '0' });
+                i.dataset.option = v;
+                i.addEventListener('input', function () {
+                    var sum = 0;
+                    varGrid.querySelectorAll('input').forEach(function (x) { sum += Math.max(0, parseInt(x.value, 10) || 0); });
+                    f.stock.value = sum;
+                });
+                total += Math.max(0, parseInt(i.value, 10) || 0);
+                varGrid.appendChild(field(v, i));
+            });
+            f.stock.value = total;
+        }
+        f.optValues.addEventListener('change', renderVariantStock);
+        f.byOption.input.addEventListener('change', renderVariantStock);
+        renderVariantStock();
         form.appendChild(field('Características', f.specs));
 
         // Compatibilidad
@@ -1132,6 +1178,7 @@
                 desc: f.desc.value.trim(),
                 specs: specs,
                 options: optValues.length ? { name: f.optName.value.trim(), values: optValues } : null,
+                option_stock: null,
                 fits: fitIds,
                 badge: f.badge.value.trim() || null,
                 quote: f.quote.input.checked,
@@ -1141,6 +1188,12 @@
                 sort: parseInt(f.sort.value, 10) || 0
             };
             if (row.compare !== null && row.compare <= row.price) row.compare = null;
+            if (optValues.length && f.byOption.input.checked) {
+                row.option_stock = {};
+                varGrid.querySelectorAll('input').forEach(function (i) {
+                    row.option_stock[i.dataset.option] = Math.max(0, parseInt(i.value, 10) || 0);
+                });
+            }
 
             save.disabled = true;
             try {

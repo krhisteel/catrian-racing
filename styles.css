@@ -4837,3 +4837,15 @@ a.product-cat:hover {
 .track-doc {
     margin-top: 12px;
 }
+
+.option.out {
+    color: var(--muted);
+    text-decoration: line-through;
+    border-style: dashed;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.option.out:hover {
+    border-color: var(--border);
+}

@@ -358,6 +358,26 @@
                         <input id="set-pixel" class="admin-input" inputmode="numeric" autocomplete="off" placeholder="123456789012345">
                         <button type="submit" class="btn btn-sm btn-primary">Guardar ajustes</button>
                     </form>
+                    <div class="admin-card owner-only">
+                        <h2>Pago en línea</h2>
+                        <p class="admin-help">Elige con quién cobras en la tienda. <strong>Mercado Pago</strong>: tarjetas y saldo Mercado Pago. <strong>Flow</strong>: Webpay, tarjetas, transferencia (Khipu), Mach y más.</p>
+                        <div class="provider-choice" id="provider-choice" role="radiogroup" aria-label="Proveedor de pago">
+                            <label class="check"><input type="radio" name="provider" value="mercadopago"> Mercado Pago</label>
+                            <label class="check"><input type="radio" name="provider" value="flow"> Flow</label>
+                        </div>
+                    </div>
+                    <form class="admin-card admin-form owner-only" id="flow-form" novalidate>
+                        <h2>Pagos con Flow</h2>
+                        <p class="admin-help">En flow.cl → Mi cuenta → Integraciones copia tu <strong>API Key</strong> y tu <strong>Secret Key</strong>. Para probar sin cobrar, usa las de sandbox.flow.cl y marca «Modo de prueba». Con Flow el cliente debe dejar su correo al pagar en línea.</p>
+                        <p class="mp-state" id="flow-state"></p>
+                        <label for="flow-key">API Key</label>
+                        <input id="flow-key" class="admin-input" type="password" autocomplete="off" spellcheck="false">
+                        <label for="flow-secret">Secret Key</label>
+                        <input id="flow-secret" class="admin-input" type="password" autocomplete="off" spellcheck="false">
+                        <label class="check"><input type="checkbox" id="flow-sandbox"> Modo de prueba (sandbox.flow.cl)</label>
+                        <label class="check mp-enable"><input type="checkbox" id="flow-enabled"> Activar Flow</label>
+                        <button type="submit" class="btn btn-sm btn-primary">Guardar Flow</button>
+                    </form>
                     <form class="admin-card admin-form owner-only" id="mp-form" novalidate>
                         <h2>Pagos con tarjeta (Mercado Pago)</h2>
                         <p class="admin-help">Con esto el cliente paga con débito, crédito o prepago al finalizar la compra, y el pedido pasa solo a «Pagado». Copia tu <strong>Access Token de producción</strong> desde Mercado Pago → Tu negocio → Configuración → Credenciales (o «Tus integraciones» → Credenciales de producción).</p>

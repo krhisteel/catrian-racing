@@ -1152,3 +1152,10 @@ button.stock-pill {
     font-family: inherit;
     cursor: pointer;
 }
+
+/* ===== ACCIONES DE CABECERA ===== */
+.head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}

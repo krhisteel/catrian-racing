@@ -112,6 +112,9 @@
                         <span class="section-tag">Ventas</span>
                         <h1>Pedidos</h1>
                     </div>
+                    <div class="head-actions">
+                        <button type="button" class="btn btn-sm btn-ghost" id="orders-export">Exportar CSV</button>
+                    </div>
                 </div>
                 <div class="admin-toolbar">
                     <input type="search" id="orders-search" class="admin-input" placeholder="Buscar por pedido, nombre o teléfono" aria-label="Buscar pedidos">
@@ -127,7 +130,12 @@
                         <span class="section-tag">Catálogo</span>
                         <h1>Productos</h1>
                     </div>
-                    <button type="button" class="btn btn-sm btn-primary" id="product-new">+ Nuevo producto</button>
+                    <div class="head-actions">
+                        <button type="button" class="btn btn-sm btn-ghost" id="products-export">Exportar CSV</button>
+                        <button type="button" class="btn btn-sm btn-ghost" id="products-import">Importar CSV</button>
+                        <input type="file" id="products-import-file" accept=".csv,text/csv" hidden>
+                        <button type="button" class="btn btn-sm btn-primary" id="product-new">+ Nuevo producto</button>
+                    </div>
                 </div>
                 <div class="admin-toolbar">
                     <input type="search" id="products-search" class="admin-input" placeholder="Buscar por nombre, marca o subcategoría" aria-label="Buscar productos">
@@ -152,14 +160,34 @@
                         <h1>Cupones de descuento</h1>
                     </div>
                 </div>
-                <form class="admin-card inline-form" id="coupon-form" novalidate>
+                <form class="admin-card inline-form coupon-form" id="coupon-form" novalidate>
                     <div>
                         <label for="coupon-code">Código</label>
                         <input id="coupon-code" class="admin-input" placeholder="EJ: VERANO20" required>
                     </div>
                     <div>
-                        <label for="coupon-percent">% de descuento</label>
-                        <input id="coupon-percent" class="admin-input" type="number" min="1" max="90" placeholder="10" required>
+                        <label for="coupon-kind">Tipo</label>
+                        <select id="coupon-kind" class="admin-input">
+                            <option value="percent">% de descuento</option>
+                            <option value="amount">Monto fijo ($)</option>
+                            <option value="free_shipping">Envío gratis</option>
+                        </select>
+                    </div>
+                    <div id="coupon-value-wrap">
+                        <label for="coupon-value" id="coupon-value-label">% de descuento</label>
+                        <input id="coupon-value" class="admin-input" type="number" min="1" placeholder="10">
+                    </div>
+                    <div>
+                        <label for="coupon-min">Compra mínima ($)</label>
+                        <input id="coupon-min" class="admin-input" type="number" min="0" step="1000" placeholder="Sin mínimo">
+                    </div>
+                    <div>
+                        <label for="coupon-max">Usos máximos</label>
+                        <input id="coupon-max" class="admin-input" type="number" min="1" placeholder="Sin límite">
+                    </div>
+                    <div>
+                        <label for="coupon-expires">Vence el</label>
+                        <input id="coupon-expires" class="admin-input" type="date">
                     </div>
                     <button type="submit" class="btn btn-sm btn-primary">Crear cupón</button>
                 </form>
@@ -211,6 +239,10 @@
                         <input id="set-free" class="admin-input" type="number" min="0" step="1000">
                         <label for="set-announce">Barra de anuncios (un mensaje por línea, máximo 3)</label>
                         <textarea id="set-announce" class="admin-input" rows="3"></textarea>
+                        <label for="set-ga4">Google Analytics 4 · ID de medición (opcional)</label>
+                        <input id="set-ga4" class="admin-input" autocomplete="off" spellcheck="false" placeholder="G-XXXXXXXXXX">
+                        <label for="set-pixel">Meta Pixel (Facebook e Instagram) · ID (opcional)</label>
+                        <input id="set-pixel" class="admin-input" inputmode="numeric" autocomplete="off" placeholder="123456789012345">
                         <button type="submit" class="btn btn-sm btn-primary">Guardar ajustes</button>
                     </form>
                     <form class="admin-card admin-form" id="mp-form" novalidate>

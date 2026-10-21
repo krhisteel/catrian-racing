@@ -1290,9 +1290,15 @@
             var main = el('div', 'row-main static');
             var title = el('span', 'row-title');
             title.appendChild(el('strong', 'coupon-code', c.code));
-            title.appendChild(el('span', 'row-sub', 'Creado el ' + fmtDate(c.created_at)));
+            var used = data.orders.filter(function (o) { return o.coupon === c.code && o.status !== 'cancelado'; }).length;
+            var expired = c.expires_at && new Date(c.expires_at) < new Date();
+            var rules = ['Usado ' + used + (c.max_uses ? ' de ' + c.max_uses : '') + (used === 1 ? ' vez' : ' veces')];
+            if (c.min_subtotal) rules.push('desde ' + money(c.min_subtotal));
+            if (c.expires_at) rules.push((expired ? 'venció el ' : 'vence el ') + new Date(c.expires_at).toLocaleDateString('es-CL'));
+            title.appendChild(el('span', 'row-sub', rules.join(' · ')));
             main.appendChild(title);
-            main.appendChild(el('span', 'row-col row-money', c.percent + '% de descuento'));
+            main.appendChild(el('span', 'row-col row-money', couponBenefit(c)));
+            if (expired || (c.max_uses && used >= c.max_uses)) row.classList.add('inactive');
             row.appendChild(main);
             var controls = el('div', 'row-controls');
             var toggle = el('label', 'switch');
@@ -1325,21 +1331,191 @@
         });
     }
 
+    function couponBenefit(c) {
+        var parts = [];
+        if (c.percent) parts.push(c.percent + '% de descuento');
+        if (c.amount) parts.push(money(c.amount) + ' de descuento');
+        if (c.free_shipping) parts.push('Envío gratis');
+        return parts.join(' + ');
+    }
+
+    function syncCouponKind() {
+        var kind = $('coupon-kind').value;
+        $('coupon-value-wrap').hidden = kind === 'free_shipping';
+        $('coupon-value-label').textContent = kind === 'amount' ? 'Monto de descuento ($)' : '% de descuento';
+        $('coupon-value').placeholder = kind === 'amount' ? '5000' : '10';
+    }
+
     async function onCouponCreate(e) {
         e.preventDefault();
         var code = $('coupon-code').value.trim().toUpperCase().replace(/\s+/g, '');
-        var percent = parseInt($('coupon-percent').value, 10);
+        var kind = $('coupon-kind').value;
+        var value = parseInt($('coupon-value').value, 10);
+        var row = { code: code, percent: 0, amount: 0, free_shipping: kind === 'free_shipping' };
         if (!/^[A-Z0-9_-]{3,30}$/.test(code)) return toast('El código debe tener de 3 a 30 letras o números, sin espacios.', true);
-        if (!(percent >= 1 && percent <= 90)) return toast('El descuento debe estar entre 1% y 90%.', true);
+        if (kind === 'percent') {
+            if (!(value >= 1 && value <= 90)) return toast('El descuento debe estar entre 1% y 90%.', true);
+            row.percent = value;
+        } else if (kind === 'amount') {
+            if (!(value >= 100)) return toast('Escribe el monto de descuento en pesos.', true);
+            row.amount = value;
+        }
+        var min = parseInt($('coupon-min').value, 10);
+        var max = parseInt($('coupon-max').value, 10);
+        if (min > 0) row.min_subtotal = min;
+        if (max > 0) row.max_uses = max;
+        if ($('coupon-expires').value) {
+            // Vence al final del día elegido, en hora de Chile (del navegador).
+            row.expires_at = new Date($('coupon-expires').value + 'T23:59:59').toISOString();
+            if (new Date(row.expires_at) < new Date()) return toast('La fecha de vencimiento ya pasó.', true);
+        }
         try {
-            var rows = await api('/rest/v1/coupons', { method: 'POST', body: { code: code, percent: percent }, headers: { Prefer: 'return=representation' } });
+            var rows = await api('/rest/v1/coupons', { method: 'POST', body: row, headers: { Prefer: 'return=representation' } });
             data.coupons.unshift(rows[0]);
             e.target.reset();
+            syncCouponKind();
             toast('Cupón ' + code + ' creado');
             renderCoupons();
         } catch (err) {
             toast(err.status === 409 ? 'Ya existe un cupón con ese código.' : err.message, true);
         }
+    }
+
+    /* ===== CSV ===== */
+    function csvCell(v) {
+        if (v === null || v === undefined) return '';
+        var t = Array.isArray(v) ? v.join(' | ') : String(v);
+        // Evita que Excel interprete el texto como fórmula.
+        if (/^[=+\-@]/.test(t) && !/^-?\d+(\.\d+)?$/.test(t)) t = "'" + t;
+        return /[";\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+    }
+
+    // Separado por punto y coma para que Excel en español lo abra en columnas.
+    function downloadCsv(name, header, rows) {
+        var text = '\ufeff' + [header].concat(rows).map(function (r) { return r.map(csvCell).join(';'); }).join('\r\n');
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
+        a.download = name + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    }
+
+    function parseCsv(text) {
+        text = text.replace(/^\ufeff/, '');
+        var first = text.split(/\r?\n/)[0] || '';
+        var sep = (first.match(/;/g) || []).length >= (first.match(/,/g) || []).length ? ';' : ',';
+        var rows = [], row = [], cell = '', quoted = false;
+        for (var i = 0; i < text.length; i++) {
+            var ch = text[i];
+            if (quoted) {
+                if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+                else if (ch === '"') quoted = false;
+                else cell += ch;
+            } else if (ch === '"') quoted = true;
+            else if (ch === sep) { row.push(cell); cell = ''; }
+            else if (ch === '\n' || ch === '\r') {
+                if (ch === '\r' && text[i + 1] === '\n') i++;
+                row.push(cell); rows.push(row); row = []; cell = '';
+            } else cell += ch;
+        }
+        if (cell || row.length) { row.push(cell); rows.push(row); }
+        return rows.filter(function (r) { return r.some(function (c) { return c.trim(); }); });
+    }
+
+    var PRODUCT_COLS = ['id', 'name', 'cat', 'sub', 'brand', 'sku', 'price', 'compare', 'stock', 'active', 'desc'];
+    var PRODUCT_HEAD = ['id', 'nombre', 'categoria', 'subcategoria', 'marca', 'sku', 'precio', 'precio_antes', 'stock', 'visible', 'descripcion'];
+
+    function exportProducts() {
+        downloadCsv('productos', PRODUCT_HEAD.concat(['opciones', 'stock_por_opcion', 'foto']), data.products.map(function (p) {
+            return PRODUCT_COLS.map(function (k) { return k === 'active' ? (p.active ? 'si' : 'no') : p[k]; }).concat([
+                p.options ? p.options.name + ': ' + p.options.values.join(', ') : '',
+                p.option_stock ? Object.keys(p.option_stock).map(function (k) { return k + '=' + p.option_stock[k]; }).join(', ') : '',
+                p.img || ''
+            ]);
+        }));
+    }
+
+    async function importProducts(file) {
+        var rows = parseCsv(await file.text());
+        if (rows.length < 2) return toast('El archivo no tiene productos.', true);
+        var head = rows[0].map(function (h) { return h.trim().toLowerCase(); });
+        var idx = {};
+        PRODUCT_COLS.forEach(function (k, i) {
+            var at = head.indexOf(PRODUCT_HEAD[i]);
+            if (at === -1) at = head.indexOf(k);
+            if (at !== -1) idx[k] = at;
+        });
+        if (idx.id === undefined && idx.name === undefined) return toast('Falta la columna «id» o «nombre».', true);
+        var byId = {};
+        data.products.forEach(function (p) { byId[p.id] = p; });
+        var updates = [], creates = [], errors = [];
+        rows.slice(1).forEach(function (r, n) {
+            var get = function (k) { return idx[k] === undefined ? undefined : (r[idx[k]] || '').trim().replace(/^'/, ''); };
+            var row = {};
+            ['name', 'cat', 'sub', 'brand', 'sku', 'desc'].forEach(function (k) {
+                var v = get(k);
+                if (v !== undefined) row[k] = v || (k === 'desc' ? '' : null);
+            });
+            ['price', 'compare', 'stock'].forEach(function (k) {
+                var v = get(k);
+                if (v === undefined) return;
+                v = v.replace(/[$.\s]/g, '').replace(',', '.');
+                row[k] = v === '' ? null : Math.max(0, Math.round(Number(v)));
+                if (isNaN(row[k])) errors.push('Fila ' + (n + 2) + ': «' + k + '» no es un número');
+            });
+            var act = get('active');
+            if (act !== undefined && act !== '') row.active = !/^(no|0|false|falso)$/i.test(act);
+            if (row.cat && CATS.indexOf(row.cat) === -1) errors.push('Fila ' + (n + 2) + ': categoría «' + row.cat + '» no existe');
+            var id = get('id');
+            var existing = id && byId[id];
+            if (existing) {
+                if (existing.option_stock) delete row.stock;
+                Object.keys(row).forEach(function (k) {
+                    if ((existing[k] === undefined ? null : existing[k]) === row[k]) delete row[k];
+                });
+                if (Object.keys(row).length) updates.push({ id: id, row: row });
+            } else {
+                if (!row.name || row.price === undefined || row.price === null) {
+                    errors.push('Fila ' + (n + 2) + ': para crear un producto nuevo faltan nombre o precio');
+                    return;
+                }
+                row.id = id || uniqueProductId(row.name);
+                byId[row.id] = row;
+                if (!row.cat) row.cat = 'Repuestos';
+                creates.push(row);
+            }
+        });
+        if (errors.length) return toast(errors.slice(0, 3).join(' · '), true);
+        if (!confirm('Se actualizarán ' + updates.length + ' productos y se crearán ' + creates.length + '. ¿Continuar?')) return;
+        try {
+            for (var i = 0; i < updates.length; i++) {
+                var u = updates[i];
+                if (!Object.keys(u.row).length) continue;
+                var res = await api('/rest/v1/products?id=eq.' + encodeURIComponent(u.id), { method: 'PATCH', body: u.row, headers: { Prefer: 'return=representation' } });
+                if (res[0]) Object.assign(byId[u.id], res[0]);
+            }
+            if (creates.length) {
+                creates.forEach(function (c, k) { c.sort = data.products.length + k; c.specs = []; });
+                var created = await api('/rest/v1/products', { method: 'POST', body: creates, headers: { Prefer: 'return=representation' } });
+                data.products = data.products.concat(created);
+            }
+            toast('Importación lista: ' + updates.length + ' actualizados, ' + creates.length + ' nuevos.');
+        } catch (e) {
+            toast('La importación se detuvo: ' + e.message, true);
+        }
+        renderAll();
+    }
+
+    function exportOrders() {
+        downloadCsv('pedidos', ['pedido', 'fecha', 'estado', 'cliente', 'telefono', 'email', 'entrega', 'region', 'comuna', 'direccion',
+            'pago', 'productos', 'subtotal', 'cupon', 'descuento', 'envio', 'total', 'documento', 'rut', 'razon_social', 'n_documento',
+            'empresa_transporte', 'n_seguimiento'], data.orders.map(function (o) {
+            return [o.ref, new Date(o.created_at).toLocaleString('es-CL'), o.status, o.name, o.phone, o.email, o.delivery, o.region, o.commune,
+                o.address, o.payment, (o.items || []).map(function (i) { return i.qty + ' x ' + i.name + (i.option ? ' (' + i.option + ')' : ''); }).join(' | '),
+                o.subtotal, o.coupon, o.discount, o.shipping, o.total, o.doc_type, o.billing ? formatRut(o.billing.rut) : '',
+                o.billing ? o.billing.razon_social : '', o.doc_number, o.courier, o.tracking_number];
+        }));
     }
 
     /* ===== MOTOS ===== */
@@ -1533,6 +1709,8 @@
         $('set-whatsapp').value = data.settings.whatsapp || '';
         $('set-free').value = data.settings.free_shipping_from === undefined ? '' : data.settings.free_shipping_from;
         $('set-announce').value = (data.settings.announce || []).join('\n');
+        $('set-ga4').value = (data.settings.analytics || {}).ga4 || '';
+        $('set-pixel').value = (data.settings.analytics || {}).pixel || '';
 
         var wrap = $('admins-list');
         wrap.textContent = '';
@@ -1567,6 +1745,9 @@
         var announce = $('set-announce').value.split('\n').map(function (l) { return l.trim(); }).filter(Boolean).slice(0, 3);
         if (whatsapp.length < 8) return toast('Escribe un número de WhatsApp válido, con código de país (ej: 56912345678).', true);
         if (isNaN(free) || free < 0) return toast('Escribe un monto válido para el envío gratis.', true);
+        var analytics = { ga4: $('set-ga4').value.trim().toUpperCase(), pixel: $('set-pixel').value.replace(/\D/g, '') };
+        if (analytics.ga4 && !/^G-[A-Z0-9]{4,15}$/.test(analytics.ga4)) return toast('El ID de Google Analytics empieza con G- (ej: G-AB12CD34EF).', true);
+        if (analytics.pixel && !/^\d{6,20}$/.test(analytics.pixel)) return toast('El ID del Meta Pixel son solo números.', true);
         try {
             await api('/rest/v1/settings?on_conflict=key', {
                 method: 'POST',
@@ -1574,12 +1755,14 @@
                 body: [
                     { key: 'whatsapp', value: whatsapp },
                     { key: 'free_shipping_from', value: free },
-                    { key: 'announce', value: announce }
+                    { key: 'announce', value: announce },
+                    { key: 'analytics', value: analytics }
                 ]
             });
             data.settings.whatsapp = whatsapp;
             data.settings.free_shipping_from = free;
             data.settings.announce = announce;
+            data.settings.analytics = analytics;
             toast('Ajustes guardados. La tienda ya los muestra.');
             renderSettings();
         } catch (err) { toast(err.message, true); }
@@ -1673,6 +1856,15 @@
     });
     $('product-new').addEventListener('click', function () { openProduct(null); });
     $('coupon-form').addEventListener('submit', onCouponCreate);
+    $('products-export').addEventListener('click', exportProducts);
+    $('orders-export').addEventListener('click', exportOrders);
+    $('products-import').addEventListener('click', function () { $('products-import-file').click(); });
+    $('products-import-file').addEventListener('change', function () {
+        var f = this.files[0];
+        this.value = '';
+        if (f) importProducts(f);
+    });
+    $('coupon-kind').addEventListener('change', syncCouponKind);
     $('vehicle-form').addEventListener('submit', onVehicleCreate);
     $('settings-form').addEventListener('submit', onSettingsSave);
     $('rates-form').addEventListener('submit', onRatesSave);

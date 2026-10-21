@@ -71,6 +71,7 @@
                 <button type="button" class="admin-tab active" data-tab="resumen">Resumen</button>
                 <button type="button" class="admin-tab" data-tab="pedidos">Pedidos <span class="tab-badge" id="badge-orders" hidden></span></button>
                 <button type="button" class="admin-tab" data-tab="productos">Productos</button>
+                <button type="button" class="admin-tab" data-tab="cotizaciones">Cotizaciones <span class="tab-badge" id="badge-leads" hidden></span></button>
                 <button type="button" class="admin-tab" data-tab="taller">Taller <span class="tab-badge" id="badge-bookings" hidden></span></button>
                 <button type="button" class="admin-tab" data-tab="opiniones">Opiniones <span class="tab-badge" id="badge-reviews" hidden></span></button>
                 <button type="button" class="admin-tab" data-tab="cupones">Cupones</button>
@@ -171,6 +172,19 @@
                 </div>
                 <p class="admin-count" id="products-count"></p>
                 <div id="products-list" class="admin-list"></div>
+            </section>
+
+            <!-- COTIZACIONES -->
+            <section class="admin-panel" id="tab-cotizaciones" hidden>
+                <div class="panel-head">
+                    <div>
+                        <span class="section-tag">Motos</span>
+                        <h1>Cotizaciones</h1>
+                    </div>
+                </div>
+                <p class="admin-help">Solicitudes de financiamiento (desde el simulador de cuotas de cada moto) y de motos en parte de pago.</p>
+                <div class="shop-chips" id="leads-filter" role="group" aria-label="Filtrar cotizaciones"></div>
+                <div id="leads-list" class="admin-list"></div>
             </section>
 
             <!-- TALLER -->
@@ -300,6 +314,24 @@
                         <input id="mp-token" class="admin-input" type="password" autocomplete="off" spellcheck="false" placeholder="APP_USR-...">
                         <label class="check mp-enable"><input type="checkbox" id="mp-enabled"> Activar pago en línea en la tienda</label>
                         <button type="submit" class="btn btn-sm btn-primary">Guardar pagos</button>
+                    </form>
+                    <form class="admin-card admin-form" id="finance-form" novalidate>
+                        <h2>Simulador de cuotas (motos)</h2>
+                        <p class="admin-help">Se muestra en la ficha de cada moto. Es referencial: el cliente envía una solicitud y tú le confirmas con la financiera.</p>
+                        <label class="check"><input type="checkbox" id="fin-enabled"> Mostrar el simulador</label>
+                        <div class="form-grid">
+                            <div>
+                                <label for="fin-rate">Tasa mensual (%)</label>
+                                <input id="fin-rate" class="admin-input" type="number" min="0" max="10" step="0.01">
+                            </div>
+                            <div>
+                                <label for="fin-down">Pie mínimo (%)</label>
+                                <input id="fin-down" class="admin-input" type="number" min="0" max="80" step="5">
+                            </div>
+                        </div>
+                        <label for="fin-terms">Plazos en meses, separados por coma</label>
+                        <input id="fin-terms" class="admin-input" placeholder="12, 24, 36, 48">
+                        <button type="submit" class="btn btn-sm btn-primary">Guardar simulador</button>
                     </form>
                     <form class="admin-card admin-form" id="auto-form" novalidate>
                         <h2>Correos que venden solos</h2>

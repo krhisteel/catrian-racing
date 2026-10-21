@@ -329,6 +329,158 @@
         }, function () { toast('No pudimos recuperar tu carro ahora.'); });
     }
 
+    /* ===== FINANCIAMIENTO Y PARTE DE PAGO (MOTOS) ===== */
+    var FINANCING = { enabled: true, rate: 1.89, min_down: 20, terms: [12, 24, 36, 48] };
+
+    function monthlyPayment(amount, ratePct, months) {
+        var r = ratePct / 100;
+        if (!r) return Math.round(amount / months);
+        return Math.round(amount * r / (1 - Math.pow(1 + r, -months)));
+    }
+
+    function financeBox(p) {
+        var box = el('div', 'finance');
+        box.appendChild(el('p', 'finance-title', 'Simula tus cuotas'));
+        var minDown = Math.max(0, Math.min(90, FINANCING.min_down || 0));
+        var down = Math.max(minDown, 30);
+        var term = FINANCING.terms[Math.min(2, FINANCING.terms.length - 1)];
+        var downLabel = el('label', 'finance-label');
+        var downText = el('span');
+        downLabel.appendChild(downText);
+        var range = el('input');
+        range.type = 'range';
+        range.min = minDown;
+        range.max = 80;
+        range.step = 5;
+        range.value = down;
+        range.setAttribute('aria-label', 'Pie en porcentaje');
+        downLabel.appendChild(range);
+        box.appendChild(downLabel);
+        var terms = el('div', 'finance-terms');
+        terms.setAttribute('role', 'radiogroup');
+        terms.setAttribute('aria-label', 'Plazo');
+        FINANCING.terms.forEach(function (t) {
+            var b = el('button', 'slot', t + ' meses');
+            b.type = 'button';
+            b.setAttribute('role', 'radio');
+            b.addEventListener('click', function () { term = t; update(); });
+            b.dataset.term = t;
+            terms.appendChild(b);
+        });
+        box.appendChild(terms);
+        var result = el('div', 'finance-result');
+        box.appendChild(result);
+        box.appendChild(el('p', 'finance-note', 'Valor referencial con tasa de ' + String(FINANCING.rate).replace('.', ',') +
+            '% mensual. Sujeto a evaluación crediticia; la cuota final y el CAE te los informa la financiera.'));
+        var ask = el('button', 'btn btn-primary btn-block', 'Solicitar evaluación');
+        ask.type = 'button';
+        ask.addEventListener('click', function () {
+            openLead('financiamiento', p, { pie: money(Math.round(p.price * down / 100)) + ' (' + down + '%)', plazo: term + ' meses',
+                cuota: money(monthlyPayment(p.price * (1 - down / 100), FINANCING.rate, term)), precio: money(p.price) });
+        });
+        box.appendChild(ask);
+        range.addEventListener('input', function () { down = Number(range.value); update(); });
+        function update() {
+            var downAmount = Math.round(p.price * down / 100);
+            downText.textContent = 'Pie: ' + down + '% · ' + money(downAmount);
+            terms.querySelectorAll('.slot').forEach(function (b) { b.setAttribute('aria-checked', Number(b.dataset.term) === term ? 'true' : 'false'); });
+            result.textContent = '';
+            result.appendChild(el('span', '', term + ' cuotas de'));
+            result.appendChild(el('strong', '', money(monthlyPayment(p.price - downAmount, FINANCING.rate, term))));
+        }
+        update();
+        return box;
+    }
+
+    var leadState = { kind: '', product: null, details: {} };
+    var leadReturn = '';
+
+    function openLead(kind, p, details) {
+        leadState = { kind: kind, product: p || null, details: details || {} };
+        var modal = $('lead-modal');
+        if (modal.hidden) {
+            leadReturn = /^#vende-tu-moto/.test(location.hash) ? '' : location.hash;
+            lastFocus = document.activeElement;
+            modal.hidden = false;
+            document.body.classList.add('locked');
+        }
+        var finance = kind === 'financiamiento';
+        $('lead-tag').textContent = finance ? 'Financiamiento' : 'Parte de pago';
+        $('lead-title').textContent = finance ? 'Solicita tu evaluación' : 'Entrega tu moto en parte de pago';
+        $('lead-summary').textContent = finance
+            ? (p ? p.name + ' · ' : '') + 'Pie ' + details.pie + ' · ' + details.plazo + ' · cuota aprox. ' + details.cuota
+            : 'Cuéntanos de tu moto y te enviamos una tasación' + (p ? ' para cambiarla por la ' + p.name : '') + '. Luego te pediremos fotos por WhatsApp.';
+        $('lead-trade').hidden = finance;
+        $('lead-form').hidden = false;
+        $('lead-done').hidden = true;
+        $('lead-error').textContent = '';
+        var contact = savedContact();
+        if (!$('lead-email').value && contact.email) $('lead-email').value = contact.email;
+        if (!$('lead-name').value && contact.name) $('lead-name').value = contact.name;
+        if (!finance && state.vehicle && !$('lead-marca').value) {
+            var v = vehicleById[state.vehicle];
+            if (v) { $('lead-marca').value = v.brand; $('lead-modelo').value = v.model; }
+        }
+        (finance ? $('lead-name') : $('lead-marca')).focus();
+    }
+
+    function closeLead() {
+        var modal = $('lead-modal');
+        if (modal.hidden) return;
+        modal.hidden = true;
+        if (!$('cart').classList.contains('open') && $('product-modal').hidden && $('track-modal').hidden) document.body.classList.remove('locked');
+        if (/^#vende-tu-moto/.test(location.hash)) history.replaceState(null, '', leadReturn || location.pathname + location.search);
+        leadReturn = '';
+        if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+    }
+
+    function submitLead(e) {
+        e.preventDefault();
+        var error = $('lead-error');
+        var details = Object.assign({}, leadState.details);
+        var name = $('lead-name').value.trim();
+        var phone = $('lead-phone').value.trim();
+        if (leadState.kind === 'parte_pago') {
+            details.marca = $('lead-marca').value.trim();
+            details.modelo = $('lead-modelo').value.trim();
+            details.anio = $('lead-anio').value;
+            details.km = $('lead-km').value;
+            details.estado = $('lead-estado').value;
+            details.valor_esperado = $('lead-valor').value.replace(/\D/g, '') ? money(Number($('lead-valor').value.replace(/\D/g, ''))) : '';
+            if (!details.marca || !details.modelo) { error.textContent = 'Cuéntanos la marca y el modelo de tu moto.'; return $(details.marca ? 'lead-modelo' : 'lead-marca').focus(); }
+        }
+        if ($('lead-comment').value.trim()) details.comentario = $('lead-comment').value.trim();
+        if (!name) { error.textContent = 'Escribe tu nombre.'; return $('lead-name').focus(); }
+        if (phone.replace(/\D/g, '').length < 8) { error.textContent = 'Escribe un teléfono válido.'; return $('lead-phone').focus(); }
+        error.textContent = '';
+        var submit = $('lead-submit');
+        submit.disabled = true;
+        rpc('create_lead', {
+            p_kind: leadState.kind, p_product: leadState.product ? leadState.product.id : null, p_name: name, p_phone: phone,
+            p_email: $('lead-email').value.trim() || null, p_details: details
+        }).then(function (ref) {
+            var done = $('lead-done');
+            done.textContent = '';
+            done.appendChild(el('p', 'done-ref', '¡Solicitud enviada!'));
+            var info = el('p', '');
+            info.appendChild(document.createTextNode('Tu número de solicitud es '));
+            info.appendChild(el('strong', '', ref));
+            info.appendChild(document.createTextNode('. Te contactaremos dentro del día hábil.'));
+            done.appendChild(info);
+            var text = leadState.kind === 'financiamiento'
+                ? 'Hola Catrian Racing! Envié una solicitud de financiamiento (' + ref + ')' + (leadState.product ? ' para la ' + leadState.product.name : '') + '.'
+                : 'Hola Catrian Racing! Quiero entregar mi ' + details.marca + ' ' + details.modelo + ' en parte de pago (' + ref + '). Te envío fotos:';
+            done.appendChild(externalLink('btn btn-primary', leadState.kind === 'financiamiento' ? 'Avisar por WhatsApp' : 'Enviar fotos por WhatsApp', waUrl(text)));
+            $('lead-form').hidden = true;
+            done.hidden = false;
+            $('lead-comment').value = '';
+            if (window.gtag) window.gtag('event', 'generate_lead', { method: leadState.kind });
+            if (window.fbq) window.fbq('track', 'Lead');
+        }, function (err) {
+            error.textContent = err && err.message ? err.message : 'No pudimos enviar tu solicitud. Intenta de nuevo o escríbenos por WhatsApp.';
+        }).then(function () { submit.disabled = false; });
+    }
+
     /* ===== AVÍSAME CUANDO LLEGUE ===== */
     function notifyForm(p, outOptions) {
         var form = el('form', 'notify-form');
@@ -1465,6 +1617,12 @@
     }
 
     function route() {
+        if (/^#vende-tu-moto$/.test(location.hash)) {
+            if (!$('product-modal').hidden) closeModal(true);
+            openLead('parte_pago', null);
+            return;
+        }
+        if (!$('lead-modal').hidden) closeLead();
         var cm = /^#carro\/([A-Za-z0-9_-]{16,64})$/.exec(location.hash);
         if (cm) {
             history.replaceState(null, '', location.pathname + location.search);
@@ -1920,6 +2078,13 @@
         if (p.quote) {
             buy.appendChild(externalLink('btn btn-primary btn-block', 'Cotizar por WhatsApp', quoteUrl(p)));
             bar.appendChild(externalLink('btn btn-primary btn-sm', 'Cotizar', quoteUrl(p)));
+            if (p.cat === 'Motos') {
+                if (FINANCING.enabled && p.price > 0) buy.appendChild(financeBox(p));
+                var trade = el('button', 'btn btn-ghost btn-block', '¿Tienes moto? Entrégala en parte de pago');
+                trade.type = 'button';
+                trade.addEventListener('click', function () { openLead('parte_pago', p); });
+                buy.appendChild(trade);
+            }
         } else if (soldOut(p)) {
             var nf = notifyForm(p, p.options ? p.options.values : []);
             buy.appendChild(nf);
@@ -2823,6 +2988,7 @@
             if (row.key === 'shipping_rates' && row.value && typeof row.value === 'object') SHIPPING_RATES = row.value;
             if (row.key === 'payments' && row.value) MP_ENABLED = !!row.value.mp_enabled;
             if (row.key === 'analytics' && row.value) loadAnalytics(row.value);
+            if (row.key === 'financing' && row.value && Array.isArray(row.value.terms) && row.value.terms.length) FINANCING = row.value;
             if (row.key === 'announce' && Array.isArray(row.value)) {
                 var bar = document.querySelector('.announce');
                 if (bar) {
@@ -2977,7 +3143,8 @@
             return;
         }
         if (e.key !== 'Escape') return;
-        if (!$('book-modal').hidden) closeBooking();
+        if (!$('lead-modal').hidden) closeLead();
+        else if (!$('book-modal').hidden) closeBooking();
         else if (!$('track-modal').hidden) closeTracking();
         else if (modalOpen) closeModal();
         else if ($('cart').classList.contains('open')) closeCart();
@@ -2985,6 +3152,11 @@
 
     $('track-form').addEventListener('submit', searchTracking);
     $('book-form').addEventListener('submit', submitBooking);
+    $('lead-form').addEventListener('submit', submitLead);
+    $('lead-close').addEventListener('click', closeLead);
+    $('lead-modal').addEventListener('click', function (e) {
+        if (e.target === this) closeLead();
+    });
     $('book-day').addEventListener('change', loadSlots);
     $('book-close').addEventListener('click', closeBooking);
     $('book-modal').addEventListener('click', function (e) {

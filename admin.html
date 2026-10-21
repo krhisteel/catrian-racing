@@ -213,6 +213,15 @@
                         <textarea id="set-announce" class="admin-input" rows="3"></textarea>
                         <button type="submit" class="btn btn-sm btn-primary">Guardar ajustes</button>
                     </form>
+                    <form class="admin-card admin-form" id="mp-form" novalidate>
+                        <h2>Pagos con tarjeta (Mercado Pago)</h2>
+                        <p class="admin-help">Con esto el cliente paga con débito, crédito o prepago al finalizar la compra, y el pedido pasa solo a «Pagado». Copia tu <strong>Access Token de producción</strong> desde Mercado Pago → Tu negocio → Configuración → Credenciales (o «Tus integraciones» → Credenciales de producción).</p>
+                        <p class="mp-state" id="mp-state"></p>
+                        <label for="mp-token">Access Token</label>
+                        <input id="mp-token" class="admin-input" type="password" autocomplete="off" spellcheck="false" placeholder="APP_USR-...">
+                        <label class="check mp-enable"><input type="checkbox" id="mp-enabled"> Activar pago en línea en la tienda</label>
+                        <button type="submit" class="btn btn-sm btn-primary">Guardar pagos</button>
+                    </form>
                     <form class="admin-card admin-form rates-card" id="rates-form" novalidate>
                         <h2>Tarifas de envío por región</h2>
                         <p class="admin-help">El cliente ve el costo exacto en el carro según su región. Deja vacía una región para que el envío quede «a cotizar». Sobre el monto de envío gratis, el despacho no se cobra.</p>

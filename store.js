@@ -1,6 +1,7 @@
 (function () {
     var WHATSAPP = '56936621284';
     var FREE_SHIPPING_FROM = 100000;
+    var MP_ENABLED = false; // Pago con tarjeta en línea (Mercado Pago), se activa en el panel.
     // Tarifas de envío por región (se administran en Ajustes del panel).
     var SHIPPING_RATES = {
         'Arica y Parinacota': 7990, 'Tarapacá': 7990, 'Antofagasta': 7990, 'Atacama': 6490, 'Coquimbo': 6490,
@@ -820,6 +821,7 @@
 
     /* ===== SEGUIMIENTO DEL PEDIDO ===== */
     var ORDERS_KEY = 'catrian-orders';
+    var paymentResult = '';
     var trackReturn = '';
     var trackTimer = null;
     var STATUS_TEXT = {
@@ -1001,6 +1003,17 @@
         result.textContent = '';
         var pickup = o.delivery === 'retiro';
 
+        if (paymentResult) {
+            var msg = {
+                approved: ['ok', '¡Pago aprobado! Tu pedido quedó pagado y lo estamos preparando.'],
+                in_process: ['wait', 'Tu pago está en revisión. Te avisaremos cuando se confirme.'],
+                pending: ['wait', 'Tu pago está pendiente. Cuando se confirme, el pedido pasará a «Pagado».'],
+                rejected: ['bad', 'El pago fue rechazado. Puedes intentarlo de nuevo con otra tarjeta.']
+            }[paymentResult];
+            if (msg) result.appendChild(el('p', 'pay-result ' + msg[0], msg[1]));
+            paymentResult = '';
+        }
+
         var head = el('div', 'track-head');
         var title = el('div');
         title.appendChild(el('strong', '', 'Pedido ' + o.ref));
@@ -1086,11 +1099,34 @@
         var updated = el('p', 'track-updated', 'Actualizado a las ' + new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) + ' · se actualiza solo mientras esta ventana esté abierta');
         result.appendChild(updated);
 
+        var savedOrder = myOrders().filter(function (m) { return m.ref === o.ref; })[0];
+        var phoneForPay = (savedOrder && savedOrder.phone) || $('track-phone').value.replace(/\D/g, '').slice(-4);
+        if (MP_ENABLED && /tarjeta/i.test(o.payment || '') && (o.status === 'nuevo' || o.status === 'confirmado') && !o.shipping_pending && phoneForPay) {
+            var payBtn = el('button', 'btn btn-primary btn-block pay-now', 'Pagar ahora con tarjeta');
+            payBtn.type = 'button';
+            payBtn.addEventListener('click', function () { startOnlinePayment(o.ref, phoneForPay, payBtn); });
+            result.insertBefore(payBtn, result.querySelector('.track-steps') || null);
+        }
+
         result.appendChild(externalLink('btn btn-ghost btn-sm track-help', '¿Dudas? Escríbenos por WhatsApp',
             waUrl('Hola Catrian Racing! Tengo una consulta sobre mi pedido ' + o.ref + '.')));
     }
 
     function route() {
+        var pm = /^#pago\/(.+)$/.exec(location.hash);
+        if (pm) {
+            var payRef = decodeURIComponent(pm[1]).toUpperCase();
+            var known = myOrders().filter(function (o) { return o.ref === payRef; })[0];
+            history.replaceState(null, '', '#seguimiento/' + payRef);
+            openTracking(payRef);
+            if (known) {
+                rpc('mp_check_payment', { p_ref: payRef, p_phone: known.phone }).then(function (status) {
+                    paymentResult = status;
+                    searchTracking(null, true);
+                }, function () { /* se verá en la próxima actualización */ });
+            }
+            return;
+        }
         var tm = /^#seguimiento(?:\/(.+))?$/.exec(location.hash);
         if (tm) {
             if (!$('product-modal').hidden) closeModal(true);
@@ -1783,6 +1819,22 @@
             form.querySelector('input[name="payment"][value="' + CARD_PAYMENT + '"]').checked = true;
         }
         $('pay-note').hidden = !shipping;
+        $('pay-card-text').textContent = MP_ENABLED ? 'Débito, crédito o prepago' : 'Débito o crédito';
+        $('pay-card-note').textContent = MP_ENABLED ? 'Pago en línea · Mercado Pago' : 'Link de pago';
+        $('pay-note').textContent = MP_ENABLED
+            ? 'El despacho a domicilio se paga solo con tarjeta: pagas en línea de forma segura con Mercado Pago.'
+            : 'El despacho a domicilio se paga solo con tarjeta de débito o crédito: te enviamos un link de pago seguro.';
+        var submit = form.querySelector('button[type="submit"]');
+        if (!submit.disabled) submit.textContent = submitLabel();
+    }
+
+    function paysOnline() {
+        var form = $('checkout-view');
+        return MP_ENABLED && form.payment.value === CARD_PAYMENT && shippingCost() !== null;
+    }
+
+    function submitLabel() {
+        return paysOnline() ? 'Pagar con Mercado Pago' : 'Enviar pedido por WhatsApp';
     }
 
     function showView(name) {
@@ -1846,10 +1898,11 @@
             notes: form.notes.value.trim()
         };
 
-        // Se abre la pestaña ahora (con el clic) para que el navegador no la bloquee.
-        var win = window.open('', '_blank');
+        var online = paysOnline();
+        // Se abre la pestaña de WhatsApp ahora (con el clic) para que el navegador no la bloquee.
+        var win = online ? null : window.open('', '_blank');
         submit.disabled = true;
-        submit.textContent = 'Enviando pedido...';
+        submit.textContent = online ? 'Preparando el pago...' : 'Enviando pedido...';
 
         rpc('place_order', {
             p_items: cart.map(function (line) { return { id: line.id, option: line.option, qty: line.qty }; }),
@@ -1857,7 +1910,8 @@
             p_region: data.region, p_commune: data.commune, p_address: data.address,
             p_payment: data.payment, p_notes: data.notes, p_coupon: state.coupon || ''
         }).then(function (order) {
-            finishOrder(win, data, order);
+            if (online) payOnline(data, order);
+            else finishOrder(win, data, order);
         }, function (err) {
             if (err && err.status === 400) {
                 if (win) win.close();
@@ -1884,9 +1938,41 @@
         });
     }
 
+    // Pago en línea: el pedido ya quedó guardado; se lleva al cliente a Mercado Pago.
+    function payOnline(data, order) {
+        var phone4 = data.phone.replace(/\D/g, '').slice(-4);
+        rememberOrder(order.ref, phone4, 'nuevo');
+        rpc('mp_create_payment', { p_ref: order.ref, p_phone: phone4, p_return_url: location.href.split('#')[0] }).then(function (url) {
+            if (!url || !/^https:\/\//.test(url)) throw new Error('sin enlace');
+            cart = [];
+            saveCart();
+            location.href = url;
+        }).catch(function () {
+            // Si Mercado Pago no responde, el pedido sigue por WhatsApp con link de pago manual.
+            finishOrder(null, data, order);
+            toast('No pudimos abrir el pago en línea. Te enviaremos el link de pago por WhatsApp.');
+        });
+    }
+
+    function startOnlinePayment(ref, phone4, button) {
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Abriendo Mercado Pago...';
+        }
+        rpc('mp_create_payment', { p_ref: ref, p_phone: phone4, p_return_url: location.href.split('#')[0] }).then(function (url) {
+            if (url && /^https:\/\//.test(url)) location.href = url;
+        }, function (err) {
+            toast(err && err.message ? err.message : 'No pudimos abrir el pago. Intenta en unos minutos.');
+            if (button) {
+                button.disabled = false;
+                button.textContent = 'Pagar ahora con tarjeta';
+            }
+        });
+    }
+
     function resetSubmit(submit) {
         submit.disabled = false;
-        submit.textContent = 'Enviar pedido por WhatsApp';
+        submit.textContent = submitLabel();
     }
 
     function finishOrder(win, data, order) {
@@ -1982,6 +2068,7 @@
             if (row.key === 'whatsapp' && row.value) WHATSAPP = String(row.value).replace(/\D/g, '');
             if (row.key === 'free_shipping_from' && row.value >= 0) FREE_SHIPPING_FROM = Number(row.value);
             if (row.key === 'shipping_rates' && row.value && typeof row.value === 'object') SHIPPING_RATES = row.value;
+            if (row.key === 'payments' && row.value) MP_ENABLED = !!row.value.mp_enabled;
             if (row.key === 'announce' && Array.isArray(row.value)) {
                 var bar = document.querySelector('.announce');
                 if (bar) {

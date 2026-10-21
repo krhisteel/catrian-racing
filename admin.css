@@ -1091,3 +1091,24 @@ select.status-select.status-cancelado {
 .rates-grid .form-field label {
     margin-top: 10px;
 }
+
+/* ===== PAGOS ===== */
+.mp-state {
+    margin: 4px 0 2px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.mp-state.on {
+    color: var(--ok);
+}
+
+.mp-state.off {
+    color: var(--muted);
+}
+
+.admin-form .check.mp-enable {
+    display: flex;
+    margin-top: 14px;
+    color: var(--text);
+}

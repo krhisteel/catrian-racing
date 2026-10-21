@@ -71,6 +71,7 @@
                 <button type="button" class="admin-tab active" data-tab="resumen">Resumen</button>
                 <button type="button" class="admin-tab" data-tab="pedidos">Pedidos <span class="tab-badge" id="badge-orders" hidden></span></button>
                 <button type="button" class="admin-tab" data-tab="productos">Productos</button>
+                <button type="button" class="admin-tab" data-tab="taller">Taller <span class="tab-badge" id="badge-bookings" hidden></span></button>
                 <button type="button" class="admin-tab" data-tab="opiniones">Opiniones <span class="tab-badge" id="badge-reviews" hidden></span></button>
                 <button type="button" class="admin-tab" data-tab="cupones">Cupones</button>
                 <button type="button" class="admin-tab" data-tab="motos">Motos</button>
@@ -170,6 +171,19 @@
                 </div>
                 <p class="admin-count" id="products-count"></p>
                 <div id="products-list" class="admin-list"></div>
+            </section>
+
+            <!-- TALLER -->
+            <section class="admin-panel" id="tab-taller" hidden>
+                <div class="panel-head">
+                    <div>
+                        <span class="section-tag">Servicios</span>
+                        <h1>Agenda del taller</h1>
+                    </div>
+                </div>
+                <p class="admin-help">Los clientes reservan desde la tienda (botón «Agendar hora» en la sección Taller). Hay 2 cupos por horario: de lunes a viernes 9:00, 10:30, 12:00, 14:30, 16:00 y 17:30, y sábados 10:00, 11:30 y 13:00. Al cancelar una reserva, el cupo se libera.</p>
+                <div class="shop-chips" id="bookings-filter" role="group" aria-label="Filtrar reservas"></div>
+                <div id="bookings-list" class="admin-list"></div>
             </section>
 
             <!-- OPINIONES -->

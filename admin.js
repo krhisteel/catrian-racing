@@ -364,6 +364,7 @@
             loadPaymentConfig();
             loadEmailConfig();
             loadReviews();
+            loadBookings();
         } catch (e) {
             toast(e.message, true);
         }
@@ -1566,6 +1567,92 @@
         } catch (err) {
             toast(err.status === 409 ? 'Ya existe un cupón con ese código.' : err.message, true);
         }
+    }
+
+    /* ===== TALLER ===== */
+    var bookingFilter = 'proximas';
+    var BOOKING_STATES = [['pendiente', 'Pendiente'], ['confirmada', 'Confirmada'], ['completada', 'Completada'], ['cancelada', 'Cancelada']];
+
+    async function loadBookings() {
+        try {
+            data.bookings = await api('/rest/v1/bookings?select=*&order=day.desc,slot.asc&limit=500');
+        } catch (e) {
+            data.bookings = [];
+        }
+        renderBookings();
+    }
+
+    function todayIso() {
+        var d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    function renderBookings() {
+        var list = data.bookings || [];
+        var today = todayIso();
+        var pending = list.filter(function (b) { return b.status === 'pendiente' && b.day >= today; }).length;
+        var badge = $('badge-bookings');
+        badge.hidden = !pending;
+        badge.textContent = pending;
+
+        var filters = [
+            ['proximas', 'Próximas', function (b) { return b.day >= today && b.status !== 'cancelada'; }],
+            ['pendiente', 'Por confirmar', function (b) { return b.status === 'pendiente' && b.day >= today; }],
+            ['pasadas', 'Pasadas', function (b) { return b.day < today; }],
+            ['cancelada', 'Canceladas', function (b) { return b.status === 'cancelada'; }]
+        ];
+        var chips = $('bookings-filter');
+        chips.textContent = '';
+        filters.forEach(function (f) {
+            chips.appendChild(button(f[1] + ' (' + list.filter(f[2]).length + ')', 'chip' + (bookingFilter === f[0] ? ' active' : ''), function () {
+                bookingFilter = f[0];
+                renderBookings();
+            }));
+        });
+        var active = filters.filter(function (f) { return f[0] === bookingFilter; })[0];
+        var shown = list.filter(active[2]);
+        if (bookingFilter !== 'pasadas') shown.sort(function (a, b) { return (a.day + a.slot).localeCompare(b.day + b.slot); });
+
+        var wrap = $('bookings-list');
+        wrap.textContent = '';
+        if (!shown.length) wrap.appendChild(el('p', 'admin-empty', 'No hay reservas aquí.'));
+        var lastDay = '';
+        shown.forEach(function (b) {
+            if (b.day !== lastDay) {
+                lastDay = b.day;
+                var dayName = new Date(b.day + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+                wrap.appendChild(el('h3', 'booking-day', (b.day === today ? 'Hoy · ' : '') + dayName));
+            }
+            var row = el('div', 'admin-row' + (b.status === 'cancelada' ? ' inactive' : ''));
+            var main = el('div', 'row-main static');
+            var title = el('span', 'row-title');
+            title.appendChild(el('strong', '', b.slot + ' · ' + b.service));
+            title.appendChild(el('span', 'row-sub', b.name + ' · ' + b.phone + ' · ' + b.vehicle + ' · ' + b.ref));
+            if (b.notes) title.appendChild(el('span', 'review-body', b.notes));
+            main.appendChild(title);
+            row.appendChild(main);
+            var controls = el('div', 'row-controls');
+            var status = select(BOOKING_STATES, b.status);
+            status.className = 'admin-input status-select';
+            status.setAttribute('aria-label', 'Estado de la reserva ' + b.ref);
+            status.addEventListener('change', async function () {
+                try {
+                    await api('/rest/v1/bookings?id=eq.' + encodeURIComponent(b.id), { method: 'PATCH', body: { status: status.value } });
+                    b.status = status.value;
+                    toast('Reserva ' + b.ref + ': ' + status.options[status.selectedIndex].text.toLowerCase());
+                    renderBookings();
+                } catch (e) { toast(e.message, true); status.value = b.status; }
+            });
+            controls.appendChild(status);
+            var when = new Date(b.day + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+            var wa = el('a', 'btn btn-sm btn-ghost', 'WhatsApp');
+            wa.href = 'https://wa.me/' + waPhone(b.phone) + '?text=' + encodeURIComponent('Hola ' + b.name + ', te escribimos de Catrian Racing. Confirmamos tu hora en el taller (' + b.ref + '): ' + b.service + ' el ' + when + ' a las ' + b.slot + '. ¡Te esperamos!');
+            wa.target = '_blank';
+            wa.rel = 'noopener';
+            controls.appendChild(wa);
+            row.appendChild(controls);
+            wrap.appendChild(row);
+        });
     }
 
     /* ===== OPINIONES ===== */

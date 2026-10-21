@@ -1372,3 +1372,17 @@ button.stock-pill {
 .admin-cols > * {
     min-width: 0;
 }
+
+/* ===== TALLER ===== */
+.booking-day {
+    margin: 18px 0 6px;
+    font-family: var(--font-head);
+    font-size: 15px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+}
+
+.booking-day:first-child {
+    margin-top: 0;
+}
